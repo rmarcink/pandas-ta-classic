@@ -33,10 +33,10 @@ def stdev(
 
         stdev = STDDEV(close, length)
     else:
-        var = variance(close=close, length=length, ddof=ddof, talib=False)
-        if var is None:
+        _variance = variance(close=close, length=length, ddof=ddof, talib=False)
+        if _variance is None:
             return None
-        stdev = npsqrt(var)
+        stdev = npsqrt(_variance)
 
     # Offset
     if offset != 0:
@@ -78,7 +78,7 @@ Args:
     length (int): It's period. Default: 30
     ddof (int): Delta Degrees of Freedom.
                 The divisor used in calculations is N - ddof,
-                where N represents the number of elements. Default: 1
+                where N represents the number of elements. Default: 0
     talib (bool): If TA Lib is installed and talib is True, Returns the TA Lib
         version. Default: True
     offset (int): How many periods to offset the result. Default: 0

@@ -37,6 +37,8 @@ def qqe(
 
     # Calculate Result
     rsi_ = rsi(close, length)
+    if rsi_ is None:
+        return None
     _mode = mamode.lower()[0] if mamode != "ema" else ""
     rsi_ma = ma(mamode, rsi_, length=smooth)
     if rsi_ma is None:
@@ -50,10 +52,10 @@ def qqe(
     smoothed_rsi_tr_ma = ma("ema", rsi_ma_tr, length=wilders_length)
     if smoothed_rsi_tr_ma is None:
         return None
-    _dar_ma = ma("ema", smoothed_rsi_tr_ma, length=wilders_length)
-    if _dar_ma is None:
+    _dar_ema = ma("ema", smoothed_rsi_tr_ma, length=wilders_length)
+    if _dar_ema is None:
         return None
-    dar = factor * _dar_ma
+    dar = factor * _dar_ema
 
     # Create the Upper and Lower Bands around RSI MA.
     upperband = rsi_ma + dar

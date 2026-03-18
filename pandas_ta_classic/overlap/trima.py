@@ -34,7 +34,11 @@ def trima(
         first_window = ceil(length / 2)
         second_window = floor(length / 2) + 1
         sma1 = sma(close, length=first_window)
+        if sma1 is None:
+            return None
         trima = sma(sma1, length=second_window)
+        if trima is None:
+            return None
 
     # Offset
     if offset != 0:

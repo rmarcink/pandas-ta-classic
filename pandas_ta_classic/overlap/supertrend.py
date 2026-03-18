@@ -60,7 +60,10 @@ def supertrend(
     m = close.size
 
     hl2_ = hl2(high, low)
-    matr = multiplier * atr(high, low, close, length)
+    _atr = atr(high, low, close, length)
+    if _atr is None:
+        return None
+    matr = multiplier * _atr
     upperband = hl2_ + matr
     lowerband = hl2_ - matr
 

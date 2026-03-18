@@ -38,9 +38,15 @@ def cmo(
         positive = mom.clip(lower=0)
         negative = mom.clip(upper=0).abs()
 
-        # Use RMA (Wilder smoothing) to match TA-Lib's CMO algorithm.
-        pos_ = rma(positive, length)
-        neg_ = rma(negative, length)
+        if mode_tal:
+            # Use RMA (Wilder smoothing) to match TA-Lib's CMO algorithm.
+            pos_ = rma(positive, length)
+            neg_ = rma(negative, length)
+            if pos_ is None or neg_ is None:
+                return None
+        else:
+            pos_ = positive.rolling(length).sum()
+            neg_ = negative.rolling(length).sum()
 
         cmo = scalar * (pos_ - neg_) / (pos_ + neg_)
 

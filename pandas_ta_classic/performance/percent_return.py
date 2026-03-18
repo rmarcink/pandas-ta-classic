@@ -64,7 +64,7 @@ Sources:
 Calculation:
     Default Inputs:
         length=1, cumulative=False
-    PCTRET = close.pct_change(length)
+    PCTRET = close / close.shift(length) - 1
     CUMPCTRET = PCTRET.cumsum() if cumulative
 
 Args:

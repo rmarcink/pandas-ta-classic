@@ -5,13 +5,13 @@ import logging
 import os
 from collections.abc import Sequence
 from typing import Any, Optional, Union
-
-logger = logging.getLogger(__name__)
 from pandas import Series, DataFrame
 
 from . import cdl_doji, cdl_inside
 from pandas_ta_classic.utils import get_offset, verify_series
 from pandas_ta_classic import Imports
+
+logger = logging.getLogger(__name__)
 
 ALL_PATTERNS = [
     "2crows",

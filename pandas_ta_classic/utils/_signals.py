@@ -6,8 +6,9 @@ from pandas import DataFrame, Series
 
 from ._core import get_offset, verify_series
 
-logger = logging.getLogger(__name__)
 from ._math import zero
+
+logger = logging.getLogger(__name__)
 
 
 def _above_below(
@@ -17,13 +18,17 @@ def _above_below(
     asint: bool = True,
     offset: Optional[int] = None,
     **kwargs: Any,
-) -> Series:
+) -> Optional[Series]:
     series_a = verify_series(series_a)
     series_b = verify_series(series_b)
+
+    if series_a is None or series_b is None:
+        return None
+
     offset = get_offset(offset)
 
-    series_a.apply(zero)
-    series_b.apply(zero)
+    series_a = series_a.apply(zero)
+    series_b = series_b.apply(zero)
 
     # Calculate Result
     if above:
@@ -115,7 +120,7 @@ def cross_value(
     asint: bool = True,
     offset: Optional[int] = None,
     **kwargs: Any,
-) -> Series:
+) -> Optional[Series]:
     series_a = verify_series(series_a)
     if series_a is None:
         return None
@@ -131,13 +136,17 @@ def cross(
     asint: bool = True,
     offset: Optional[int] = None,
     **kwargs: Any,
-) -> Series:
+) -> Optional[Series]:
     series_a = verify_series(series_a)
     series_b = verify_series(series_b)
+
+    if series_a is None or series_b is None:
+        return None
+
     offset = get_offset(offset)
 
-    series_a.apply(zero)
-    series_b.apply(zero)
+    series_a = series_a.apply(zero)
+    series_b = series_b.apply(zero)
 
     # Calculate Result
     current = series_a > series_b  # current is above
