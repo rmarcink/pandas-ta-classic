@@ -53,6 +53,19 @@ class TestVolatility(TestCase):
         self.assertIsInstance(result, DataFrame)
         self.assertEqual(result.name, "ABER_5_15")
 
+    def test_cvi(self):
+        result = pandas_ta.cvi(self.high, self.low)
+        self.assertIsInstance(result, Series)
+        self.assertEqual(result.name, "CVI_10")
+        self.assertIsNone(pandas_ta.cvi(None, self.low))
+        self.assertIsNone(pandas_ta.cvi(self.high, None))
+
+    def test_hvol(self):
+        result = pandas_ta.hvol(self.close)
+        self.assertIsInstance(result, Series)
+        self.assertEqual(result.name, "HVOL_20")
+        self.assertIsNone(pandas_ta.hvol(None))
+
     def test_accbands(self):
         result = pandas_ta.accbands(self.high, self.low, self.close)
         self.assertIsInstance(result, DataFrame)
@@ -126,6 +139,13 @@ class TestVolatility(TestCase):
         result = pandas_ta.bbands(self.close, ddof=1)
         self.assertIsInstance(result, DataFrame)
         self.assertEqual(result.name, "BBANDS_5_2.0")
+
+    def test_ce(self):
+        result = pandas_ta.ce(self.high, self.low, self.close)
+        self.assertIsInstance(result, DataFrame)
+        self.assertEqual(result.name, "CE_22_3.0")
+        self.assertIn("CE_L_22_3.0", result.columns)
+        self.assertIn("CE_S_22_3.0", result.columns)
 
     def test_donchian(self):
         result = pandas_ta.donchian(self.high, self.low)

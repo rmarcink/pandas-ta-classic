@@ -1,7 +1,7 @@
 Pandas TA Classic Documentation
 ===============================
 
-**Pandas TA Classic** is an easy to use library that leverages the Pandas package with **150 indicators and utility functions** plus **62 TA-Lib candlestick patterns** (212 total). This is the **community maintained version** of the popular pandas-ta library.
+**Pandas TA Classic** is an easy to use library that leverages the Pandas package with **192 indicators and utility functions** plus **62 native candlestick patterns** (**252 unique total**; ``cdl_doji`` and ``cdl_inside`` are counted in both sets). All CDL patterns are natively implemented — no TA-Lib required. This is the **community maintained version** of the popular pandas-ta library.
 
 .. note::
    The library features **dynamic configuration management**:
@@ -25,21 +25,7 @@ Pandas TA Classic Documentation
 Quick Start
 -----------
 
-**Pandas TA Classic** supports both modern ``uv`` and traditional ``pip`` package managers.
-
-Using ``uv`` (recommended - faster):
-
-.. code-block:: bash
-
-   uv pip install pandas-ta-classic
-
-Using ``pip``:
-
-.. code-block:: bash
-
-   pip install pandas-ta-classic
-
-Basic usage:
+**Pandas TA Classic** is simple to use — import the library and start calculating indicators directly on your DataFrame:
 
 .. code-block:: python
 
@@ -55,7 +41,7 @@ Basic usage:
    df.ta.macd(append=True)
 
 .. note::
-   **New to Pandas TA Classic?** Check out our :doc:`quickstart` guide for a comprehensive introduction, or explore the :doc:`usage` guide for detailed programming conventions.
+   **New to Pandas TA Classic?** Check out our :doc:`quickstart` guide for a comprehensive introduction, or explore the :doc:`dataframe_api` guide for detailed programming conventions.
 
 Table of Contents
 -----------------
@@ -64,9 +50,9 @@ Table of Contents
    :maxdepth: 2
    :caption: Getting Started:
 
-   quickstart
    installation
-   usage
+   quickstart
+   tutorials
 
 .. toctree::
    :maxdepth: 2

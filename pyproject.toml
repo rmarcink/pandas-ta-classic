@@ -48,8 +48,26 @@ optional = [
     "scikit-learn",
     "statsmodels",
     "stochastic",
-    "talib",
     "tqdm",
+]
+
+# External oracle libraries for parity tests
+oracle = [
+    "ta-lib",
+    "tulipy",
+]
+
+# CI code quality tools
+lint = [
+    "ruff>=0.6.0",
+    "black>=23.0.0",
+]
+
+# PyPI publishing tools
+publish = [
+    "build>=0.10.0",
+    "twine>=4.0.0",
+    "setuptools-scm>=7.0.0",
 ]
 
 # Development tools (code quality, linting, building)
@@ -59,16 +77,14 @@ dev = [
     
     # Include documentation dependencies  
     "pandas-ta-classic[docs]",
+
+    # Include lint and publish tools
+    "pandas-ta-classic[lint]",
+    "pandas-ta-classic[publish]",
     
     # Type checking and linting
     "mypy>=1.0.0",
-    "black>=23.0.0",
-    "flake8>=6.0.0", 
     "isort>=5.0.0",
-    
-    # Build tools
-    "build>=0.10.0",
-    "twine>=4.0.0",
     
     # Pre-commit hooks
     "pre-commit>=3.0.0",
@@ -107,7 +123,7 @@ integration = [
 
 # Complete environment with all features
 all = [
-    "pandas-ta-classic[optional,dev,test,docs,performance,integration]"
+    "pandas-ta-classic[optional,oracle,dev,test,docs,performance,integration]"
 ]
 
 [project.urls]
@@ -115,6 +131,14 @@ Homepage = "https://github.com/xgboosted/pandas-ta-classic"
 Repository = "https://github.com/xgboosted/pandas-ta-classic.git"
 Documentation = "https://xgboosted.github.io/pandas-ta-classic/"
 "Bug Tracker" = "https://github.com/xgboosted/pandas-ta-classic/issues"
+
+[tool.pytest.ini_options]
+markers = [
+    "regression: snapshot regression tests — run with -m regression",
+]
+
+[tool.ruff]
+line-length = 127
 
 [tool.setuptools]
 packages = [
@@ -131,9 +155,6 @@ packages = [
     "pandas_ta_classic.volatility",
     "pandas_ta_classic.volume"
 ]
-
-[tool.setuptools.package-data]
-"*" = ["data/*.csv"]
 
 [tool.setuptools_scm]
 # Automatically determine version from git tags
