@@ -205,6 +205,49 @@ class TestAccessorTimeRange(TestCase):
         self.assertGreater(val, 0)
 
 
+class TestAccessorSettablePropertiesPersist(TestCase):
+    """Assignments to df.ta.<property> must survive the next df.ta access.
+
+    pandas 3 dropped accessor caching, so ``df.ta`` builds a fresh
+    AnalysisIndicators every time.  State kept on the instance is discarded
+    the moment it is assigned; it has to live on the DataFrame.
+    """
+
+    def setUp(self):
+        self.df = get_sample_data()
+
+    def test_accessor_is_rebuilt_per_access(self):
+        """The premise these tests guard against."""
+        self.assertIsNot(self.df.ta, self.df.ta)
+
+    def test_cores_persists(self):
+        self.df.ta.cores = 0
+        self.assertEqual(self.df.ta.cores, 0)
+
+    def test_adjusted_persists(self):
+        self.df.ta.adjusted = "adj_close"
+        self.assertEqual(self.df.ta.adjusted, "adj_close")
+        self.df.ta.adjusted = None
+        self.assertIsNone(self.df.ta.adjusted)
+
+    def test_exchange_persists(self):
+        self.df.ta.exchange = "LSE"
+        self.assertEqual(self.df.ta.exchange, "LSE")
+
+    def test_time_range_unit_persists(self):
+        self.df.ta.time_range = "years"
+        years = self.df.ta.time_range
+        self.df.ta.time_range = "months"
+        self.assertGreater(self.df.ta.time_range, years)
+
+    def test_settings_do_not_leak_to_other_frames(self):
+        self.df.ta.cores = 0
+        self.df.ta.exchange = "LSE"
+        other = get_sample_data()
+        self.assertNotEqual(other.ta.cores, 0)
+        self.assertEqual(other.ta.exchange, "NYSE")
+
+
 class TestAccessorToUtcProperty(TestCase):
     """to_utc is a property, not a callable method."""
 
