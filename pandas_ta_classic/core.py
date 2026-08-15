@@ -944,6 +944,14 @@ class AnalysisIndicators(PandasObject):
             raise AttributeError(name)
         func = _find_indicator_func(name)
         if func is None:
+            # A property getter raising AttributeError lands here too: Python
+            # cannot tell "no such attribute" from "the descriptor failed", so
+            # reporting a missing attribute would replace the real error (and
+            # its traceback) with a false one.  Re-run the descriptor directly
+            # -- that path bypasses __getattr__ -- to surface the actual cause.
+            descriptor = getattr(type(self), name, None)
+            if descriptor is not None:
+                return descriptor.__get__(self, type(self))
             raise AttributeError(f"'AnalysisIndicators' object has no attribute '{name}'")
         wrapper = _make_ta_wrapper(func)
         wrapper.__name__ = name

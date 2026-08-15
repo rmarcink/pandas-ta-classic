@@ -248,6 +248,34 @@ class TestAccessorSettablePropertiesPersist(TestCase):
         self.assertEqual(other.ta.exchange, "NYSE")
 
 
+class TestAccessorPropertyErrorsAreNotMasked(TestCase):
+    """A failing property must not be reported as a missing attribute.
+
+    An AttributeError raised inside a property getter makes Python fall back
+    to __getattr__, which used to answer "no attribute '<name>'" — replacing
+    the real cause, with no exception chaining to recover it from.
+    """
+
+    def setUp(self):
+        # RangeIndex: the time-based properties cannot work on it.
+        self.df = pd.DataFrame({"close": [1.0, 2.0]})
+
+    def test_to_utc_reports_the_real_failure(self):
+        with self.assertRaises(AttributeError) as ctx:
+            self.df.ta.to_utc
+        self.assertIn("tz_localize", str(ctx.exception))
+
+    def test_time_range_reports_the_real_failure(self):
+        with self.assertRaises(AttributeError) as ctx:
+            self.df.ta.time_range
+        self.assertNotIn("has no attribute 'time_range'", str(ctx.exception))
+
+    def test_unknown_attribute_still_reports_missing(self):
+        with self.assertRaises(AttributeError) as ctx:
+            self.df.ta.definitely_not_an_indicator
+        self.assertIn("has no attribute 'definitely_not_an_indicator'", str(ctx.exception))
+
+
 class TestAccessorToUtcProperty(TestCase):
     """to_utc is a property, not a callable method."""
 
