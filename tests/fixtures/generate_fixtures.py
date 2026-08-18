@@ -1,12 +1,22 @@
 """
 Generate golden fixture values for test_indicator_values.py.
 
-Run this script manually whenever indicator algorithms are intentionally changed:
+Run this script manually — and ONLY — when indicator algorithms are
+intentionally changed:
 
     python -m tests.fixtures.generate_fixtures
 
-The script writes tests/fixtures/expected_values.json. Commit the updated file
-alongside the algorithm change so CI continues to pass.
+The script writes tests/fixtures/expected_values.json.  That file is the
+source of truth, not a cache: this script only *proposes* new values.
+Review ``git diff tests/fixtures/expected_values.json`` line by line and
+commit it alongside the algorithm change that justifies it.
+
+Never invoke this from a test run or a test target.  A golden value that the
+test run rewrites cannot detect a development error — the buggy output just
+becomes the new expectation.  It also imports the reference libraries'
+version-to-version floating-point drift into the repository (pandas 2.x and
+3.x disagree on rolling kurtosis in the 8th decimal), producing fixture churn
+on dependency upgrades that changed nothing in this package.
 
 Reference strategy
 ------------------

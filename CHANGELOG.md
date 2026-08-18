@@ -59,6 +59,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * **`tsignals` `drift` corrupted trade signals**: `trends.diff(drift)` computed entries/exits against the state `drift` bars ago instead of the previous bar, so `drift != 1` reported spurious entries mid-trend and missed real crossovers (contradicting the documented `diff()` behavior). Now always uses a 1-period difference. Output at the default (`drift=1`) is unchanged.
 * **Cross-package indicator imports**: A submodule import could overwrite a re-exported function of the same name on the parent package (e.g. `from pandas_ta_classic.volatility import atr` occasionally returned the `atr` *module* instead of the function). Resolved.
 * **Test-fixture regen no longer drops `cmo_14` entries** when running tests without tulipy installed. Generators now merge with existing JSON instead of overwriting.
+* **Golden fixtures are frozen** (`tests/__init__.py`, `Makefile`): `tests/fixtures/expected_values.json` and `regression_snapshots.json` are no longer regenerated as a side effect of importing `tests/` (or of `make test-all`). Self-regenerating golden files could not detect development errors — a bug rewrote the expectation and the test passed — and imported reference-library floating-point drift, which is why a `pandas` 2.x → 3.x upgrade changed the `kurtosis_20` golden value without any code change. Regeneration is now the explicit `make fixtures` step, whose diff must be reviewed. Test-facing only; no runtime behaviour change.
 
 ## [0.6.52] - 2026-06-25
 

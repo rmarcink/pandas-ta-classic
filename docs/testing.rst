@@ -219,13 +219,14 @@ Running All Tests
 
 .. code-block:: bash
 
-   # Full test suite (primary — matches CI, auto-regenerates fixture JSONs)
+   # Full test suite (primary — matches CI)
    python -m unittest discover tests/ -v
 
-   # Regenerate fixtures then run all tests (recommended after indicator changes)
+   # Same, via make
    make test-all
 
-   # Regenerate fixture JSONs only (requires TA-Lib installed)
+   # Regenerate fixture JSONs (requires TA-Lib; only after an intentional
+   # algorithm change — review the diff before committing)
    make fixtures
 
    # pytest equivalent
@@ -239,9 +240,10 @@ Fixture Files
 -------------
 
 ``tests/fixtures/expected_values.json`` and
-``tests/fixtures/regression_snapshots.json`` are **generated** files.
-They are rebuilt automatically when ``tests/`` is imported (before any
-test runs) if TA-Lib is available.  Manual regeneration:
+``tests/fixtures/regression_snapshots.json`` are **frozen** golden files.
+They are the source of truth and are never rewritten by a test run.
+Regeneration is a deliberate, reviewed step, performed only when an
+indicator algorithm changed on purpose:
 
 .. code-block:: bash
 
@@ -249,4 +251,29 @@ test runs) if TA-Lib is available.  Manual regeneration:
    python -m tests.fixtures.generate_regression_snapshots
 
 Both scripts can also be invoked directly (``python tests/fixtures/generate_*.py``)
-and require the project root to be on ``sys.path``.
+and require the project root to be on ``sys.path``.  Always review
+``git diff tests/fixtures/`` before committing the result.
+
+Why they must stay frozen
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The golden files exist to provide two properties, and regenerating them
+during a test run destroys both:
+
+*Detecting development errors.*  If the test run rewrites the expectation
+from the code under test, a bug simply becomes the new expectation and the
+test passes.  This is not hypothetical — with regeneration enabled, changing
+the kurtosis excess-adjustment constant from ``3.0`` to ``2.9`` (a ~5 %
+error) still passed ``test_regression.py``, and a 7 % error injected into
+``psl`` passed every fixture test, because both JSON files were silently
+rewritten first.
+
+*Independence from dependency versions.*  ``expected_values.json`` derives
+166 of its 223 entries from an external reference (TA-Lib, or ``pandas``
+rolling for the statistics group).  Recomputing at test time imports that
+reference's floating-point behaviour: ``pandas`` 3.x and 2.x disagree on
+``rolling().kurt()`` in the 8th decimal, because ``roll_kurt`` accumulates
+running power sums whose error grows with series length (≈1.5e-8 over 5222
+rows on pandas 3.0, ≈6.9e-10 on pandas 2.3, versus ≈1e-14 for this
+package's own scratch-recomputed ``np_rolling_moments``).  A frozen literal
+has neither problem.

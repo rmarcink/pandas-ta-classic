@@ -1,12 +1,17 @@
 """
 Generate regression snapshot values for test_regression.py.
 
-Run this script manually after intentional algorithm changes:
+Run this script manually — and ONLY — after intentional algorithm changes:
 
     python -m tests.fixtures.generate_regression_snapshots
 
-Writes tests/fixtures/regression_snapshots.json. Commit the updated file
-alongside the algorithm change so CI continues to pass.
+Writes tests/fixtures/regression_snapshots.json.  Snapshots are taken from
+this package's own output, so they prove nothing about correctness; their
+only job is to make an unintended change visible.  That job requires the
+file to be frozen: never invoke this from a test run or a test target, or a
+regression will silently overwrite the very snapshot meant to catch it.
+Review ``git diff tests/fixtures/regression_snapshots.json`` and commit it
+alongside the algorithm change that justifies it.
 
 Snapshots store per-column values at five fixed positional indices spread
 across the SPY_D.csv time series.  This catches algorithm regressions that
