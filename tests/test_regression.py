@@ -22,6 +22,7 @@ from unittest import TestCase
 import pandas as pd
 
 import pandas_ta_classic as ta
+from tests.assertions import golden_value_close as _approx_equal
 
 # ---------------------------------------------------------------------------
 # Load snapshots and sample data
@@ -96,16 +97,9 @@ def _compute_all(df: pd.DataFrame) -> dict[str, object]:
 
 
 # ---------------------------------------------------------------------------
-# Tolerance — same as test_indicator_values.py
+# Tolerance — shared with test_indicator_values.py; snapshots are stored with
+# the same round(v, 8) quantisation, so the same floor applies.
 # ---------------------------------------------------------------------------
-
-REL_TOL = 1e-4
-
-
-def _approx_equal(actual: float, expected: float) -> bool:
-    if expected == 0.0:
-        return abs(actual) <= REL_TOL
-    return abs(actual - expected) / abs(expected) <= REL_TOL
 
 
 # ---------------------------------------------------------------------------

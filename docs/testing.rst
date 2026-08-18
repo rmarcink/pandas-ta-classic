@@ -296,3 +296,31 @@ comparison against ``pandas`` rolling is a deliberately loose smoke test
 (``atol=1e-4``, ``rtol=1e-3``), sized to clear pandas' own divergence from
 exact arithmetic, which reaches 1.7e-5 absolute on ``kurt`` across the SPY
 series.  It must never be tightened into an equality check.
+
+Comparison tolerance
+~~~~~~~~~~~~~~~~~~~~
+
+``test_indicator_values.py`` and ``test_regression.py`` share one criterion,
+defined in ``tests/assertions.py``::
+
+    |actual - golden| <= GOLDEN_ATOL + GOLDEN_RTOL * |golden|
+    GOLDEN_ATOL = 1e-8
+    GOLDEN_RTOL = 1e-6
+
+Both terms are load-bearing.  The JSON files store ``round(v, 8)``, so no
+comparison can be tighter than the last stored decimal — that is the absolute
+floor.  The relative term covers large-magnitude indicators where float64
+cannot represent 8 decimals at all: ``ad`` peaks near 3.8e10, where one ULP is
+already ~7.6e-6.  With only the absolute term the large columns overrun by
+~2.7e4x; with only the relative term the small ones overrun on storage
+rounding.
+
+Measured across all 423 tracked columns the worst native-vs-golden
+disagreement needs a relative term of 3.6e-15, so ``GOLDEN_RTOL`` keeps nine
+orders of margin for platform and BLAS differences across the 3.10–3.14 CI
+matrix.  Snapshot checkpoints use at most 29 % of the budget.
+
+This replaced a flat ``REL_TOL = 1e-4``, which was ~10 orders looser than the
+data required.  Concretely: perturbing the kurtosis excess-adjustment constant
+from ``3.0`` to ``3.000001`` moves the golden value by 1.2e-6 — inside the old
+1e-5 budget and therefore invisible, but 11x over the new one.
