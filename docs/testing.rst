@@ -269,11 +269,30 @@ error) still passed ``test_regression.py``, and a 7 % error injected into
 rewritten first.
 
 *Independence from dependency versions.*  ``expected_values.json`` derives
-166 of its 223 entries from an external reference (TA-Lib, or ``pandas``
-rolling for the statistics group).  Recomputing at test time imports that
-reference's floating-point behaviour: ``pandas`` 3.x and 2.x disagree on
+166 of its 223 entries from an external reference.  Recomputing at test time
+imports that reference's floating-point behaviour, and one of those
+references used to be ``pandas`` rolling: ``pandas`` 3.x and 2.x disagree on
 ``rolling().kurt()`` in the 8th decimal, because ``roll_kurt`` accumulates
 running power sums whose error grows with series length (≈1.5e-8 over 5222
 rows on pandas 3.0, ≈6.9e-10 on pandas 2.3, versus ≈1e-14 for this
 package's own scratch-recomputed ``np_rolling_moments``).  A frozen literal
 has neither problem.
+
+Exact reference values
+~~~~~~~~~~~~~~~~~~~~~~
+
+``tests/fixtures/exact_reference.py`` replaces the ``pandas`` rolling oracles
+for the statistics group (zscore, kurtosis, skew, median, quantile, mad,
+entropy, beta, ui).  It reads the exact decimal written in the CSV
+(``Fraction(str(x))``, not the float64 approximation), evaluates the textbook
+formula in exact rational arithmetic, and converts to float only at the end.
+The result is the mathematically correct value for the input data, identical
+on every platform and dependency version, and still derived independently of
+the code under test.
+
+``tests/test_exact_reference.py`` guards that module — CI would otherwise
+never execute it, since it only runs during ``make fixtures``.  Its
+comparison against ``pandas`` rolling is a deliberately loose smoke test
+(``atol=1e-4``, ``rtol=1e-3``), sized to clear pandas' own divergence from
+exact arithmetic, which reaches 1.7e-5 absolute on ``kurt`` across the SPY
+series.  It must never be tightened into an equality check.

@@ -95,7 +95,8 @@ def generate() -> None:
 
     with open(_OUT_PATH, "w") as fh:
         json.dump(snapshots, fh, indent=2)
-    print(f"\nWrote {len(snapshots)} regression snapshots → {_OUT_PATH}")
+    # ASCII only -- see the matching note in generate_fixtures.generate().
+    print(f"\nWrote {len(snapshots)} regression snapshots -> {_OUT_PATH}")
 
 
 if __name__ == "__main__":
