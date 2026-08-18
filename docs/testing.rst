@@ -81,8 +81,10 @@ Regression Tests
 
 **Why:** Prevent reintroduction of known bugs and catch silent value drift.
 
-- ``test_regression.py`` — Spot-checks indicator values at 5 fixed indices
-  (50, 200, 500, 1500, 3000) against stored fixture data.
+- ``test_regression.py`` — Spot-checks all 223 tracked indicators at 24 fixed
+  indices spanning 50 to 5221 (the final bar) against stored snapshot data.
+  Test methods are generated from ``regression_snapshots.json`` itself, so the
+  asserted set cannot drift from the stored set.
 - ``test_regression_bugfixes.py`` — Pins ~12 documented fixes from CHANGELOG.
 - ``test_indicator_values.py`` — Golden fixture tests: checks last non-NaN
   values and per-column NaN counts against snapshots in ``tests/fixtures/``.
@@ -324,3 +326,25 @@ This replaced a flat ``REL_TOL = 1e-4``, which was ~10 orders looser than the
 data required.  Concretely: perturbing the kurtosis excess-adjustment constant
 from ``3.0`` to ``3.000001`` moves the golden value by 1.2e-6 — inside the old
 1e-5 budget and therefore invisible, but 11x over the new one.
+
+Snapshot coverage
+~~~~~~~~~~~~~~~~~
+
+``regression_snapshots.json`` stores all 223 tracked indicators, but
+``test_regression.py`` used to assert a hand-written list of 43 — the other
+180 were generated and never checked.  That gap covered 55 of the 57
+indicators which have no independent oracle and are therefore protected by
+their snapshot alone.  Test methods are now generated from the snapshot keys,
+so the two cannot diverge again.
+
+Indicators whose output is shorter than the input (``vp`` aggregates into 10
+volume bins, ``tos_stdevall`` into 30) have every checkpoint past the end of
+their result.  Those store ``null`` and are asserted to stay out of range,
+which makes the checkpoint a length-regression check; their values are
+covered by ``test_indicator_values.py`` instead.
+
+Note what a snapshot can and cannot do.  It is taken from this package's own
+output, so it detects *change*, never *correctness*.  The 57 oracle-less
+indicators still have no independent verification of their mathematics — the
+long-term fix is a deliberately naive reference implementation per indicator,
+written from the published formula, added incrementally.

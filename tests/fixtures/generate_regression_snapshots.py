@@ -13,13 +13,18 @@ regression will silently overwrite the very snapshot meant to catch it.
 Review ``git diff tests/fixtures/regression_snapshots.json`` and commit it
 alongside the algorithm change that justifies it.
 
-Snapshots store per-column values at five fixed positional indices spread
-across the SPY_D.csv time series.  This catches algorithm regressions that
-only affect the interior of a series (e.g. EMA initialisation, window edge
+Snapshots store per-column values at fixed positional indices spread across
+the SPY_D.csv time series.  This catches algorithm regressions that only
+affect the interior of a series (e.g. EMA initialisation, window edge
 handling) rather than just the endpoint.
 
-Checkpoint indices (positional, 0-based): 50, 200, 500, 1500, 3000
-All are well past the warmup period for every tracked indicator.
+The first checkpoint sits past the warmup period of every tracked indicator;
+positions where an indicator is still NaN serialise as null and are skipped
+by the test.  Spacing is tighter near the warmup edge, where initialisation
+bugs live, and then even across the rest of the series.  SPY_D.csv has 5222
+rows, so the last checkpoint is its final bar — the previous set stopped at
+3000 and left the final 2221 rows checked only by the endpoint assertion in
+test_indicator_values.py.
 """
 
 from __future__ import annotations
@@ -38,7 +43,32 @@ from tests.fixtures.generate_fixtures import _load, _indicators
 # Snapshot configuration
 # ---------------------------------------------------------------------------
 
-_CHECKPOINTS = [50, 200, 500, 1500, 3000]
+_CHECKPOINTS = [
+    50,
+    100,
+    200,
+    350,
+    500,
+    750,
+    1000,
+    1250,
+    1500,
+    1800,
+    2100,
+    2400,
+    2700,
+    3000,
+    3300,
+    3600,
+    3900,
+    4200,
+    4500,
+    4800,
+    5000,
+    5100,
+    5200,
+    5221,
+]
 _OUT_PATH = Path(__file__).parent / "regression_snapshots.json"
 
 
