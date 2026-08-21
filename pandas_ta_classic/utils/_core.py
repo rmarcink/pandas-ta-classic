@@ -196,7 +196,15 @@ def verify_series(series: Series, min_length: Optional[Union[int, float]] = None
 
 
 def _sliding_weighted_ma(close: Series, length: int, weights: Any) -> Series:
-    """Vectorised weighted MA via sliding_window_view.
+    """Vectorised weighted MA via ``np.correlate``.
+
+    ``np.correlate(arr, w, "valid")[k] == sum_j arr[k + j] * w[j]``, i.e. the
+    same weight orientation as a rolling window dotted with *weights*, so this
+    is a drop-in for the sliding-window matmul it replaces. It needs no
+    ``O(len(close) * length)`` window copy, and for ``length >= 12`` NumPy
+    computes each output with the same per-window ``np.dot`` the original
+    ``rolling().apply()`` used, so those results are bit-for-bit identical to
+    the pre-vectorisation output.
 
     Args:
         close: The input series.
@@ -208,12 +216,10 @@ def _sliding_weighted_ma(close: Series, length: int, weights: Any) -> Series:
         ``length - 1`` positions.
     """
     import numpy as np
-    from numpy.lib.stride_tricks import sliding_window_view
 
     arr = close.to_numpy(dtype=float)
-    windows = sliding_window_view(arr, length)
     result = np.full(len(arr), np.nan)
-    result[length - 1 :] = windows @ weights
+    result[length - 1 :] = np.correlate(arr, np.asarray(weights, dtype=float), mode="valid")
     return Series(result, index=close.index)
 
 
