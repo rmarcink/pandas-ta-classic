@@ -73,26 +73,25 @@ def _msw_native(arr: np.ndarray, period: int):
     cos_arr = np.cos(tpi * j_arr / period)
     sin_arr = np.sin(tpi * j_arr / period)
 
-    for i in range(period, size):
-        window = arr[i - period + 1 : i + 1][::-1]  # newest first → j=0 is arr[i]
-        rp = float(np.dot(window, cos_arr))
-        ip = float(np.dot(window, sin_arr))
+    # The DFT window is read newest-first (j=0 is arr[i]), so the correlation
+    # — which is oldest-first — runs against reversed coefficients. Element k
+    # ends at bar k + period - 1; dropping element 0 starts at bar period,
+    # matching the original loop's range(period, size).
+    rp = np.correlate(arr, cos_arr[::-1], mode="valid")[1:]
+    ip = np.correlate(arr, sin_arr[::-1], mode="valid")[1:]
 
-        if abs(rp) > 0.001:
-            phase = np.arctan(ip / rp)
-        else:
-            phase = (tpi / 2.0) * (-1.0 if ip < 0 else 1.0)
+    # NaN inputs make abs(rp) > 0.001 False, so they take the ±pi branch and
+    # yield a finite phase — the same quirk as the original scalar loop.
+    with np.errstate(divide="ignore", invalid="ignore"):
+        phase = np.where(np.abs(rp) > 0.001, np.arctan(ip / rp), (tpi / 2.0) * np.where(ip < 0.0, -1.0, 1.0))
 
-        if rp < 0.0:
-            phase += pi
-        phase += pi / 2.0
-        if phase < 0.0:
-            phase += tpi
-        if phase > tpi:
-            phase -= tpi
+    phase = np.where(rp < 0.0, phase + pi, phase)
+    phase += pi / 2.0
+    phase = np.where(phase < 0.0, phase + tpi, phase)
+    phase = np.where(phase > tpi, phase - tpi, phase)
 
-        sine[i] = np.sin(phase)
-        lead[i] = np.sin(phase + pi / 4.0)
+    sine[period:] = np.sin(phase)
+    lead[period:] = np.sin(phase + pi / 4.0)
 
     return sine, lead
 
