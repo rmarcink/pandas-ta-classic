@@ -3,7 +3,8 @@ from typing import Any, Optional
 import numpy as np
 from pandas import Series
 from pandas_ta_classic import Imports
-from pandas_ta_classic.utils import apply_fill, apply_offset, get_offset, verify_series, weights
+from pandas_ta_classic.utils import apply_fill, apply_offset, get_offset, verify_series
+from pandas_ta_classic.utils._core import _sliding_weighted_ma
 
 
 def wma(
@@ -36,8 +37,7 @@ def wma(
         if not asc:
             w = w[::-1]
 
-        close_ = close.rolling(length, min_periods=length)
-        wma = close_.apply(weights(w), raw=True) / total_weight
+        wma = _sliding_weighted_ma(close, length, w) / total_weight
 
     # Offset
     wma = apply_offset(wma, offset)

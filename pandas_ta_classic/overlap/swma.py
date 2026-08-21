@@ -7,8 +7,8 @@ from pandas_ta_classic.utils import (
     get_offset,
     symmetric_triangle,
     verify_series,
-    weights,
 )
+from pandas_ta_classic.utils._core import _sliding_weighted_ma
 
 
 def swma(
@@ -30,7 +30,7 @@ def swma(
 
     # Calculate Result
     triangle = symmetric_triangle(length, weighted=True)
-    swma = close.rolling(length, min_periods=length).apply(weights(triangle), raw=True)
+    swma = _sliding_weighted_ma(close, length, triangle)
 
     # Offset
     swma = apply_offset(swma, offset)
