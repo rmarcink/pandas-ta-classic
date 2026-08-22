@@ -105,8 +105,11 @@ docs = [
 ]
 
 # Performance optimization
+# 0.63.0 is the first release with cp314 wheels, and the CI matrix runs up to
+# Python 3.14. Everything below 0.60 also caps numpy at <2.0, which conflicts
+# with the numpy>=2.0 floor above.
 performance = [
-    "numba>=0.58.0"
+    "numba>=0.63.0"
 ]
 
 # Data source integrations (used by utils/data — lazy-imported at call time)
