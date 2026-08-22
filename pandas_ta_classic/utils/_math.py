@@ -12,6 +12,25 @@ from ._core import verify_series
 logger = logging.getLogger(__name__)
 
 
+def _dev_power_sum(dev: np.ndarray, k: int) -> Any:
+    """Sum of ``dev ** k`` along the last axis, via repeated multiplication.
+
+    ``np.power`` with a small integer exponent is several times slower than
+    the equivalent chain of multiplies over the same array, and the squared
+    deviations are shared between every order the callers ask for.
+    """
+    if k == 1:
+        return dev.sum(axis=-1)
+    sq = dev * dev
+    if k == 2:
+        return sq.sum(axis=-1)
+    if k == 3:
+        return (sq * dev).sum(axis=-1)
+    if k == 4:
+        return (sq * sq).sum(axis=-1)
+    return (dev**k).sum(axis=-1)
+
+
 def np_rolling_moments(values: np.ndarray, length: int, *orders: int, min_periods: Optional[int] = None) -> tuple[np.ndarray, ...]:
     """Rolling raw central-moment sums using pure numpy.
 
@@ -47,7 +66,7 @@ def np_rolling_moments(values: np.ndarray, length: int, *orders: int, min_period
         mean = windows.mean(axis=1, keepdims=True)
         dev = windows - mean
         for i, k in enumerate(orders):
-            results[i][length - 1 :] = (dev**k).sum(axis=1)
+            results[i][length - 1 :] = _dev_power_sum(dev, k)
 
     # Scalar computation for partial windows when min_periods < length.
     if min_periods < length:
@@ -55,7 +74,7 @@ def np_rolling_moments(values: np.ndarray, length: int, *orders: int, min_period
             window = arr[: pos + 1]
             dev = window - window.mean()
             for i, k in enumerate(orders):
-                results[i][pos] = (dev**k).sum()
+                results[i][pos] = _dev_power_sum(dev, k)
 
     return tuple(results)
 
