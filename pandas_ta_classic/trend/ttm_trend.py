@@ -2,6 +2,7 @@
 from typing import Any, Optional
 from pandas import DataFrame, Series
 from pandas_ta_classic.overlap.hl2 import hl2
+from pandas_ta_classic.overlap.sma import sma
 from pandas_ta_classic.utils import apply_fill, apply_offset, get_offset, verify_series
 
 
@@ -25,11 +26,9 @@ def ttm_trend(
         return None
 
     # Calculate Result
-    trend_avg = hl2(high, low)
-    for i in range(1, length):
-        trend_avg = trend_avg + hl2(high.shift(i), low.shift(i))
-
-    trend_avg = trend_avg / length
+    # The shifted sum divided by length is the rolling mean of hl2, so sma()
+    # computes it in one pass instead of length full-series shifts and adds.
+    trend_avg = sma(hl2(high, low), length=length)
 
     tm_trend = (close > trend_avg).astype(int)
     tm_trend.replace(0, -1, inplace=True)
