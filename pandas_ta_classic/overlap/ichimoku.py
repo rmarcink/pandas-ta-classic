@@ -8,9 +8,11 @@ from pandas_ta_classic.utils import apply_fill, apply_offset, get_offset, verify
 _ICHIMOKU_TUPLE_DEPRECATION = (
     "ichimoku() returning a (visible, span) tuple is deprecated and will be "
     "removed in the next major release. Pass as_dataframe=True to opt in to "
-    "the new single-DataFrame return now, or as_dataframe=False to silence "
-    "this warning while keeping the tuple. The accessor df.ta.ichimoku() "
-    "already returns a DataFrame and is unaffected."
+    "the new single-DataFrame return now. Passing as_dataframe=False keeps the "
+    "tuple and silences this warning for the current release line only: once "
+    "the default flips to a single DataFrame, asking for the tuple is what "
+    "warns. The accessor df.ta.ichimoku() already returns a DataFrame and is "
+    "unaffected."
 )
 
 

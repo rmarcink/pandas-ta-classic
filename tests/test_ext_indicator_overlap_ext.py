@@ -103,6 +103,44 @@ class TestOverlapExtension(TestCase):
             data.ta.ichimoku(append=True)
         self.assertIsInstance(data, DataFrame)
 
+    def test_ichimoku_accessor_as_dataframe_true(self):
+        from tests.config import get_sample_data
+
+        data = get_sample_data()
+        # The deprecation warning on the underlying function tells callers to
+        # pass as_dataframe=True. On the accessor that is redundant but must be
+        # accepted, not raise, and must not warn.
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", DeprecationWarning)
+            result = data.ta.ichimoku(as_dataframe=True)
+        self.assertIsInstance(result, DataFrame)
+        self.assertEqual(
+            list(result.columns),
+            ["ISA_9", "ISB_26", "ITS_9", "IKS_26", "ICS_26"],
+        )
+        # Same result as omitting the keyword entirely.
+        self.assertTrue(result.equals(data.ta.ichimoku()))
+
+    def test_ichimoku_accessor_as_dataframe_false_raises(self):
+        from tests.config import get_sample_data
+
+        data = get_sample_data()
+        # The accessor cannot hand back the legacy tuple, so asking for it is an
+        # error rather than a silently ignored keyword.
+        with self.assertRaises(TypeError) as ctx:
+            data.ta.ichimoku(as_dataframe=False)
+        self.assertIn("always returns a single DataFrame", str(ctx.exception))
+
+    def test_ichimoku_accessor_as_dataframe_true_with_append_span(self):
+        from tests.config import get_sample_data
+
+        data = get_sample_data()
+        visible = data.ta.ichimoku()
+        combined = data.ta.ichimoku(as_dataframe=True, append_span=True)
+        self.assertIsInstance(combined, DataFrame)
+        # append_span adds kijun (26) future-dated rows on top of the visible ones.
+        self.assertEqual(len(combined), len(visible) + 26)
+
     def test_ichimoku_ext(self):
         self.data.ta.ichimoku(append=True)
         self.assertIsInstance(self.data, DataFrame)

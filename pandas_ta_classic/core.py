@@ -925,6 +925,20 @@ class AnalysisIndicators(PandasObject):
         """
         from pandas_ta_classic.overlap.ichimoku import ichimoku as _ichimoku
 
+        # This wrapper fixes as_dataframe=True below, so the same keyword must
+        # not also arrive through kwargs. Callers do pass it: the deprecation
+        # warning on the underlying function tells them to. Accept the redundant
+        # True and reject the tuple request, which this wrapper cannot honour --
+        # _append and _post_process both require a single DataFrame. Drop the
+        # guard once the tuple return is gone.
+        requested = kwargs.pop("as_dataframe", None)
+        if requested is False:
+            raise TypeError(
+                "df.ta.ichimoku() always returns a single DataFrame and cannot return "
+                "the legacy (visible, span) tuple. Call ichimoku(high, low, close, "
+                "as_dataframe=False) directly if you need the tuple."
+            )
+
         high = self._get_column(kwargs.pop("high", "high"))
         low = self._get_column(kwargs.pop("low", "low"))
         close = self._get_column(kwargs.pop("close", "close"))
