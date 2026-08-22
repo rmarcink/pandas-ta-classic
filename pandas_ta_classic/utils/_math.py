@@ -136,7 +136,13 @@ def pascals_triangle(n: Optional[int] = None, **kwargs: Any) -> Optional[np.ndar
     n = int(abs(n)) if n is not None else 0
 
     # Calculation
-    triangle = np.array([combination(n=n, r=i) for i in range(0, n + 1)])
+    # C(n, i + 1) == C(n, i) * (n - i) // (i + 1) is exact in integer arithmetic,
+    # so the row costs one multiply and one divide per entry instead of a full
+    # comb(n, i) evaluation -- which is itself O(n) big-integer work -- per entry.
+    row = [1]
+    for i in range(n):
+        row.append(row[-1] * (n - i) // (i + 1))
+    triangle = np.array(row)
     triangle_sum: float = np.sum(triangle)
     triangle_weights = triangle / triangle_sum
     inverse_weights = 1 - triangle_weights
