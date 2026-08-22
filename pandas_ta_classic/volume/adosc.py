@@ -1,9 +1,25 @@
 # Accumulation/Distribution Oscillator (ADOSC)
 from typing import Any, Optional
+import numpy as np
 from pandas import Series
 from .ad import ad
 from pandas_ta_classic import Imports
 from pandas_ta_classic.utils import apply_fill, apply_offset, get_offset, verify_series
+from pandas_ta_classic.utils._njit import njit
+
+
+@njit(cache=True)
+def _adosc_loop(ad_arr, m, fastk, slowk, slow):
+    """Fast/slow AD EMAs seeded with ``AD[0]``, differenced from ``slow - 1``."""
+    fast_ema = ad_arr[0]
+    slow_ema = ad_arr[0]
+    result = np.full(m, np.nan)
+    for i in range(1, m):
+        fast_ema = fastk * ad_arr[i] + (1 - fastk) * fast_ema
+        slow_ema = slowk * ad_arr[i] + (1 - slowk) * slow_ema
+        if i >= slow - 1:
+            result[i] = fast_ema - slow_ema
+    return result
 
 
 def adosc(
@@ -40,8 +56,6 @@ def adosc(
 
         adosc = ADOSC(high, low, close, volume, fast, slow)
     else:
-        import numpy as np
-
         ad_ = ad(high=high, low=low, close=close, volume=volume, open_=open_)
         ad_arr = ad_.to_numpy(dtype=float)
         m = ad_arr.shape[0]
@@ -49,15 +63,7 @@ def adosc(
         # TA-Lib ADOSC: seed both EMAs with AD[0] (scalar seed, not SMA)
         fastk = 2.0 / (fast + 1)
         slowk = 2.0 / (slow + 1)
-        fast_ema = ad_arr[0]
-        slow_ema = ad_arr[0]
-        result = np.full(m, np.nan)
-
-        for i in range(1, m):
-            fast_ema = fastk * ad_arr[i] + (1 - fastk) * fast_ema
-            slow_ema = slowk * ad_arr[i] + (1 - slowk) * slow_ema
-            if i >= slow - 1:
-                result[i] = fast_ema - slow_ema
+        result = _adosc_loop(ad_arr, m, fastk, slowk, slow)
 
         adosc = Series(result, index=close.index)
 
