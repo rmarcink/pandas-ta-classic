@@ -26,10 +26,22 @@ def _mavp_sma_values(close_arr, per_arr):
     """
     n = len(close_arr)
     result = np.full(n, np.nan)
-    for i in range(n):
-        p = per_arr[i]
-        if i + 1 >= p:
-            result[i] = close_arr[i - p + 1 : i + 1].mean()
+    rows = np.flatnonzero(np.arange(n) + 1 >= per_arr)
+    if rows.size == 0:
+        return result
+
+    # Bars sharing a window size share one gather-and-mean, so the work is
+    # one pass per distinct period instead of one ``mean()`` call per bar.
+    # Sorting groups those bars contiguously; the windows are still the exact
+    # ``close_arr[i - p + 1 : i + 1]`` slices, so the means are unchanged.
+    row_periods = per_arr[rows]
+    order = np.argsort(row_periods, kind="stable")
+    rows = rows[order]
+    periods, starts = np.unique(row_periods[order], return_index=True)
+    bounds = np.append(starts, rows.size)
+    for k, p in enumerate(periods):
+        block = rows[bounds[k] : bounds[k + 1]]
+        result[block] = close_arr[block[:, None] - np.arange(p - 1, -1, -1)].mean(axis=1)
     return result
 
 
