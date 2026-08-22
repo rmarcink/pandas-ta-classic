@@ -152,6 +152,7 @@ def run_pattern(
     name: str,
     scalar: Optional[float] = None,
     offset: Optional[int] = None,
+    candle_arrays: Optional[CandleArrays] = None,
     **kwargs: Any,
 ) -> Optional[Series]:
     """Validate OHLC, build CandleArrays, run *detect_fn*, finalize result.
@@ -166,12 +167,12 @@ def run_pattern(
         name: Column name, e.g. ``"CDL_HAMMER"``.
         scalar: Multiplier for output values. Default: 100.
         offset: How many periods to shift the result.
+        candle_arrays: Pre-built arrays for this OHLC frame. ``cdl_pattern``
+            passes one in so that a multi-pattern run derives them once
+            instead of once per pattern. Built here when omitted.
         **kwargs: Forwarded for fillna / fill_method handling.
 
     Kwargs:
-        candle_arrays (CandleArrays, optional): Pre-built arrays for this OHLC
-            frame. ``cdl_pattern`` passes one in so that a multi-pattern run
-            derives them once instead of once per pattern.
         fillna (value, optional): pd.DataFrame.fillna(value)
         fill_method (value, optional): Type of fill method
 
@@ -189,7 +190,7 @@ def run_pattern(
     offset = get_offset(offset)
     scalar = float(scalar) if scalar else 100
 
-    ca = kwargs.pop("candle_arrays", None)
+    ca = candle_arrays
     if ca is None:
         ca = CandleArrays(
             open_.to_numpy(dtype=float),

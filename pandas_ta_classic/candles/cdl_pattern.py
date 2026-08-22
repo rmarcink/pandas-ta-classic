@@ -7,7 +7,7 @@ from typing import Any, Optional, Union
 from pandas import Series, DataFrame
 
 from . import cdl_doji, cdl_inside
-from ._cdl_math import CandleArrays
+from ._cdl_math import CandleArrays, run_pattern
 from pandas_ta_classic.utils import apply_fill, apply_offset, get_offset, verify_series
 from pandas_ta_classic import Imports
 
@@ -80,7 +80,12 @@ ALL_PATTERNS = [
 
 
 def _discover_native_patterns() -> dict:
-    """Auto-discover native cdl_*.py pattern implementations."""
+    """Auto-discover the detection kernel of every native cdl_*.py pattern.
+
+    The kernels rather than the public ``cdl_*`` wrappers, so that
+    :func:`cdl_pattern` can hand ``run_pattern`` the shared ``CandleArrays``
+    without that argument having to travel through the wrappers' ``**kwargs``.
+    """
     skip = {"cdl_pattern", "cdl_z", "cdl_inside", "cdl_doji"}
     native = {}
     pkg_dir = os.path.dirname(__file__)
@@ -93,15 +98,15 @@ def _discover_native_patterns() -> dict:
         pattern_name = mod_name[4:]  # strip cdl_
         try:
             mod = importlib.import_module(f".{mod_name}", package=__package__)
-            func = getattr(mod, mod_name, None)
-            if callable(func):
-                native[pattern_name] = func
+            detect_fn = getattr(mod, "_detect", None)
+            if callable(detect_fn):
+                native[pattern_name] = detect_fn
         except Exception as exc:
             logger.warning("Failed to load CDL pattern '%s': %s", mod_name, exc)
     return native
 
 
-# Pre-built dict of native pattern name -> callable
+# Pre-built dict of native pattern name -> detection kernel
 _NATIVE_PATTERNS = _discover_native_patterns()
 
 
@@ -115,7 +120,18 @@ def _run_one_cdl_pattern(n, open_, high, low, close, pta_patterns, scalar, offse
         pattern_result = pta_patterns[n](open_, high, low, close, offset=offset, scalar=scalar, **kwargs)
         result[pattern_result.name] = pattern_result
     elif n in _NATIVE_PATTERNS:
-        pattern_result = _NATIVE_PATTERNS[n](open_, high, low, close, scalar=scalar, offset=offset, candle_arrays=candle_arrays, **kwargs)
+        pattern_result = run_pattern(
+            open_,
+            high,
+            low,
+            close,
+            _NATIVE_PATTERNS[n],
+            col_name,
+            scalar=scalar,
+            offset=offset,
+            candle_arrays=candle_arrays,
+            **kwargs,
+        )
         if pattern_result is not None:
             result[col_name] = pattern_result
     elif tala is not None:
@@ -168,13 +184,16 @@ def cdl_pattern(
         import talib.abstract as tala
 
     # Every native pattern derives the same OHLC helper arrays; build them once
-    # here rather than once per pattern.
-    candle_arrays = CandleArrays(
-        open_.to_numpy(dtype=float),
-        high.to_numpy(dtype=float),
-        low.to_numpy(dtype=float),
-        close.to_numpy(dtype=float),
-    )
+    # here rather than once per pattern. A run that reaches no native pattern
+    # (TA-Lib names, or the two custom ones) must not pay for them at all.
+    candle_arrays = None
+    if any(n in _NATIVE_PATTERNS and n not in pta_patterns for n in name):
+        candle_arrays = CandleArrays(
+            open_.to_numpy(dtype=float),
+            high.to_numpy(dtype=float),
+            low.to_numpy(dtype=float),
+            close.to_numpy(dtype=float),
+        )
 
     result: dict = {}
     for n in name:
