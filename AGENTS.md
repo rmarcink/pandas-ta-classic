@@ -263,6 +263,7 @@ python -m build
 │   ├── installation.rst
 │   ├── quickstart.md
 │   ├── tutorials.md
+│   ├── tutorials/                    # Per-framework integration guides
 │   ├── testing.rst
 │   └── indicator_support_matrix.rst
 ├── pandas_ta_classic/                # Main package source
