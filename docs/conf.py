@@ -1,14 +1,8 @@
 # Configuration file for the Sphinx documentation builder.
 #
 # This file does only contain a selection of the most common options. For a
-# full list# The unique identifier of the text. This can be a ISBN number
-# or the project homepage.
-#
-# epub_identifier = ''
-
-# A unique identification for the text.
-#
-# epub_uid = ''
+# full list see the documentation:
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 # -- Additional HTML configuration -------------------------------------------
 

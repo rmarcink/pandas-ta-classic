@@ -23,7 +23,7 @@ Unit Tests
 Uses ``IndicatorSpec``-based assertions (``assert_indicator_standard``)
 against real market data from ``SPY_D.csv``.
 
-**Run:** ``python -m unittest tests.test_indicator_momentum -v``
+**Run:** ``python -m pytest tests/test_indicator_momentum.py -v``
 
 
 Extension API Tests
@@ -48,7 +48,9 @@ Accessor API Tests
 naming, ``indicators()`` discovery, ``ticker()`` data fetching, time range
 filtering, and ``constants()``.
 
-**Files:** ``test_accessor_api.py``, ``test_ext_assertions.py``.
+**Files:** ``test_accessor_api.py``, ``test_ext_assertions.py``,
+``test_accessor_conformance.py`` (every indicator reachable through the
+accessor returns a Series or DataFrame).
 
 **Run:** ``python -m pytest tests/test_accessor_api.py -v``
 
@@ -58,11 +60,18 @@ Oracle / Comparison Tests
 
 **Why:** Compare native (``talib=False``) implementations against
 TA-Lib (C library) and tulipy outputs to catch numerical divergence.
-Requires ``ta-lib`` and ``tulipy`` installed.
 
-**Files:** ``test_oracle_talib.py``, ``test_oracle_tulipy.py``.
+The two oracles work differently:
 
-**Run:** ``python -m pytest tests/test_oracle_talib.py -v``
+* ``test_oracle_talib.py`` imports TA-Lib at test time and skips when it is
+  missing.  Install it with ``pip install -e ".[oracle]"``.
+* ``test_oracle_tulipy.py`` does **not** import tulipy.  tulipy is
+  unmaintained and ships no wheels for CPython 3.12+, so its values are
+  frozen in ``tests/fixtures/tulipy_oracle.json`` and compared on every
+  Python version.  Regenerating that snapshot is the only thing that needs a
+  tulipy install (see `Fixture Files`_).
+
+**Run:** ``python -m pytest tests/test_oracle_talib.py tests/test_oracle_tulipy.py -v``
 
 
 Native Indicator Tests
@@ -132,7 +141,7 @@ Strategy Tests
 **Why:** Confirm the ``Strategy`` class executes correctly, including
 multi-core processing.
 
-**Files:** ``test_strategy.py`` (runs separately from the main suite).
+**Files:** ``test_strategy.py``.
 
 **Run:** ``python -m pytest tests/test_strategy.py -v``
 
@@ -142,8 +151,8 @@ Custom / Plugin Tests
 
 **Why:** Verify the custom indicator registration system.
 
-**Files:** ``test_custom.py`` — ``ta.custom.bind()``, ``import_dir()``,
-module loading, and custom indicator discovery.
+**Files:** ``test_custom.py`` — ``bind()`` and ``import_dir()`` from
+``pandas_ta_classic.custom``, module loading, and custom indicator discovery.
 
 **Run:** ``python -m pytest tests/test_custom.py -v``
 
@@ -152,7 +161,7 @@ Property-Based Tests
 --------------------
 
 **Why:** Randomized input testing using `Hypothesis
-<https://hypothesis.readthedocs.io/>`_ to discover edge cases that
+<https://hypothesis.readthedocs.io/en/latest/>`_ to discover edge cases that
 deterministic tests miss — overflow conditions, NaN propagation bugs,
 boundary violations.
 
@@ -203,6 +212,24 @@ boundary violations.
        assert str(length) in result.name
 
 
+Infrastructure Tests
+--------------------
+
+**Why:** Cover the machinery around the indicators — lazy imports and the
+optional numba acceleration — which no indicator test exercises directly.
+
+- ``test_lazy_core.py`` — Lazy subpackage loading: ``__getattr__`` /
+  ``__dir__`` on the package and its subpackages, indicator resolution and
+  wrapper caching, and the regression that a cross-package import returns the
+  function rather than the module.
+- ``test_njit_fallback.py`` — Whether ``@njit`` compiles is decided once at
+  import time, so each configuration runs in a fresh subprocess: numba
+  present, numba absent, and numba installed but unimportable.  Only the last
+  one must warn; running without numba is supported and stays quiet.
+
+**Run:** ``python -m pytest tests/test_lazy_core.py tests/test_njit_fallback.py -v``
+
+
 Utility Tests
 -------------
 
@@ -219,17 +246,17 @@ Running All Tests
 
 .. code-block:: bash
 
-   # Full test suite (primary — matches CI, auto-regenerates fixture JSONs)
-   python -m unittest discover tests/ -v
+   # Full test suite (primary — this is what CI runs)
+   python -m pytest tests/ -v
 
-   # Regenerate fixtures then run all tests (recommended after indicator changes)
-   make test-all
+   # Core suite only, as CI's testing-core job invokes it
+   python -m pytest tests/        --ignore=tests/test_oracle_talib.py        --ignore=tests/test_oracle_tulipy.py -v
 
    # Regenerate fixture JSONs only (requires TA-Lib installed)
    make fixtures
 
-   # pytest equivalent
-   python -m pytest tests/ -v
+   # Regenerate fixtures, then run the suite through unittest (Makefile target)
+   make test-all
 
    # With coverage
    python -m pytest --cov=pandas_ta_classic --cov-report=html tests/
@@ -250,3 +277,12 @@ test runs) if TA-Lib is available.  Manual regeneration:
 
 Both scripts can also be invoked directly (``python tests/fixtures/generate_*.py``)
 and require the project root to be on ``sys.path``.
+
+``tests/fixtures/tulipy_oracle.json`` is generated too, but **not**
+automatically — it is a committed snapshot that the oracle tests read on every
+Python version.  Regenerate it only when the tulipy comparison itself changes,
+on a CPython version below 3.12 with tulipy installed:
+
+.. code-block:: bash
+
+   python tests/fixtures/generate_tulipy_oracle.py
