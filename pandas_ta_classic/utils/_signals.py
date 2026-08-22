@@ -4,7 +4,7 @@ from typing import Any, Optional
 from pandas import DataFrame, Series
 
 from ._core import apply_offset, get_offset, verify_series
-from ._math import zero
+from ._math import zero_series
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +25,8 @@ def _above_below(
 
     offset = get_offset(offset)
 
-    series_a = series_a.apply(zero)
-    series_b = series_b.apply(zero)
+    series_a = zero_series(series_a)
+    series_b = zero_series(series_b)
 
     # Calculate Result
     current = series_a >= series_b if above else series_a <= series_b
@@ -131,8 +131,8 @@ def cross(
 
     offset = get_offset(offset)
 
-    series_a = series_a.apply(zero)
-    series_b = series_b.apply(zero)
+    series_a = zero_series(series_a)
+    series_b = zero_series(series_b)
 
     # Calculate Result
     current = series_a > series_b  # current is above

@@ -54,10 +54,10 @@ def dx(
         pos = ((up > dn) & (up > 0)) * up
         neg = ((dn > up) & (dn > 0)) * dn
 
-        from pandas_ta_classic.utils import zero
+        from pandas_ta_classic.utils import zero_series
 
-        pos = pos.apply(zero)
-        neg = neg.apply(zero)
+        pos = zero_series(pos)
+        neg = zero_series(neg)
 
         dmp = ma(mamode, pos, length=length)
         dmn = ma(mamode, neg, length=length)

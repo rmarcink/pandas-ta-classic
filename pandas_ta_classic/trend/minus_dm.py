@@ -8,7 +8,7 @@ from pandas_ta_classic.utils import (
     get_drift,
     get_offset,
     verify_series,
-    zero,
+    zero_series,
 )
 
 
@@ -46,7 +46,7 @@ def minus_dm(
         up = high - high.shift(drift)
         dn = low.shift(drift) - low
         neg_ = ((dn > up) & (dn > 0)) * dn
-        neg_ = neg_.apply(zero)
+        neg_ = zero_series(neg_)
         result = ma("rma", neg_, length=length)
         if result is None:
             return None

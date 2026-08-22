@@ -19,7 +19,7 @@ from pandas_ta_classic.utils._core import _pos_float
 def _sarext_falling(high: Series, low: Series, drift: int = 1) -> bool:
     up = high - high.shift(drift)
     dn = low.shift(drift) - low
-    _dmn = (((dn > up) & (dn > 0)) * dn).apply(zero).iloc[-1]
+    _dmn = zero((((dn > up) & (dn > 0)) * dn).iloc[-1])
     return _dmn > 0
 
 

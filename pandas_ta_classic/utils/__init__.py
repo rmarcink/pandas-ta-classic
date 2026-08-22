@@ -24,6 +24,7 @@ from ._math import (
     symmetric_triangle,
     weights,
     zero,
+    zero_series,
 )
 
 # volatility is re-exported for utils.volatility() access but kept out of
@@ -105,4 +106,5 @@ __all__ = [
     "weights",
     "yf",
     "zero",
+    "zero_series",
 ]

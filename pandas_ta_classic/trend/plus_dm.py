@@ -8,7 +8,7 @@ from pandas_ta_classic.utils import (
     get_drift,
     get_offset,
     verify_series,
-    zero,
+    zero_series,
 )
 
 
@@ -46,7 +46,7 @@ def plus_dm(
         up = high - high.shift(drift)
         dn = low.shift(drift) - low
         pos_ = ((up > dn) & (up > 0)) * up
-        pos_ = pos_.apply(zero)
+        pos_ = zero_series(pos_)
         result = ma("rma", pos_, length=length)
         if result is None:
             return None

@@ -180,6 +180,16 @@ def zero(x: Union[int, float]) -> Union[int, float]:
     return 0 if abs(x) < sflt.epsilon else x
 
 
+def zero_series(x: Series) -> Series:
+    """Vectorised :func:`zero`: clamp near-zero values to zero, elementwise.
+
+    The comparison is negated rather than inverted so that NaN -- which never
+    compares below epsilon -- is passed through untouched, matching
+    ``Series.apply(zero)``.
+    """
+    return x.where(~(x.abs() < sflt.epsilon), 0)
+
+
 def df_error_analysis(dfA: DataFrame, dfB: DataFrame, **kwargs: Any) -> DataFrame:
     """Correlation between two DataFrames, used by the test suite for oracle parity checks."""
     corr_method = kwargs.pop("corr_method", "pearson")
