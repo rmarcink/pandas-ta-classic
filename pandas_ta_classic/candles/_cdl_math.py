@@ -169,6 +169,9 @@ def run_pattern(
         **kwargs: Forwarded for fillna / fill_method handling.
 
     Kwargs:
+        candle_arrays (CandleArrays, optional): Pre-built arrays for this OHLC
+            frame. ``cdl_pattern`` passes one in so that a multi-pattern run
+            derives them once instead of once per pattern.
         fillna (value, optional): pd.DataFrame.fillna(value)
         fill_method (value, optional): Type of fill method
 
@@ -186,12 +189,14 @@ def run_pattern(
     offset = get_offset(offset)
     scalar = float(scalar) if scalar else 100
 
-    ca = CandleArrays(
-        open_.to_numpy(dtype=float),
-        high.to_numpy(dtype=float),
-        low.to_numpy(dtype=float),
-        close.to_numpy(dtype=float),
-    )
+    ca = kwargs.pop("candle_arrays", None)
+    if ca is None:
+        ca = CandleArrays(
+            open_.to_numpy(dtype=float),
+            high.to_numpy(dtype=float),
+            low.to_numpy(dtype=float),
+            close.to_numpy(dtype=float),
+        )
 
     n = len(close)
     out = np.zeros(n, dtype=np.double)

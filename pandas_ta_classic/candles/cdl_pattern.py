@@ -7,6 +7,7 @@ from typing import Any, Optional, Union
 from pandas import Series, DataFrame
 
 from . import cdl_doji, cdl_inside
+from ._cdl_math import CandleArrays
 from pandas_ta_classic.utils import apply_fill, apply_offset, get_offset, verify_series
 from pandas_ta_classic import Imports
 
@@ -104,7 +105,7 @@ def _discover_native_patterns() -> dict:
 _NATIVE_PATTERNS = _discover_native_patterns()
 
 
-def _run_one_cdl_pattern(n, open_, high, low, close, pta_patterns, scalar, offset, result, tala, **kwargs):
+def _run_one_cdl_pattern(n, open_, high, low, close, pta_patterns, scalar, offset, result, tala, candle_arrays=None, **kwargs):
     """Attempt to compute and store one candle pattern by name."""
     if n not in ALL_PATTERNS:
         logger.warning("There is no candle pattern named %s available!", n)
@@ -114,7 +115,7 @@ def _run_one_cdl_pattern(n, open_, high, low, close, pta_patterns, scalar, offse
         pattern_result = pta_patterns[n](open_, high, low, close, offset=offset, scalar=scalar, **kwargs)
         result[pattern_result.name] = pattern_result
     elif n in _NATIVE_PATTERNS:
-        pattern_result = _NATIVE_PATTERNS[n](open_, high, low, close, scalar=scalar, offset=offset, **kwargs)
+        pattern_result = _NATIVE_PATTERNS[n](open_, high, low, close, scalar=scalar, offset=offset, candle_arrays=candle_arrays, **kwargs)
         if pattern_result is not None:
             result[col_name] = pattern_result
     elif tala is not None:
@@ -166,6 +167,15 @@ def cdl_pattern(
     if Imports["talib"]:
         import talib.abstract as tala
 
+    # Every native pattern derives the same OHLC helper arrays; build them once
+    # here rather than once per pattern.
+    candle_arrays = CandleArrays(
+        open_.to_numpy(dtype=float),
+        high.to_numpy(dtype=float),
+        low.to_numpy(dtype=float),
+        close.to_numpy(dtype=float),
+    )
+
     result: dict = {}
     for n in name:
         _run_one_cdl_pattern(
@@ -179,6 +189,7 @@ def cdl_pattern(
             offset,
             result,
             tala,
+            candle_arrays=candle_arrays,
             **kwargs,
         )
 
