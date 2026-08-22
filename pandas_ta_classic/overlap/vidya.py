@@ -11,6 +11,17 @@ from pandas_ta_classic.utils import (
     get_offset,
     verify_series,
 )
+from pandas_ta_classic.utils._njit import njit
+
+
+@njit(cache=True)
+def _vidya_loop(c_arr, cmo_arr, m, length, alpha, seed):
+    """Recursive VIDYA smoothing seeded with the SMA at ``length - 1``."""
+    out = np.full(m, np.nan)
+    out[length - 1] = seed
+    for i in range(length, m):
+        out[i] = alpha * cmo_arr[i] * c_arr[i] + out[i - 1] * (1 - alpha * cmo_arr[i])
+    return out
 
 
 def vidya(
@@ -48,12 +59,10 @@ def vidya(
     m = close.size
     alpha = 2 / (length + 1)
     abs_cmo = _cmo(close, length, drift).abs()
-    vidya_arr = np.full(m, np.nan)
-    vidya_arr[length - 1] = close.iloc[:length].mean()  # SMA seed
-    cmo_arr = abs_cmo.to_numpy()
-    c_arr = close.to_numpy()
-    for i in range(length, m):
-        vidya_arr[i] = alpha * cmo_arr[i] * c_arr[i] + vidya_arr[i - 1] * (1 - alpha * cmo_arr[i])
+    seed = close.iloc[:length].mean()  # SMA seed
+    cmo_arr = abs_cmo.to_numpy(dtype=float)
+    c_arr = close.to_numpy(dtype=float)
+    vidya_arr = _vidya_loop(c_arr, cmo_arr, m, length, alpha, seed)
     vidya = Series(vidya_arr, index=close.index)
 
     # Offset
