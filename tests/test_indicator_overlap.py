@@ -355,6 +355,42 @@ class TestOverlap(TestCase):
             ),
         )
 
+    def test_mavp_group_strategies_agree(self):
+        """Gathering a period group and slicing it bar by bar must agree exactly.
+
+        ``_mavp_sma_values`` picks between the two per group, so both have to
+        stay interchangeable for every shape of input.
+        """
+        import importlib
+
+        import numpy as np
+
+        mod = importlib.import_module("pandas_ta_classic.overlap.mavp")
+
+        def reference(close_arr, per_arr):
+            out = np.full(len(close_arr), np.nan)
+            for i, p in enumerate(per_arr.tolist()):
+                if i + 1 >= p:
+                    out[i] = close_arr[i - p + 1 : i + 1].mean()
+            return out
+
+        rng = np.random.default_rng(7)
+        keep = (mod._MAVP_GATHER_MIN_BARS, mod._MAVP_GATHER_MAX_PERIOD)
+        gather_always, slice_always = (0, 10**9), (10**9, -1)
+        try:
+            # Few bars per period, many bars per period, and windows wide
+            # enough that the copying makes gathering the wrong choice.
+            for n, maxperiod in ((250, 60), (1500, 30), (1500, 900)):
+                close_arr = 100.0 + np.cumsum(rng.standard_normal(n))
+                per_arr = rng.integers(2, maxperiod, n)
+                expected = reference(close_arr, per_arr)
+                for min_bars, max_period in (gather_always, slice_always, keep):
+                    mod._MAVP_GATHER_MIN_BARS = min_bars
+                    mod._MAVP_GATHER_MAX_PERIOD = max_period
+                    np.testing.assert_array_equal(mod._mavp_sma_values(close_arr, per_arr), expected)
+        finally:
+            mod._MAVP_GATHER_MIN_BARS, mod._MAVP_GATHER_MAX_PERIOD = keep
+
     def test_mavp_unsupported_mamode_warns(self):
         import pytest
 

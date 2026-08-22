@@ -8,6 +8,20 @@ from pandas import Series
 from pandas_ta_classic import Imports
 from pandas_ta_classic.utils import apply_fill, apply_offset, get_offset, verify_series
 
+#: A period group is gathered only while both of these hold; otherwise its
+#: bars are sliced one at a time, which is what the pre-vectorisation
+#: implementation did.  So no shape of input is slower than it was before the
+#: grouping was introduced.
+#:
+#: ``_MAVP_GATHER_MAX_PERIOD`` bounds the copying: a gather copies ``p`` values
+#: per bar where a slice is a view, and that copy overtakes one Python
+#: iteration at ``p ~= 1000``.  ``_MAVP_GATHER_MIN_BARS`` bounds the fixed
+#: cost: each gather is one fancy-index plus one reduction, which only pays off
+#: once a few bars share the period (a 200-bar frame with periods around 50 has
+#: ~2 bars per period, and gathering them loses 2.3x).
+_MAVP_GATHER_MAX_PERIOD = 1000
+_MAVP_GATHER_MIN_BARS = 4
+
 
 def _mavp_sma_values(close_arr, per_arr):
     """Compute a variable-period SMA for each bar.
@@ -15,6 +29,13 @@ def _mavp_sma_values(close_arr, per_arr):
     For each bar ``i`` the window is ``close_arr[i - p + 1 : i + 1]`` where
     ``p = per_arr[i]``.  Bars where fewer than ``p`` preceding values exist
     are left as ``NaN``.
+
+    Bars are handled in groups that share a window size.  A group is either
+    gathered -- all its windows indexed at once and reduced with one
+    ``mean(axis=1)`` -- or sliced bar by bar, whichever is cheaper for its size
+    and width (see the thresholds above).  Both take the mean of the identical
+    ``close_arr[i - p + 1 : i + 1]`` slice, so they agree bit-for-bit and a
+    single call can mix the two.
 
     Args:
         close_arr (np.ndarray): 1-D float64 price array.
@@ -30,18 +51,23 @@ def _mavp_sma_values(close_arr, per_arr):
     if rows.size == 0:
         return result
 
-    # Bars sharing a window size share one gather-and-mean, so the work is
-    # one pass per distinct period instead of one ``mean()`` call per bar.
-    # Sorting groups those bars contiguously; the windows are still the exact
-    # ``close_arr[i - p + 1 : i + 1]`` slices, so the means are unchanged.
+    # Sorting puts the bars sharing a window size next to each other; the
+    # windows are still the exact same slices, in the same order.
     row_periods = per_arr[rows]
     order = np.argsort(row_periods, kind="stable")
     rows = rows[order]
     periods, starts = np.unique(row_periods[order], return_index=True)
     bounds = np.append(starts, rows.size)
-    for k, p in enumerate(periods):
+
+    for k, p in enumerate(periods.tolist()):  # Python ints: numpy scalars cost more to index with
         block = rows[bounds[k] : bounds[k + 1]]
-        result[block] = close_arr[block[:, None] - np.arange(p - 1, -1, -1)].mean(axis=1)
+        if p > _MAVP_GATHER_MAX_PERIOD or block.size < _MAVP_GATHER_MIN_BARS:
+            # ``tolist()`` so the slice bounds are Python ints: indexing an
+            # array with numpy scalars costs more per bar than the slice does.
+            for i in block.tolist():
+                result[i] = close_arr[i - p + 1 : i + 1].mean()
+        else:
+            result[block] = close_arr[block[:, None] - np.arange(p - 1, -1, -1)].mean(axis=1)
     return result
 
 
