@@ -1,6 +1,7 @@
 # Ultimate Oscillator (UO)
 from typing import Any, Optional
-from pandas import DataFrame, Series
+from numpy import fmax as npfmax, fmin as npfmin
+from pandas import Series
 from pandas_ta_classic import Imports
 from pandas_ta_classic.utils import (
     apply_fill,
@@ -30,10 +31,12 @@ def _uo_native(high, low, close, fast, medium, slow, fast_w, medium_w, slow_w, d
     Returns:
         Series: UO values scaled to 0–100.
     """
-    tdf = DataFrame({"high": high, "low": low, f"close_{drift}": close.shift(drift)})
-    max_h_or_pc = tdf.loc[:, ["high", f"close_{drift}"]].max(axis=1)
-    min_l_or_pc = tdf.loc[:, ["low", f"close_{drift}"]].min(axis=1)
-    del tdf
+    prev_close = close.shift(drift)
+    # np.fmax/np.fmin ignore NaN the same way DataFrame.max(axis=1) does with
+    # its default skipna=True, and the ufunc still aligns the two Series, so
+    # this is the pairwise maximum without building an intermediate frame.
+    max_h_or_pc = npfmax(high, prev_close)
+    min_l_or_pc = npfmin(low, prev_close)
 
     bp = close - min_l_or_pc
     tr = max_h_or_pc - min_l_or_pc
