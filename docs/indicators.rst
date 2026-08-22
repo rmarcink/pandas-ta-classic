@@ -248,7 +248,8 @@ cannot hand back a tuple.
 ``append_span=True`` appends the future-dated projected Senkou A/B rows
 (``kijun`` rows, 26 by default) to the single-DataFrame return. Only
 ``ISA``/``ISB`` are populated on those rows; ``ITS``/``IKS``/``ICS`` are NaN.
-It has no effect on the tuple return, which always exposes the span separately.
+It cannot be combined with the tuple return, which already exposes the span as
+its second element; asking for both raises ``ValueError``.
 
 ``lookahead=False`` drops the Chikou Span column.
 

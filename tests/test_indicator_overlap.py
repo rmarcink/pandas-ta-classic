@@ -230,6 +230,19 @@ class TestOverlap(TestCase):
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
 
+    def test_ichimoku_append_span_requires_dataframe(self):
+        # append_span has nothing to append to when the tuple is returned, so
+        # the combination raises instead of being silently dropped. Covers the
+        # explicit False and the deprecated default alike, and the raise must
+        # come before the DeprecationWarning the default would otherwise emit.
+        for kwargs in ({"append_span": True}, {"as_dataframe": False, "append_span": True}, {"as_dataframe": None, "append_span": True}):
+            with self.subTest(kwargs=kwargs):
+                with warnings.catch_warnings():
+                    warnings.simplefilter("error", DeprecationWarning)
+                    with self.assertRaises(ValueError) as ctx:
+                        pandas_ta.ichimoku(self.high, self.low, self.close, **kwargs)
+                self.assertIn("requires the single-DataFrame return", str(ctx.exception))
+
     def test_linreg(self):
         result = pandas_ta.linreg(self.close, talib=False)
         if HAS_TALIB:

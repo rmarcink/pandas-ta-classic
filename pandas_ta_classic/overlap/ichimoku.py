@@ -41,9 +41,23 @@ def ichimoku(
     if not kwargs.get("lookahead", True):
         include_chikou = False
 
+    return_tuple = as_dataframe is not True
+
+    # append_span asks for the span rows to be appended to the returned frame.
+    # The tuple return has nothing to append them to -- it already hands the
+    # span back as its second element -- so the combination is a contradiction
+    # rather than a no-op. Raise before the deprecation warning below, which
+    # would otherwise be noise in front of an abort. The guard disappears with
+    # the tuple branch once the single-DataFrame return becomes the default.
+    if append_span and return_tuple:
+        raise ValueError(
+            "append_span=True requires the single-DataFrame return: the (visible, span) "
+            "tuple already exposes the projected span as its second element, so there is "
+            "nothing to append it to. Pass as_dataframe=True."
+        )
+
     if as_dataframe is None:
         warnings.warn(_ICHIMOKU_TUPLE_DEPRECATION, DeprecationWarning, stacklevel=2)
-    return_tuple = as_dataframe is not True
 
     if high is None or low is None or close is None:
         return (None, None) if return_tuple else None
@@ -159,11 +173,12 @@ Args:
         legacy ``(visible, span)`` tuple and emits a DeprecationWarning.
         True returns a single DataFrame. False returns the tuple without
         warning. Default: None
-    append_span (bool): Only used when as_dataframe is True. When False
-        (default) the returned DataFrame holds the visible period only.
-        When True the future-dated span rows (projected Senkou A/B) are
-        appended as extra rows. Ignored for the tuple return, which always
-        exposes the span separately. Default: False
+    append_span (bool): Requires as_dataframe=True. When False (default) the
+        returned DataFrame holds the visible period only. When True the
+        future-dated span rows (projected Senkou A/B) are appended as extra
+        rows. Combining append_span=True with the tuple return raises
+        ValueError: the tuple already exposes the span as its second element.
+        Default: False
 
 Kwargs:
     fillna (value, optional): pd.DataFrame.fillna(value)
