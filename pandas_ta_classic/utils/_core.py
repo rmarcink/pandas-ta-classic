@@ -3,7 +3,7 @@ from typing import Any, Optional, TypeGuard, Union
 
 from sys import float_info as sflt
 
-from numpy import argmax, argmin
+from numpy import argmax, argmin, sign as npsign
 from pandas import DataFrame, Series
 from pandas.api.types import is_datetime64_any_dtype
 
@@ -117,9 +117,11 @@ def signed_series(series: Series, initial: Optional[int] = None) -> Series:
     sign = Series([NaN, -1.0, 0.0, -1.0, 0.0, 1.0, 1.0, 0.0, 1.0, -1.0])
     """
     series = verify_series(series)
-    sign = series.diff(1)
-    sign[sign > 0] = 1
-    sign[sign < 0] = -1
+    # npsign maps the differences to 1/0/-1 in one pass and leaves NaN as NaN,
+    # which is what the two boolean assignments it replaces did -- without the
+    # mask, alignment and copy each of them cost.
+    diff = series.diff(1)
+    sign = Series(npsign(diff.to_numpy()), index=diff.index, name=diff.name)
     sign.iloc[0] = initial
     return sign
 
