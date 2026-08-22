@@ -23,9 +23,11 @@ def vp(
 
     # Setup
     signed_price = signed_series(close, 1)
-    pos_volume = volume * signed_price[signed_price > 0]
+    # .where keeps the full index (NaN outside the mask) so the products below
+    # need no realignment, unlike the boolean subsets they replace.
+    pos_volume = volume * signed_price.where(signed_price > 0)
     pos_volume.name = volume.name
-    neg_volume = -volume * signed_price[signed_price < 0]
+    neg_volume = -volume * signed_price.where(signed_price < 0)
     neg_volume.name = volume.name
     vp = concat([close, pos_volume, neg_volume], axis=1)
 
@@ -68,16 +70,24 @@ def vp(
             ]
         ]
     else:
-        vp_ranges = [vp.iloc[idx] for idx in np.array_split(np.arange(len(vp)), width)]
+        # Split the three columns as numpy views instead of slicing the frame:
+        # np.array_split on the arrays yields the same contiguous ranges as
+        # slicing by position, and the nan-aware reductions match what the
+        # pandas ones did with their default skipna=True.
+        segments = zip(
+            np.array_split(vp[close_col].to_numpy(), width),
+            np.array_split(vp[pos_volume_col].to_numpy(), width),
+            np.array_split(vp[neg_volume_col].to_numpy(), width),
+        )
         result = (
             {
-                low_price_col: r[close_col].min(),
-                mean_price_col: r[close_col].mean(),
-                high_price_col: r[close_col].max(),
-                pos_volume_col: r[pos_volume_col].sum(),
-                neg_volume_col: r[neg_volume_col].sum(),
+                low_price_col: np.nanmin(close_seg),
+                mean_price_col: np.nanmean(close_seg),
+                high_price_col: np.nanmax(close_seg),
+                pos_volume_col: np.nansum(pos_seg),
+                neg_volume_col: np.nansum(neg_seg),
             }
-            for r in vp_ranges
+            for close_seg, pos_seg, neg_seg in segments
         )
         vpdf = DataFrame(result)
     vpdf[total_volume_col] = vpdf[pos_volume_col] + vpdf[neg_volume_col]
