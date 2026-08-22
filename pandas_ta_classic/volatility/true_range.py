@@ -1,7 +1,7 @@
 # True Range (TRUE_RANGE)
 from typing import Any, Optional
 import numpy as np
-from pandas import concat, Series
+from pandas import Series
 
 
 from pandas_ta_classic import Imports
@@ -43,10 +43,19 @@ def true_range(
     else:
         high_low_range = non_zero_range(high, low)
         prev_close = close.shift(drift)
-        ranges = [high_low_range, high - prev_close, prev_close - low]
-        true_range = concat(ranges, axis=1)
-        true_range = true_range.abs().max(axis=1)
-        true_range.iloc[:drift] = np.nan
+        # ``np.fmax`` skips NaN operands, matching ``DataFrame.max(axis=1)``'s
+        # default ``skipna=True``, and yields NaN only where all three ranges are
+        # NaN.  Reducing with fmax instead of concatenating into a DataFrame
+        # avoids building an intermediate 3-column frame per call.
+        _values = np.fmax(
+            np.fmax(
+                np.abs(high_low_range.to_numpy()),
+                np.abs((high - prev_close).to_numpy()),
+            ),
+            np.abs((prev_close - low).to_numpy()),
+        )
+        _values[:drift] = np.nan
+        true_range = Series(_values, index=close.index)
 
     # Offset
     true_range = apply_offset(true_range, offset)
