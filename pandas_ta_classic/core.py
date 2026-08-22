@@ -194,12 +194,11 @@ class AnalysisIndicators(PandasObject):
     _df = pd.DataFrame()
     _exchange = "NYSE"
     _time_range = "years"
-    _last_run = get_time(_exchange, to_string=True)
+    _last_run: Optional[str] = None
 
     def __init__(self, pandas_obj):
         self._validate(pandas_obj)
         self._df = pandas_obj
-        self._last_run = get_time(self._exchange, to_string=True)
 
     @staticmethod
     def _validate(obj: tuple[pd.DataFrame, pd.Series]):
@@ -284,8 +283,13 @@ class AnalysisIndicators(PandasObject):
             self._exchange = value
 
     @property
-    def last_run(self) -> Optional[str]:
+    def last_run(self) -> str:
         """Returns the time when the DataFrame was last run."""
+        # Deferred rather than stamped in __init__: pandas builds a fresh
+        # accessor on every ``df.ta`` access, and formatting the timestamp
+        # costs more than a cheap indicator's whole calculation.
+        if self._last_run is None:
+            self._last_run = get_time(self._exchange, to_string=True)
         return self._last_run
 
     # Public Get DataFrame Properties
@@ -809,7 +813,7 @@ class AnalysisIndicators(PandasObject):
         if verbose:
             logger.info(f"Total indicators: {len(ta)}")
             logger.info(f"Columns added: {len(self._df.columns) - initial_column_count}")
-            logger.info(f"Last Run: {self._last_run}")
+            logger.info(f"Last Run: {self.last_run}")
         if timed:
             logger.info(f"Runtime: {final_time(stime)}")
 
