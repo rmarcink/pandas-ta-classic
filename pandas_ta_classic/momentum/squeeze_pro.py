@@ -8,8 +8,9 @@ from pandas_ta_classic.momentum.squeeze import _squeeze_detailed, _squeeze_simpl
 from pandas_ta_classic.overlap.ema import ema
 from pandas_ta_classic.overlap.sma import sma
 from pandas_ta_classic.volatility.bbands import bbands
-from pandas_ta_classic.volatility.kc import kc
-from pandas_ta_classic.utils import apply_fill, apply_offset, get_offset
+from pandas_ta_classic.volatility.true_range import true_range
+from pandas_ta_classic.overlap.ma import ma
+from pandas_ta_classic.utils import apply_fill, apply_offset, get_offset, non_zero_range
 from pandas_ta_classic.utils import verify_series
 
 
@@ -59,41 +60,26 @@ def squeeze_pro(
 
     # Calculate Result
     bbd = bbands(close, length=bb_length, std=bb_std, mamode=mamode)
-    kch_wide = kc(
-        high,
-        low,
-        close,
-        length=kc_length,
-        scalar=kc_scalar_wide,
-        mamode=mamode,
-        tr=use_tr,
-    )
-    kch_normal = kc(
-        high,
-        low,
-        close,
-        length=kc_length,
-        scalar=kc_scalar_normal,
-        mamode=mamode,
-        tr=use_tr,
-    )
-    kch_narrow = kc(
-        high,
-        low,
-        close,
-        length=kc_length,
-        scalar=kc_scalar_narrow,
-        mamode=mamode,
-        tr=use_tr,
-    )
-    if bbd is None or kch_wide is None or kch_normal is None or kch_narrow is None:
+
+    # The three Keltner Channels share every parameter but the scalar, so their
+    # true range and both moving averages are computed once here instead of
+    # three times over via ``kc()``.  The band expressions below are the ones
+    # ``kc()`` uses, so the bounds are bit-identical to the previous three calls.
+    kc_range = true_range(high, low, close) if use_tr else non_zero_range(high, low)
+    kc_basis = ma(mamode, close, length=kc_length)
+    kc_band = ma(mamode, kc_range, length=kc_length)
+    if bbd is None or kc_basis is None or kc_band is None:
         return None
 
-    # Simplify KC and BBAND column names for dynamic access
+    kc_lower_wide = kc_basis - kc_scalar_wide * kc_band
+    kc_upper_wide = kc_basis + kc_scalar_wide * kc_band
+    kc_lower_normal = kc_basis - kc_scalar_normal * kc_band
+    kc_upper_normal = kc_basis + kc_scalar_normal * kc_band
+    kc_lower_narrow = kc_basis - kc_scalar_narrow * kc_band
+    kc_upper_narrow = kc_basis + kc_scalar_narrow * kc_band
+
+    # Simplify BBAND column names for dynamic access
     bbd.columns = _squeeze_simplify_columns(bbd)
-    kch_wide.columns = _squeeze_simplify_columns(kch_wide)
-    kch_normal.columns = _squeeze_simplify_columns(kch_normal)
-    kch_narrow.columns = _squeeze_simplify_columns(kch_narrow)
 
     momo = mom(close, length=mom_length)
     if mamode.lower() == "ema":
@@ -102,10 +88,10 @@ def squeeze_pro(
         squeeze = sma(momo, length=mom_smooth)
 
     # Classify Squeezes
-    squeeze_on_wide = (bbd.l > kch_wide.l) & (bbd.u < kch_wide.u)
-    squeeze_on_normal = (bbd.l > kch_normal.l) & (bbd.u < kch_normal.u)
-    squeeze_on_narrow = (bbd.l > kch_narrow.l) & (bbd.u < kch_narrow.u)
-    squeeze_off_wide = (bbd.l < kch_wide.l) & (bbd.u > kch_wide.u)
+    squeeze_on_wide = (bbd.l > kc_lower_wide) & (bbd.u < kc_upper_wide)
+    squeeze_on_normal = (bbd.l > kc_lower_normal) & (bbd.u < kc_upper_normal)
+    squeeze_on_narrow = (bbd.l > kc_lower_narrow) & (bbd.u < kc_upper_narrow)
+    squeeze_off_wide = (bbd.l < kc_lower_wide) & (bbd.u > kc_upper_wide)
     no_squeeze = ~squeeze_on_wide & ~squeeze_off_wide
 
     # Convert bool to int before offset to avoid NaN-to-int errors
