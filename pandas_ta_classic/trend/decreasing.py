@@ -1,6 +1,7 @@
 # Decreasing (DECREASING)
 from typing import Any, Optional
 from pandas import Series
+from pandas_ta_classic.utils._core import _all_shifted
 from pandas_ta_classic.utils import (
     apply_fill,
     apply_offset,
@@ -37,12 +38,13 @@ def decreasing(
     # Calculate Result
     close_ = (1 - 0.01 * percent) * close if percent else close
     if strict:
-        # Returns value as float64? Have to cast to bool
-        decreasing = close < close_.shift(drift)
-        for x in range(3, length + 1):
-            decreasing = decreasing & (close.shift(x - (drift + 1)) < close_.shift(x - drift))
-
-        decreasing.fillna(0, inplace=True)
+        # Every term the loop used to AND in is the same one-bar comparison at
+        # a different shift -- ``close.shift(x - drift - 1) < close_.shift(x - drift)``
+        # is ``step.shift(x - drift - 1)`` -- so the length-2 shifted copies
+        # collapse into a single windowed conjunction. The first term keeps its
+        # own ``drift`` gap, as before.
+        step = close < close_.shift(1)
+        decreasing = (close < close_.shift(drift)) & _all_shifted(step, 2 - drift, length - drift - 1)
         decreasing = decreasing.astype(bool)
     else:
         decreasing = close_.diff(length) < 0

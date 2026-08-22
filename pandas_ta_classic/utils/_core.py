@@ -3,7 +3,16 @@ from typing import Any, Optional, TypeGuard, Union
 
 from sys import float_info as sflt
 
-from numpy import argmax, argmin, sign as npsign
+from numpy import (
+    arange as nparange,
+    argmax,
+    argmin,
+    concatenate as npconcatenate,
+    cumsum as npcumsum,
+    ones as npones,
+    sign as npsign,
+    where as npwhere,
+)
 from pandas import DataFrame, Series
 from pandas.api.types import is_datetime64_any_dtype
 
@@ -18,6 +27,35 @@ def _pos_int(val, default):
 def _pos_float(val, default):
     """Return ``float(val)`` when *val* is a positive float, else *default*."""
     return float(val) if val and val > 0 else default
+
+
+def _all_shifted(flags: Series, lo: int, hi: int) -> Series:
+    """``flags.shift(lo) & ... & flags.shift(hi)``, in one pass instead of ``hi - lo + 1``.
+
+    A window is True only when every one of its positions is True, so counting
+    the False entries with a cumulative sum answers the whole conjunction with
+    two lookups per bar. Positions whose window reaches outside *flags* are
+    False, which is what a shift past the edge produces once its NaN is
+    compared away. An empty range (``hi < lo``) is all True, the identity of
+    the conjunction.
+
+    Args:
+        flags: Boolean Series.
+        lo: Smallest shift in the conjunction (may be negative).
+        hi: Largest shift in the conjunction.
+
+    Returns:
+        Boolean Series aligned with *flags*.
+    """
+    n = flags.size
+    if hi < lo:
+        return Series(npones(n, dtype=bool), index=flags.index)
+    falses = npconcatenate(([0], npcumsum(~flags.to_numpy(dtype=bool))))  # falses[k] = count in flags[:k]
+    idx = nparange(n)
+    start, stop = idx - hi, idx - lo  # inclusive window bounds
+    inside = (start >= 0) & (stop < n)
+    counts = falses[npwhere(inside, stop, 0) + 1] - falses[npwhere(inside, start, 0)]
+    return Series(inside & (counts == 0), index=flags.index)
 
 
 def apply_offset(
