@@ -172,7 +172,7 @@ Moving averages and trend-following indicators:
 * *Hull Exponential Moving Average*: **hma**
 * *Hilbert Transform Instantaneous Trendline*: **ht_trendline**
 * *Holt-Winter Moving Average*: **hwma**
-* *Ichimoku Kinkō Hyō*: **ichimoku** (The ``ta.ichimoku()`` function returns two DataFrames: the known-period Ichimoku DataFrame and a forward-looking Span DataFrame. The DataFrame Extension Method ``df.ta.ichimoku()`` returns a single DataFrame. ``lookahead=False`` drops the Chikou Span Column)
+* *Ichimoku Kinkō Hyō*: **ichimoku** (return type is mid-migration — see `Ichimoku return types`_ below)
 * *Jurik Moving Average*: **jma**
 * *Kaufman's Adaptive Moving Average*: **kama**
 * *Linear Regression*: **linreg**
@@ -207,6 +207,71 @@ Moving averages and trend-following indicators:
 * *Weighted Closing Price*: **wcp**
 * *Weighted Moving Average*: **wma**
 * *Zero Lag Moving Average*: **zlma**
+
+Ichimoku return types
+~~~~~~~~~~~~~~~~~~~~~
+
+``ichimoku`` is mid-migration to a single-DataFrame return, so what you get
+back depends on how you call it.
+
+.. deprecated:: 0.6.53
+   ``ta.ichimoku()`` returning a ``(visible, span)`` tuple is deprecated and
+   will be removed in the next major release, when the single DataFrame becomes
+   the default. Calls that do not pass ``as_dataframe`` emit a
+   ``DeprecationWarning``.
+
+Standard usage — ``ta.ichimoku(high, low, close, ...)``:
+
+.. list-table::
+   :header-rows: 1
+
+   * - ``as_dataframe``
+     - Returns
+     - Warns
+   * - omitted / ``None``
+     - ``(visible, span)`` tuple
+     - yes, ``DeprecationWarning``
+   * - ``False``
+     - ``(visible, span)`` tuple
+     - no — but only for the current release line; once the default flips,
+       asking for the tuple is what warns
+   * - ``True``
+     - single DataFrame of the visible period
+     - no
+
+DataFrame Extension — ``df.ta.ichimoku(...)`` always returns the single
+DataFrame and never warns, so there is nothing to migrate. Passing
+``as_dataframe=True`` there is accepted and redundant; ``as_dataframe=False``
+raises ``TypeError``, because the accessor appends its result to the frame and
+cannot hand back a tuple.
+
+``append_span=True`` appends the future-dated projected Senkou A/B rows
+(``kijun`` rows, 26 by default) to the single-DataFrame return. Only
+``ISA``/``ISB`` are populated on those rows; ``ITS``/``IKS``/``ICS`` are NaN.
+It has no effect on the tuple return, which always exposes the span separately.
+
+``lookahead=False`` drops the Chikou Span column.
+
+Migrating now:
+
+.. code-block:: python
+
+   # Before — tuple, now emits a DeprecationWarning
+   visible, span = ta.ichimoku(df["high"], df["low"], df["close"])
+
+   # After — single DataFrame, no warning, matches the future default
+   visible = ta.ichimoku(df["high"], df["low"], df["close"], as_dataframe=True)
+
+   # ... with the projected span rows appended instead of returned separately
+   combined = ta.ichimoku(
+       df["high"], df["low"], df["close"], as_dataframe=True, append_span=True
+   )
+
+.. note::
+   Tuple unpacking fails loudly after the default flips rather than silently
+   producing wrong values: ``visible, span = ta.ichimoku(...)`` against a
+   DataFrame raises ``ValueError: too many values to unpack (expected 2)``,
+   since the visible period always has four or five columns.
 
 Performance (3)
 ---------------

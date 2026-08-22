@@ -62,6 +62,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * **Cross-package indicator imports**: A submodule import could overwrite a re-exported function of the same name on the parent package (e.g. `from pandas_ta_classic.volatility import atr` occasionally returned the `atr` *module* instead of the function). Resolved.
 * **Test-fixture regen no longer drops `cmo_14` entries** when running tests without tulipy installed. Generators now merge with existing JSON instead of overwriting.
 
+### Documentation
+* **`ichimoku` migration documented for users**: the deprecation lived only in the runtime warning — `docs/indicators.rst` still described the tuple return as the only behaviour, and no `docs/` page mentioned `as_dataframe` or `append_span`. A new *Ichimoku return types* section in `docs/indicators.rst` carries a `.. deprecated::` directive, a table of what each `as_dataframe` value returns and whether it warns, the accessor's differing contract, what `append_span` adds, and before/after migration snippets. `docs/dataframe_api.rst` gains a short *ichimoku return type* subsection under *Programming Conventions* — the one indicator whose return type differs between Standard and Extension style — pointing at the full table. Every claim in both sections was executed against the library before committing, including that tuple unpacking fails loudly (`ValueError: too many values to unpack (expected 2)`) rather than silently once the default flips.
+
 ## [0.6.52] - 2026-06-25
 
 ### Added

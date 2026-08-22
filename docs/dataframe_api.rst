@@ -48,6 +48,26 @@ Calling ``df.ta`` will automatically lowercase *OHLCVA* to *ohlcva*: *open, high
     df.ta.sma(length=10, append=True)
     df.ta.donchian(lower_length=10, upper_length=15, append=True)
 
+ichimoku return type
+~~~~~~~~~~~~~~~~~~~~
+
+``ichimoku`` is the one indicator whose return type differs between the two
+styles above, because it is mid-migration to a single DataFrame.
+
+.. deprecated:: 0.6.53
+   Standard usage — ``ta.ichimoku()`` — still returns a ``(visible, span)``
+   tuple by default and emits a ``DeprecationWarning``. Pass
+   ``as_dataframe=True`` to opt in to the single DataFrame now; it becomes the
+   default in the next major release.
+
+``df.ta.ichimoku()`` already returns the single DataFrame and never warns, so
+Extension users have nothing to migrate. ``as_dataframe=True`` is accepted and
+redundant there; ``as_dataframe=False`` raises ``TypeError``, because the
+accessor appends its result to the frame and cannot hand back a tuple.
+
+See :doc:`indicators` for the full return-type table, ``append_span``, and
+migration examples.
+
 Properties
 ----------
 
