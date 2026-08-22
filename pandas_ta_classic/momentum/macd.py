@@ -12,8 +12,10 @@ from pandas_ta_classic.utils import (
     verify_series,
 )
 from pandas_ta_classic.utils._core import _pos_int
+from pandas_ta_classic.utils._njit import njit
 
 
+@njit(cache=True)
 def _ema_aligned(arr, m, period, seed_end):
     """EMA with SMA seed at *seed_end*, matching TA-Lib behaviour.
 
