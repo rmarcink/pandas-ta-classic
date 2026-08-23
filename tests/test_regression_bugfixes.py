@@ -23,6 +23,10 @@ Covered fixes:
  15. cmf               — invalid optional open_ returns None instead of crashing
  16. psar              — invalid optional close returns None instead of crashing
  17. dema/tema/t3/trima/cci/natr — talib=False propagated to sub-indicator calls
+ 18. dm                — short input returns None (min_length was missing), matching
+                         plus_dm/minus_dm and the documented short-input contract
+ 19. cdl_pattern       — short input no longer raises AttributeError; sub-patterns
+                         that return None are skipped instead of dereferenced
 
 Run:
     python -m unittest tests/test_regression_bugfixes.py
@@ -895,3 +899,95 @@ class TestTalibFalsePropagation(TestCase):
         """natr(talib=False) returns a Series."""
         result = ta.natr(self.high, self.low, self.close, talib=False)
         self.assertIsInstance(result, pd.Series)
+
+
+# ---------------------------------------------------------------------------
+# Fix 18: dm short-input guard
+# ---------------------------------------------------------------------------
+
+
+class TestDmShortInputGuard(TestCase):
+    """dm() passed no min_length to verify_series, so its guard never fired.
+
+    Every comparable indicator (adx, plus_dm, minus_dm) returns None when the
+    input is shorter than `length`; dm returned a DataFrame computed from too
+    few rows.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        df = get_sample_data()
+        cls.high = df["high"]
+        cls.low = df["low"]
+
+    def test_short_input_returns_none(self):
+        """Fewer rows than the default length of 14 → None."""
+        result = ta.dm(self.high.iloc[:3], self.low.iloc[:3])
+        self.assertIsNone(result)
+
+    def test_short_input_matches_sibling_indicators(self):
+        """dm agrees with plus_dm/minus_dm/adx on the same short input."""
+        high, low = self.high.iloc[:3], self.low.iloc[:3]
+        self.assertIsNone(ta.dm(high, low))
+        self.assertIsNone(ta.plus_dm(high, low))
+        self.assertIsNone(ta.minus_dm(high, low))
+
+    def test_explicit_length_still_guarded(self):
+        """An explicit length longer than the input is guarded too."""
+        self.assertIsNone(ta.dm(self.high.iloc[:10], self.low.iloc[:10], length=20))
+
+    def test_sufficient_input_still_returns_dataframe(self):
+        """Normal-length input is unaffected."""
+        result = ta.dm(self.high, self.low)
+        self.assertIsInstance(result, pd.DataFrame)
+
+
+# ---------------------------------------------------------------------------
+# Fix 19: cdl_pattern None-check on pta_patterns results
+# ---------------------------------------------------------------------------
+
+
+class TestCdlPatternShortInput(TestCase):
+    """cdl_pattern() dereferenced `.name` on a sub-pattern result without checking it.
+
+    `cdl_doji` has a default length of 10, so on a short frame it returns None
+    and the aggregation raised `AttributeError: 'NoneType' object has no
+    attribute 'name'`. The native-pattern branch already had this guard.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        df = get_sample_data()
+        cls.open_ = df["open"].iloc[:3]
+        cls.high = df["high"].iloc[:3]
+        cls.low = df["low"].iloc[:3]
+        cls.close = df["close"].iloc[:3]
+
+    def test_short_input_does_not_raise(self):
+        """Short input returns a result instead of raising."""
+        result = ta.cdl_pattern(self.open_, self.high, self.low, self.close)
+        self.assertIsInstance(result, pd.DataFrame)
+
+    def test_uncomputable_subpattern_is_skipped(self):
+        """doji needs 10 rows, so its column is absent rather than fatal."""
+        result = ta.cdl_pattern(self.open_, self.high, self.low, self.close)
+        self.assertNotIn("CDL_DOJI_10", result.columns)
+        self.assertIn("CDL_INSIDE", result.columns)
+
+    def test_named_uncomputable_pattern_returns_none(self):
+        """Asking only for a pattern that cannot be computed yields None."""
+        result = ta.cdl_pattern(self.open_, self.high, self.low, self.close, name="doji")
+        self.assertIsNone(result)
+
+    def test_accessor_path_does_not_raise(self):
+        """The same call through df.ta.cdl_pattern() is fixed as well."""
+        df = pd.DataFrame(
+            {
+                "open": self.open_,
+                "high": self.high,
+                "low": self.low,
+                "close": self.close,
+            }
+        )
+        result = df.ta.cdl_pattern()
+        self.assertIsInstance(result, pd.DataFrame)
