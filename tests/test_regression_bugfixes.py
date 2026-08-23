@@ -35,11 +35,15 @@ Covered fixes:
                          raising ValueError in int(nan) at the DCPeriod rounding
  22. candle_color      — a NaN open/close yields NaN instead of raising
                          IntCastingNaNError; affects cdl_inside and cdl_pattern
+ 23. rma / linreg /    — short-window hardening: these three sites crashed if the
+     _sliding_weighted_   verify_series min_length guard was bypassed. Not
+     ma                   reachable through the public API; guarded anyway
 
 Run:
     python -m unittest tests/test_regression_bugfixes.py
 """
 
+import importlib
 import inspect
 import math
 from unittest import TestCase
@@ -1204,3 +1208,90 @@ class TestCandleColorNanInput(TestCase):
         close = pd.Series(np.arange(1.0, 51.0))
         result = ta.cdl_inside(close - 0.5, close + 1, close - 1, close, asbool=True)
         self.assertEqual(result.dtype, np.dtype("bool"))
+
+
+# ---------------------------------------------------------------------------
+# Fix 23: short-window hardening for rma, linreg and _sliding_weighted_ma
+# ---------------------------------------------------------------------------
+
+
+class TestShortWindowHardening(TestCase):
+    """Three sites that crashed when handed a window longer than the series.
+
+    None of them is reachable through the public API: verify_series' min_length
+    guard blocks every route found while probing (oversized single and multi
+    window arguments, every mamode, the accessor and strategy paths, NaN-prefixed
+    input, and chained calls). They are hardened regardless, because the ema
+    seeding bug (fix 20) was equally unreachable until someone worked out which
+    composition of indicators exposed it -- min_length models a single window,
+    while real lookback is compositional.
+
+    Reaching the guarded branches therefore requires bypassing verify_series,
+    which is what these tests do.
+    """
+
+    @staticmethod
+    def _passthrough(series, min_length=None):
+        """verify_series without the min_length short-circuit."""
+        return series if isinstance(series, pd.Series) else None
+
+    def _without_guard(self, dotted_name):
+        """Swap verify_series in a module for the pass-through, restoring after.
+
+        The module has to be resolved by name: ``pandas_ta_classic.overlap``
+        re-exports each indicator function under the same name as its submodule,
+        so plain attribute access returns the function, not the module.
+        """
+        module = importlib.import_module(dotted_name)
+        original = module.verify_series
+        module.verify_series = self._passthrough
+        self.addCleanup(setattr, module, "verify_series", original)
+        return module
+
+    def test_sliding_weighted_ma_window_longer_than_series(self):
+        """The helper is directly callable and must not build an empty view."""
+        from pandas_ta_classic.utils._core import _sliding_weighted_ma
+
+        close = pd.Series([1.0, 2.0, 3.0])
+        result = _sliding_weighted_ma(close, 10, np.ones(10))
+        self.assertIsInstance(result, pd.Series)
+        self.assertEqual(len(result), 3)
+        self.assertTrue(result.isna().all())
+
+    def test_sliding_weighted_ma_exact_fit(self):
+        """length == len(series) still produces the single valid window."""
+        from pandas_ta_classic.utils._core import _sliding_weighted_ma
+
+        close = pd.Series([1.0, 2.0, 3.0])
+        result = _sliding_weighted_ma(close, 3, np.ones(3))
+        self.assertEqual(result.iloc[-1], 6.0)
+        self.assertTrue(result.iloc[:2].isna().all())
+
+    def test_rma_without_guard(self):
+        """rma seeded at iloc[length - 1] without checking it exists."""
+        module = self._without_guard("pandas_ta_classic.overlap.rma")
+        result = module.rma(pd.Series([1.0, 2.0, 3.0]), length=10)
+        self.assertIsInstance(result, pd.Series)
+        self.assertTrue(result.isna().all())
+
+    def test_linreg_without_guard(self):
+        """linreg built a sliding window wider than the input array."""
+        module = self._without_guard("pandas_ta_classic.overlap.linreg")
+        result = module.linreg(pd.Series([1.0, 2.0, 3.0]), length=10, talib=False)
+        self.assertIsInstance(result, pd.Series)
+        self.assertEqual(len(result), 3)
+        self.assertTrue(result.isna().all())
+
+    def test_alma_without_guard(self):
+        """alma reaches _sliding_weighted_ma, so it is covered too."""
+        module = self._without_guard("pandas_ta_classic.overlap.alma")
+        result = module.alma(pd.Series([1.0, 2.0, 3.0]), length=10)
+        self.assertIsInstance(result, pd.Series)
+        self.assertTrue(result.isna().all())
+
+    def test_valid_input_unaffected(self):
+        """Ample input keeps its usual lookback in all three."""
+        close = pd.Series(np.arange(1.0, 101.0))
+        self.assertEqual(ta.rma(close, length=10).isna().sum(), 9)
+        self.assertEqual(ta.linreg(close, length=10, talib=False).isna().sum(), 9)
+        self.assertEqual(ta.alma(close, length=10).isna().sum(), 9)
