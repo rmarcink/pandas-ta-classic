@@ -27,11 +27,16 @@ Covered fixes:
                          plus_dm/minus_dm and the documented short-input contract
  19. cdl_pattern       — short input no longer raises AttributeError; sub-patterns
                          that return None are skipped instead of dereferenced
+ 20. ema               — the SMA seed no longer indexes past the end when fewer
+                         than `length` valid values follow the first valid one;
+                         fixes IndexError in 14 chained indicators (trix, tsi,
+                         qqe, ppo, pvo, ...) on clean data with default args
 
 Run:
     python -m unittest tests/test_regression_bugfixes.py
 """
 
+import inspect
 import math
 from unittest import TestCase
 
@@ -990,4 +995,90 @@ class TestCdlPatternShortInput(TestCase):
             }
         )
         result = df.ta.cdl_pattern()
+        self.assertIsInstance(result, pd.DataFrame)
+
+
+# ---------------------------------------------------------------------------
+# Fix 20: ema SMA-seed bounds check
+# ---------------------------------------------------------------------------
+
+
+class TestEmaSeedBounds(TestCase):
+    """ema() seeded at `fv_pos + length - 1` without checking that it exists.
+
+    verify_series' min_length models a single window, but chained indicators
+    compound their lookback: trix applies ema three times, so each inner call's
+    NaN prefix pushes the seed position further out. Once it passed the end of
+    the series, `.iloc[]` raised "IndexError: iloc cannot enlarge its target
+    object" on clean data with default arguments.
+    """
+
+    def test_trix_on_thirty_clean_rows(self):
+        """The minimal user-facing reproducer: 30 rows, defaults, no NaN."""
+        result = ta.trix(pd.Series(range(1, 31), dtype=float))
+        self.assertIsInstance(result, pd.DataFrame)
+
+    def test_chained_ema_over_nan_prefix(self):
+        """A NaN prefix from an inner call no longer pushes the seed off the end."""
+        close = pd.Series(np.arange(1.0, 201.0))
+        result = ta.ema(ta.sma(close, length=190), length=20)
+        self.assertIsInstance(result, pd.Series)
+        self.assertTrue(result.isna().all(), "undefined EMA must be all-NaN")
+
+    def test_affected_indicators_no_longer_raise(self):
+        """Each indicator, at a row count that previously raised."""
+        cases = {
+            "efi": 13, "inertia": 20, "kc": 20, "pgo": 14, "ppo": 26,
+            "pvo": 26, "qqe": 27, "rvi": 14, "smi": 20, "thermo": 20,
+            "trix": 30, "trixh": 18, "tsi": 25, "zlma": 10,
+        }
+        rng = np.random.default_rng(0)
+        for name, rows in cases.items():
+            with self.subTest(indicator=name, rows=rows):
+                base = 100 + np.cumsum(rng.normal(0, 1, rows))
+                index = pd.date_range("2020-01-01", periods=rows, freq="D")
+                func = getattr(ta, name)
+                kwargs = {}
+                for param in inspect.signature(func).parameters:
+                    if param == "close":
+                        kwargs[param] = pd.Series(base, index=index)
+                    elif param == "high":
+                        kwargs[param] = pd.Series(base + 1.0, index=index)
+                    elif param == "low":
+                        kwargs[param] = pd.Series(base - 1.0, index=index)
+                    elif param == "open_":
+                        kwargs[param] = pd.Series(base - 0.5, index=index)
+                    elif param == "volume":
+                        kwargs[param] = pd.Series(
+                            rng.integers(1_000, 5_000, rows).astype(float), index=index
+                        )
+                func(**kwargs)  # must not raise
+
+    def test_strategy_on_short_frame(self):
+        """df.ta.strategy("all") on 20 clean rows previously raised IndexError."""
+        rows = 20
+        rng = np.random.default_rng(0)
+        base = 100 + np.cumsum(rng.normal(0, 1, rows))
+        df = pd.DataFrame(
+            {
+                "open": base - 0.5,
+                "high": base + 1.0,
+                "low": base - 1.0,
+                "close": base,
+                "volume": rng.integers(1_000, 5_000, rows).astype(float),
+            },
+            index=pd.date_range("2020-01-01", periods=rows, freq="D"),
+        )
+        df.ta.strategy("all", cores=0)  # must not raise
+
+    def test_ample_input_seed_unchanged(self):
+        """Normal-length input keeps the TA-Lib lookback: length-1 leading NaN."""
+        close = pd.Series(np.arange(1.0, 201.0))
+        result = ta.ema(close, length=20)
+        self.assertEqual(result.isna().sum(), 19)
+        self.assertTrue(np.isfinite(result.iloc[19:]).all())
+
+    def test_bbands_with_zlma_mamode(self):
+        """bbands(mamode="zlma") on 5 rows previously raised through ema."""
+        result = ta.bbands(pd.Series([1.0, 2.0, 3.0, 4.0, 5.0]), mamode="zlma")
         self.assertIsInstance(result, pd.DataFrame)
