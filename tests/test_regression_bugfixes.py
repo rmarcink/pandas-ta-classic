@@ -31,6 +31,10 @@ Covered fixes:
                          than `length` valid values follow the first valid one;
                          fixes IndexError in 14 chained indicators (trix, tsi,
                          qqe, ppo, pvo, ...) on clean data with default args
+ 21. ht_* (_hilbert)   — a single NaN in the input propagates as NaN instead of
+                         raising ValueError in int(nan) at the DCPeriod rounding
+ 22. candle_color      — a NaN open/close yields NaN instead of raising
+                         IntCastingNaNError; affects cdl_inside and cdl_pattern
 
 Run:
     python -m unittest tests/test_regression_bugfixes.py
@@ -1082,3 +1086,121 @@ class TestEmaSeedBounds(TestCase):
         """bbands(mamode="zlma") on 5 rows previously raised through ema."""
         result = ta.bbands(pd.Series([1.0, 2.0, 3.0, 4.0, 5.0]), mamode="zlma")
         self.assertIsInstance(result, pd.DataFrame)
+
+
+# ---------------------------------------------------------------------------
+# Fix 21: _hilbert NaN handling
+# ---------------------------------------------------------------------------
+
+
+class TestHilbertNanInput(TestCase):
+    """The Hilbert Transform loop crashed in int(nan) on any NaN input.
+
+    `dc_period_int = max(int(sp + 0.5), 1)` raised "ValueError: cannot convert
+    float NaN to integer" once a NaN reached the smoothed period, which a single
+    NaN anywhere in the input guarantees. This contradicted the documented
+    contract that an indicator may propagate NaN but must not crash.
+    """
+
+    HT_NAMES = (
+        "ht_trendline",
+        "ht_dcperiod",
+        "ht_dcphase",
+        "ht_sine",
+        "ht_phasor",
+        "ht_trendmode",
+    )
+
+    @classmethod
+    def setUpClass(cls):
+        cls.clean = pd.Series(100 + np.cumsum(np.random.default_rng(7).normal(0, 1, 200)))
+        cls.with_nan = cls.clean.copy()
+        cls.with_nan.iloc[50] = np.nan
+
+    def test_single_nan_does_not_raise(self):
+        """One NaN mid-series returns a result for every ht_* indicator."""
+        for name in self.HT_NAMES:
+            with self.subTest(indicator=name):
+                result = getattr(ta, name)(self.with_nan)
+                self.assertIsNotNone(result)
+                self.assertIsInstance(result, (pd.Series, pd.DataFrame))
+
+    def test_nan_propagates_after_the_gap(self):
+        """The recursion is poisoned from the NaN onward, so output goes NaN."""
+        result = ta.ht_trendline(self.with_nan)
+        self.assertTrue(result.iloc[54:].isna().all())
+
+    def test_values_before_the_gap_are_unaffected(self):
+        """Bars before the NaN keep the values computed from clean input."""
+        clean_result = ta.ht_trendline(self.clean)
+        nan_result = ta.ht_trendline(self.with_nan)
+        mask = clean_result.iloc[:47].notna()
+        np.testing.assert_allclose(
+            nan_result.iloc[:47][mask].values,
+            clean_result.iloc[:47][mask].values,
+            rtol=1e-12,
+        )
+
+    def test_inf_does_not_raise(self):
+        """±Inf is the other half of the documented edge-case contract."""
+        with_inf = self.clean.copy()
+        with_inf.iloc[50] = np.inf
+        for name in self.HT_NAMES:
+            with self.subTest(indicator=name):
+                self.assertIsNotNone(getattr(ta, name)(with_inf))
+
+    def test_clean_input_still_produces_values(self):
+        """No NaN anywhere: the guard must not fire."""
+        result = ta.ht_trendline(self.clean)
+        self.assertGreater(int(np.isfinite(result).sum()), 100)
+
+
+# ---------------------------------------------------------------------------
+# Fix 22: candle_color NaN handling
+# ---------------------------------------------------------------------------
+
+
+class TestCandleColorNanInput(TestCase):
+    """candle_color() did `close.copy().astype(int)`, which raises on NaN.
+
+    pandas cannot cast NaN to int, so `IntCastingNaNError` propagated out of
+    cdl_inside and cdl_pattern for any input carrying a NaN -- which is what
+    every chained indicator produces.
+    """
+
+    def test_clean_input_keeps_int_dtype(self):
+        """Fully defined input keeps the historical integer dtype."""
+        open_ = pd.Series([1.0, 2.0, 3.0])
+        close = pd.Series([2.0, 1.0, 3.0])
+        result = ta.candle_color(open_, close)
+        self.assertEqual(result.dtype, np.dtype("int64"))
+        self.assertEqual(result.tolist(), [1, -1, 1])
+
+    def test_nan_yields_nan_not_a_colour(self):
+        """An undefined candle is NaN, not silently classified as bearish."""
+        open_ = pd.Series([1.0, 2.0, 3.0])
+        close = pd.Series([2.0, np.nan, 3.0])
+        result = ta.candle_color(open_, close)
+        self.assertTrue(np.isnan(result.iloc[1]))
+        self.assertEqual(result.iloc[0], 1.0)
+        self.assertEqual(result.iloc[2], 1.0)
+
+    def test_cdl_inside_with_nan_does_not_raise(self):
+        """cdl_inside previously raised IntCastingNaNError."""
+        close = pd.Series(np.arange(1.0, 201.0))
+        close.iloc[50] = np.nan
+        result = ta.cdl_inside(close, close + 1, close - 1, close)
+        self.assertIsInstance(result, pd.Series)
+
+    def test_cdl_pattern_with_nan_does_not_raise(self):
+        """The aggregation path is fixed as well."""
+        close = pd.Series(np.arange(1.0, 201.0))
+        close.iloc[50] = np.nan
+        result = ta.cdl_pattern(close - 0.5, close + 1, close - 1, close)
+        self.assertIsInstance(result, pd.DataFrame)
+
+    def test_asbool_path_unaffected(self):
+        """asbool=True never calls candle_color."""
+        close = pd.Series(np.arange(1.0, 51.0))
+        result = ta.cdl_inside(close - 0.5, close + 1, close - 1, close, asbool=True)
+        self.assertEqual(result.dtype, np.dtype("bool"))
