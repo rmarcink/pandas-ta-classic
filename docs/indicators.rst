@@ -47,7 +47,8 @@ generators. Using one to drive entries or exits will inflate backtest results.
    * - ``cpr(virgin_cpr=True)``
      - A CPR counts as *virgin* only if price has not tested it within the next
        ``virgin_lookforward`` bars.
-     - ``cpr()`` — ``virgin_cpr`` defaults to ``False``
+     - ``cpr(lookahead=False)`` or ``cpr()`` — ``virgin_cpr`` defaults to
+       ``False``
    * - ``tos_stdevall()``
      - Fits a single linear regression over the entire series, so every point
        depends on all the others.
@@ -58,9 +59,12 @@ generators. Using one to drive entries or exits will inflate backtest results.
      - none
 
 .. note::
-   ``lookahead=False`` is the library-wide opt-out keyword. It is honoured by
-   ``dpo()`` and ``ichimoku()``; the other three have no forward-looking mode to
-   switch off.
+   ``lookahead=False`` is the library-wide opt-out keyword: pass it and the
+   indicator drops whatever part of its output depends on later bars. It is
+   honoured by ``dpo()``, ``ichimoku()`` and ``cpr()`` — for ``cpr()`` it forces
+   ``virgin_cpr`` off, so the ``CPR_VIRGIN`` column is not produced.
+   ``tos_stdevall()`` and ``vp()`` have no causal mode to switch to and ignore
+   the keyword.
 
 This list is enforced, not just documented. ``tests/test_lookahead.py`` evaluates
 every registered indicator over the full series and over two shorter prefixes and

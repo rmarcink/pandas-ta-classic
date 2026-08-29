@@ -181,6 +181,32 @@ def lookahead_reason(name: str, kwargs: dict):
     return reason if applies(kwargs) else None
 
 
+def candidate_calls(name: str) -> list[dict]:
+    """The default call plus each boolean keyword of *name* flipped on its own."""
+    return [{}] + [{keyword: value} for keyword in boolean_kwargs(name) for value in (True, False)]
+
+
+def first_non_causal_call(name: str) -> dict:
+    """The simplest keyword set that puts *name* into its forward-looking mode.
+
+    For dpo and ichimoku that is the plain default call; for cpr the mode is
+    opt-in, so it is ``{"virgin_cpr": True}``.
+    """
+    for kwargs in candidate_calls(name):
+        if lookahead_reason(name, kwargs):
+            return kwargs
+    raise AssertionError(f"{name} has a LOOKAHEAD_RULES entry but no forward-looking call")
+
+
+def has_causal_mode(name: str) -> bool:
+    """True when some keyword already switches the forward-looking branch off.
+
+    Those indicators must also accept the library-wide `lookahead=False`; the
+    ones with no causal mode at all (tos_stdevall, vp) have nothing to switch.
+    """
+    return any(lookahead_reason(name, kwargs) is None for kwargs in candidate_calls(name))
+
+
 def sweep_cases():
     """Every (indicator, kwargs) call the sweep evaluates, marked where due."""
     cases = []
@@ -277,14 +303,22 @@ def test_indicator_is_causal(frames, name, kwargs):
 
 @pytest.mark.parametrize("name", sorted(LOOKAHEAD_RULES))
 def test_lookahead_false_is_all_or_nothing(frames, name):
-    """Where `lookahead=False` is honoured it must yield a fully causal result."""
-    df, _ = frames
-    default = call(df, name, {})
-    opted_out = call(df, name, {"lookahead": False})
-    if default.equals(opted_out):
-        pytest.skip(f"{name} does not honour lookahead=False")
+    """Where `lookahead=False` is honoured it must yield a fully causal result.
 
-    assert deviations(frames, name, {"lookahead": False}) == []
+    Compared against the indicator's forward-looking call, not its default:
+    cpr's non-causal mode is opt-in, so comparing defaults would report that it
+    honours the keyword when it does nothing at all.
+    """
+    df, _ = frames
+    if not has_causal_mode(name):
+        pytest.skip(f"{name} has no causal mode to switch to")
+
+    kwargs = first_non_causal_call(name)
+    baseline = call(df, name, kwargs)
+    opted_out = call(df, name, {**kwargs, "lookahead": False})
+    assert not baseline.equals(opted_out), f"{name} silently ignores lookahead=False"
+
+    assert deviations(frames, name, {**kwargs, "lookahead": False}) == []
 
 
 # --- issue #149: the epsilon must apply to the flat row only ---------------
