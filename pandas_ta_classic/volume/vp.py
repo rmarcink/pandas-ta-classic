@@ -96,6 +96,12 @@ vp.__doc__ = """Volume Profile (VP)
 Calculates the Volume Profile by slicing price into ranges.
 Note: Value Area is not calculated.
 
+Warning:
+    Not causal, and not a time series. The whole input is aggregated into price
+    bins, so every row of the result reflects the entire series including bars
+    that had not happened yet at any given point. Use it for analysis, never as
+    a backtest signal. There is no lookahead=False mode.
+
 Sources:
     https://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:volume_by_price
     https://www.tradingview.com/wiki/Volume_Profile

@@ -36,6 +36,7 @@ Run:
 
 import inspect
 import typing
+from pathlib import Path
 from sys import float_info as sflt
 
 import numpy as np
@@ -342,3 +343,23 @@ def test_mavp_refuses_to_invent_a_schedule(frames):
 def test_cdl_z_full_is_anchored(frames):
     """full=True is anchored, not whole-sample + bfill (see issue #149 follow-up)."""
     assert deviations(frames, "cdl_z", {"full": True}) == []
+
+
+# --- the exemptions have to reach the reader too ----------------------------
+
+DOCS = Path(__file__).resolve().parent.parent / "docs" / "indicators.rst"
+
+
+@pytest.mark.parametrize("name", sorted(LOOKAHEAD_RULES))
+def test_non_causal_indicator_is_documented(name):
+    """Every xfail'd indicator must appear in the docs' causality section.
+
+    Without this the reference page silently falls behind LOOKAHEAD_RULES, and a
+    user planning a backtest has no way to find out which indicators peek ahead.
+    """
+    if not DOCS.is_file():
+        pytest.skip(f"{DOCS} not available")
+    text = DOCS.read_text(encoding="utf-8")
+    section = text.partition("Lookahead Bias and Causality")[2]
+    assert section, "docs/indicators.rst has no 'Lookahead Bias and Causality' section"
+    assert f"``{name}(" in section, f"{name} is not listed in the docs' causality section"

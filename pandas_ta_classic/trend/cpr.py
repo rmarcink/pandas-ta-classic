@@ -314,6 +314,13 @@ Central Pivot Range is a trending indicator that helps identify potential
 support and resistance levels for the trading session based on previous
 period's price action.
 
+Warning:
+    ``virgin_cpr=True`` is not causal. A CPR counts as virgin only if price has
+    not tested it within the *next* ``virgin_lookforward`` bars, so the CPR_VIRGIN
+    column at bar t is decided by bars after t and flips as new data arrives. It
+    is a chart annotation, not a signal; a backtest gated on it will be
+    optimistic. The default, ``virgin_cpr=False``, is causal.
+
 Sources:
     https://tradingqna.com/what-is-central-pivot-range-cpr-how-to-trade-using-it/
     https://www.incrediblecharts.com/indicators/pivot_point_calculator.php
@@ -399,7 +406,8 @@ Args:
                  'extended' (+R3/R4/S3/S4), 'all'. Default: 'standard'
     width_analysis (bool): Calculate CPR width metrics. Default: True
     price_position (bool): Calculate price position relative to CPR. Default: True
-    virgin_cpr (bool): Detect virgin (untested) CPR levels. Default: False
+    virgin_cpr (bool): Detect virgin (untested) CPR levels. Default: False.
+        Not causal -- see the warning below.
     offset (int): How many periods to offset the result. Default: 0
 
 Kwargs:

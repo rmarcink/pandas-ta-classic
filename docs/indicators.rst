@@ -17,6 +17,65 @@ Indicators Reference
 .. note::
    The category system now uses **dynamic discovery** - indicators are automatically detected from the package structure, ensuring the list is always up-to-date with available indicators.
 
+Lookahead Bias and Causality
+-----------------------------
+
+An indicator is **causal** when the value it reports at bar ``t`` is computed from
+bars ``t`` and earlier only. Causal indicators give the same value for a bar
+whether you compute them over a 200-bar history or over the full series, so a
+backtest reproduces what you could actually have seen in real time.
+
+Almost every indicator in this library is causal. The exceptions below look
+forward on purpose — they are plotting and analysis tools, not signal
+generators. Using one to drive entries or exits will inflate backtest results.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 48 30
+
+   * - Call
+     - Why it looks forward
+     - Causal alternative
+   * - ``dpo()``
+     - ``centered=True`` (the default) shifts the result back by
+       ``int(0.5 * length) + 1`` bars.
+     - ``dpo(lookahead=False)`` or ``dpo(centered=False)``
+   * - ``ichimoku()``
+     - The Chikou Span is ``close.shift(-kijun)``; the Senkou Spans are
+       projected forward.
+     - ``ichimoku(lookahead=False)`` or ``ichimoku(include_chikou=False)``
+   * - ``cpr(virgin_cpr=True)``
+     - A CPR counts as *virgin* only if price has not tested it within the next
+       ``virgin_lookforward`` bars.
+     - ``cpr()`` — ``virgin_cpr`` defaults to ``False``
+   * - ``tos_stdevall()``
+     - Fits a single linear regression over the entire series, so every point
+       depends on all the others.
+     - none; use a rolling ``stdev()`` or ``linreg()``
+   * - ``vp()``
+     - Aggregates the whole series into price bins. The result is a profile,
+       not a time series.
+     - none
+
+.. note::
+   ``lookahead=False`` is the library-wide opt-out keyword. It is honoured by
+   ``dpo()`` and ``ichimoku()``; the other three have no forward-looking mode to
+   switch off.
+
+This list is enforced, not just documented. ``tests/test_lookahead.py`` evaluates
+every registered indicator over the full series and over two shorter prefixes and
+requires the shared bars to match exactly. The calls above are marked
+``xfail(strict=True)``, so the list cannot drift: an unlisted indicator that
+starts looking forward fails the suite, and a listed one that becomes causal
+fails as an unexpected pass.
+
+Two indicators used to belong on this list and no longer do. ``mavp()`` derived
+its default ``periods`` from ``len(close)``, which made every bar's window length
+depend on how much data you passed in; ``periods`` is now required. And
+``cdl_z(full=True)`` standardised against the whole series and back-filled, which
+copied the final bar's Z Score onto every earlier row; it now uses an anchored
+(expanding) window.
+
 Candles (5 Wrappers + 62 Native Patterns)
 ------------------------------------------
 

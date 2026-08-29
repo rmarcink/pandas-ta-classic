@@ -75,6 +75,13 @@ A port of TD Ameritrade's Think or Swim Standard Deviation All indicator which
 returns the standard deviation of data for the entire plot or for the interval
 of the last bars defined by the length parameter.
 
+Warning:
+    Not causal. A single linear regression is fitted over the whole window, so
+    the value at bar t depends on bars after t and changes when more data is
+    appended. Use it to describe a series, not to generate signals: a backtest
+    driven by it will be optimistic. There is no lookahead=False mode; for a
+    causal alternative use a rolling stdev() or linreg().
+
 Sources:
     https://tlc.thinkorswim.com/center/reference/thinkScript/Functions/Statistical/StDevAll
 

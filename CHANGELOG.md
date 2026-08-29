@@ -64,6 +64,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * **Cross-package indicator imports**: A submodule import could overwrite a re-exported function of the same name on the parent package (e.g. `from pandas_ta_classic.volatility import atr` occasionally returned the `atr` *module* instead of the function). Resolved.
 * **Test-fixture regen no longer drops `cmo_14` entries** when running tests without tulipy installed. Generators now merge with existing JSON instead of overwriting.
 
+### Documentation
+* **Causality section in `docs/indicators.rst`**: names the five calls that look forward on purpose (`dpo()`, `ichimoku()`, `cpr(virgin_cpr=True)`, `tos_stdevall()`, `vp()`), why each does, and the causal alternative where one exists. Previously a user planning a backtest had to read individual docstrings to find out. `tos_stdevall`, `vp` and `cpr`'s `virgin_cpr` gained explicit `Warning:` blocks in their docstrings; `dpo` and `ichimoku` already documented their `lookahead=False` opt-out. The docs list is kept in sync by `test_non_causal_indicator_is_documented`, which fails when an indicator marked non-causal in the test suite is missing from the page.
+
 ## [0.6.52] - 2026-06-25
 
 ### Added
