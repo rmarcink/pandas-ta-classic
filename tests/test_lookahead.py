@@ -7,9 +7,14 @@ series.  Any difference means a bar after ``K`` changed an earlier row, so a
 backtest run over the full history would use information that did not exist at
 the time the signal is claimed to have been produced.
 
-Issue #149: ``non_zero_range`` added its epsilon to *every* row as soon as any
+Covered:
+  1. Issue #149 -- ``non_zero_range`` added its epsilon to *every* row as soon as any
 row in the batch had a zero range, so appending one flat bar shifted the whole
 history.  27 indicators inherited the leak.
+  2. ``mavp`` -- the default ``periods`` was ``linspace(min, max, len(close))``,
+     so every bar's window length depended on the total number of bars.
+  3. ``cdl_z(full=True)`` -- a whole-series window plus ``bfill()`` copied the
+     final bar's Z Score onto every earlier row.
 
 A leak is only visible if the input contains whatever the leaking branch tests
 for -- issue #149 was invisible on the SPY sample data because that data has no
@@ -27,6 +32,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import pandas_ta_classic as ta
 from pandas_ta_classic.utils import non_zero_range
 
 BARS = 400
@@ -184,3 +190,18 @@ def test_indicators_downstream_of_the_epsilon(frames, name):
     """The indicators named in issue #149, plus their closest neighbours."""
     assert deviations(frames, name, {}) == []
 
+
+
+# --- the individually fixed cases ------------------------------------------
+
+
+def test_mavp_refuses_to_invent_a_schedule(frames):
+    """A `periods` default derived from len(close) would be a leak."""
+    df, _ = frames
+    with pytest.raises(TypeError):
+        ta.mavp(df["close"])
+
+
+def test_cdl_z_full_is_anchored(frames):
+    """full=True is anchored, not whole-sample + bfill (see issue #149 follow-up)."""
+    assert deviations(frames, "cdl_z", {"full": True}) == []

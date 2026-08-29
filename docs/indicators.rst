@@ -66,7 +66,7 @@ Other candle indicators:
 * *CDL Doji (Dedicated Accessor)*: **cdl_doji** — convenience wrapper for ``doji`` pattern
 * *CDL Inside (Dedicated Accessor)*: **cdl_inside** — convenience wrapper for ``inside`` pattern
 * *Heikin-Ashi*: **ha** — ``df.ta.ha()`` — not a CDL pattern, not valid as ``cdl_pattern(name=...)``
-* *Z Score*: **cdl_z** — ``df.ta.cdl_z()`` — Z-score normalisation of candle bodies, not a CDL pattern
+* *Z Score*: **cdl_z** — ``df.ta.cdl_z()`` — Z-score normalisation of candle bodies, not a CDL pattern. ``full=True`` switches the rolling window for an anchored (expanding) one
 
 .. note::
    **TA-Lib and core indicators**: For 59 non-candle indicators (``ema``, ``sma``, ``rsi``, ``macd``, ``obv``, ``atr``, and others), the native implementation is used **by default**. TA-Lib is opt-in. Pass ``talib=True`` to use TA-Lib's implementation:
@@ -181,7 +181,7 @@ Moving averages and trend-following indicators:
 * *Linear Regression Slope*: **linregslope** (slope of the linear regression line)
 * *Moving Average*: **ma** (Generic moving average selector)
 * *MESA Adaptive Moving Average*: **mama** (returns MAMA + FAMA)
-* *Moving Average with Variable Period*: **mavp**
+* *Moving Average with Variable Period*: **mavp** (``periods``, a per-bar window schedule, is a required input)
 * *Madrid Moving Average Ribbon*: **mmar**
 * *Median Price (H+L)/2*: **medprice** (arithmetic mean of high and low; equivalent to TA-Lib ``MEDPRICE`` and tulipy ``medprice``)
 * *McGinley Dynamic*: **mcgd**
