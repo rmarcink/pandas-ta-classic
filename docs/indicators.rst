@@ -63,8 +63,11 @@ generators. Using one to drive entries or exits will inflate backtest results.
    indicator drops whatever part of its output depends on later bars. It is
    honoured by ``dpo()``, ``ichimoku()`` and ``cpr()`` — for ``cpr()`` it forces
    ``virgin_cpr`` off, so the ``CPR_VIRGIN`` column is not produced.
-   ``tos_stdevall()`` and ``vp()`` have no causal mode to switch to and ignore
-   the keyword.
+   ``tos_stdevall()`` and ``vp()`` have no causal mode to switch to, so they
+   decline: they emit a ``UserWarning`` and return ``None`` rather than hand back
+   forward-looking values under a keyword that promises the opposite. That means
+   ``df.ta.strategy("all", lookahead=False)`` produces a set of columns you can
+   actually backtest — the non-causal ones are simply absent.
 
 This list is enforced, not just documented. ``tests/test_lookahead.py`` evaluates
 every registered indicator over the full series and over two shorter prefixes and

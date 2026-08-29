@@ -1,4 +1,5 @@
 # TOS Standard Deviation All (TOS_STDEVALL)
+import warnings
 from typing import Any, Optional
 import numpy as np
 from pandas import DataFrame, DatetimeIndex, Series
@@ -15,6 +16,19 @@ def tos_stdevall(
 ) -> Optional[DataFrame]:
     """Indicator: TD Ameritrade's Think or Swim Standard Deviation All"""
     # Validate Arguments
+    # `lookahead=False` asks for output a bar could have produced in real time.
+    # There is no such mode here -- the regression is fitted over the whole
+    # window -- so decline instead of handing back forward-looking values under
+    # a keyword that promises the opposite.
+    if not kwargs.get("lookahead", True):
+        warnings.warn(
+            "tos_stdevall() has no causal mode: one linear regression is fitted over the whole window, so every point depends on later bars. "
+            "Returning None because lookahead=False was requested.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return None
+
     if close is None:
         return None
     stds = stds if isinstance(stds, list) and len(stds) > 0 else [1, 2, 3]
@@ -80,7 +94,9 @@ Warning:
     the value at bar t depends on bars after t and changes when more data is
     appended. Use it to describe a series, not to generate signals: a backtest
     driven by it will be optimistic. There is no lookahead=False mode; for a
-    causal alternative use a rolling stdev() or linreg().
+    causal alternative use a rolling stdev() or linreg(). Passing
+    lookahead=False emits a UserWarning and returns None, so a pipeline that
+    asks for backtest-safe output does not silently receive this one.
 
 Sources:
     https://tlc.thinkorswim.com/center/reference/thinkScript/Functions/Statistical/StDevAll

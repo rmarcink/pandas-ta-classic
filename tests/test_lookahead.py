@@ -266,6 +266,21 @@ def frames():
     return df, {cut: df.head(cut).copy() for cut in CUTS}
 
 
+_COLUMN_FOR_PARAM = {"open_": "open", "high": "high", "low": "low", "close": "close", "volume": "volume"}
+
+
+def direct_call(source: pd.DataFrame, name: str, kwargs: dict):
+    """Call the plain indicator function, bypassing the DataFrame accessor.
+
+    The accessor turns a None result into the source frame
+    (AnalysisIndicators._post_process), so the function is the only place a
+    None contract can be observed.
+    """
+    func = getattr(ta, name)
+    columns = {p: source[c] for p, c in _COLUMN_FOR_PARAM.items() if p in inspect.signature(func).parameters}
+    return func(**columns, **kwargs)
+
+
 def call(source: pd.DataFrame, name: str, kwargs: dict):
     extra = EXTRA_ARGS.get(name)
     return getattr(source.ta, name)(**{**(extra(source) if extra else {}), **kwargs})
@@ -311,7 +326,7 @@ def test_lookahead_false_is_all_or_nothing(frames, name):
     """
     df, _ = frames
     if not has_causal_mode(name):
-        pytest.skip(f"{name} has no causal mode to switch to")
+        pytest.skip(f"{name} has no causal mode; see test_indicator_without_causal_mode_declines")
 
     kwargs = first_non_causal_call(name)
     baseline = call(df, name, kwargs)
@@ -377,6 +392,35 @@ def test_mavp_refuses_to_invent_a_schedule(frames):
 def test_cdl_z_full_is_anchored(frames):
     """full=True is anchored, not whole-sample + bfill (see issue #149 follow-up)."""
     assert deviations(frames, "cdl_z", {"full": True}) == []
+
+
+@pytest.mark.parametrize("name", sorted(n for n in LOOKAHEAD_RULES if not has_causal_mode(n)))
+def test_indicator_without_causal_mode_declines(frames, name):
+    """An indicator with nothing to switch off must refuse, not ignore the keyword.
+
+    df.ta.strategy(..., lookahead=False) forwards the keyword to every
+    indicator, so silently ignoring it hands a caller who asked for
+    backtest-safe output a column that is not.
+    """
+    df, _ = frames
+    with pytest.warns(UserWarning, match="no causal mode"):
+        assert direct_call(df, name, {"lookahead": False}) is None
+
+
+@pytest.mark.parametrize("name", sorted(n for n in LOOKAHEAD_RULES if not has_causal_mode(n)))
+def test_accessor_appends_nothing_when_declining(frames, name):
+    """Through the accessor the declined result must not add columns.
+
+    The accessor hands back the source frame rather than None (see
+    AnalysisIndicators._post_process); what matters here is that nothing
+    forward-looking is appended.
+    """
+    df, _ = frames
+    working = df.copy()
+    before = list(working.columns)
+    with pytest.warns(UserWarning, match="no causal mode"):
+        getattr(working.ta, name)(lookahead=False, append=True)
+    assert list(working.columns) == before
 
 
 # --- the exemptions have to reach the reader too ----------------------------
