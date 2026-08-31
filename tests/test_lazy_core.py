@@ -175,6 +175,17 @@ class TestModuleGetattr(unittest.TestCase):
         self.assertIsInstance(mod, types.ModuleType)
         self.assertTrue(hasattr(mod, "cdl_2crows"), "submodule must contain its pattern function")
 
+    def test_cdl_shorthand_access(self):
+        """ta.cdl is the shorthand wrapper from candles/cdl_pattern.py.
+
+        It has no submodule of its own and is not a Category entry, so it
+        needs its own branch in __getattr__ — it regressed to AttributeError
+        when the categories stopped being imported eagerly.
+        """
+        self.assertTrue(callable(pandas_ta_classic.cdl))
+        self.assertIs(pandas_ta_classic.cdl, pandas_ta_classic.candles.cdl)
+        self.assertIn("cdl", dir(pandas_ta_classic))
+
     def test_cdl_pattern_names_deprecation(self):
         """Accessing CDL_PATTERN_NAMES emits DeprecationWarning, returns ALL_PATTERNS."""
         with warnings.catch_warnings(record=True) as w:

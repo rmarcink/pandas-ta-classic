@@ -153,7 +153,7 @@ def __dir__() -> list[str]:
     names = set(globals().keys())
     names.update(_INDICATOR_TO_CATEGORY.keys())
     names.update(_VALID_CATEGORIES)
-    names.add("ALL_PATTERNS")
+    names.update(("ALL_PATTERNS", "cdl"))
     return sorted(names)
 
 
@@ -193,6 +193,15 @@ def __getattr__(name: str) -> Any:
         mod = importlib.import_module(f"{__name__}.{name}")
         setattr(sys.modules[__name__], name, mod)  # cache in module dict
         return mod
+
+    # cdl: the shorthand candle-pattern wrapper. It lives inside
+    # candles/cdl_pattern.py rather than a cdl.py of its own, so it is not a
+    # Category entry and neither branch above finds it.
+    if name == "cdl":
+        from pandas_ta_classic.candles.cdl_pattern import cdl
+
+        setattr(sys.modules[__name__], name, cdl)  # cache in module dict
+        return cdl
 
     # ALL_PATTERNS: canonical public name for the candle pattern name list
     if name == "ALL_PATTERNS":
