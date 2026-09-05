@@ -54,6 +54,18 @@ _EXCLUDED = frozenset({"add", "div", "mult", "sub", "long_run", "short_run", "ts
 _EXTRA_KWARGS = {"ichimoku": {"as_dataframe": False}}
 
 
+def _frame_kwargs(name: str, frame: dict[str, pd.Series]) -> dict:
+    """Extra arguments that have to be built from *frame* itself."""
+    if name == "mavp":
+        # `periods` carries one window length per bar. Supplying it explicitly
+        # keeps the sweep independent of whatever default mavp happens to have:
+        # the length schedule is the indicator's whole input, so leaving it to a
+        # default would make this test assert on a moving target. A constant 10
+        # stays above the rows handed in, so the short-input contract applies.
+        return {"periods": pd.Series(10.0, index=frame["close"].index)}
+    return {}
+
+
 # Indicators that return ``None`` when handed fewer rows than their window.
 RETURNS_NONE = frozenset(
     {
@@ -303,7 +315,7 @@ def _call(name: str):
     func = getattr(ta, name)
     frame = _short_frame()
     kwargs = {param: frame[param] for param in inspect.signature(func).parameters if param in _SERIES_PARAMS}
-    result = func(**kwargs, **_EXTRA_KWARGS.get(name, {}))
+    result = func(**kwargs, **_EXTRA_KWARGS.get(name, {}), **_frame_kwargs(name, frame))
     # A few indicators (ichimoku) return a tuple; an all-None tuple is a None result.
     if isinstance(result, tuple) and all(part is None for part in result):
         return None
