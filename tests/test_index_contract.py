@@ -108,6 +108,11 @@ def _extra_kwargs(name: str, frame: dict[str, pd.Series]) -> dict:
     if name in ("long_run", "short_run"):
         # These take two indicator outputs, not price series.
         return {"fast": frame["fast"], "slow": frame["slow"]}
+    if name == "mavp":
+        # `periods` is mavp's second input -- one window length per bar -- not a
+        # tuning knob with a sensible default. Supply a constant schedule so the
+        # sweep does not depend on mavp keeping an optional `periods`.
+        return {"periods": pd.Series(10.0, index=frame["close"].index)}
     if name == "tsignals":
         return {"trend": frame["trend"]}
     if name == "xsignals":
