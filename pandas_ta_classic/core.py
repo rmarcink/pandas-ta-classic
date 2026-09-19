@@ -359,8 +359,15 @@ class AnalysisIndicators(PandasObject):
 
     @property
     def to_utc(self) -> None:
-        """Sets the DataFrame index to UTC format"""
-        self._df = to_utc(self._df)
+        """Converts the DataFrame index to UTC in place and returns None.
+
+        The index of the caller's own DataFrame is replaced, like
+        ``df.ta.<indicator>(append=True)`` writes columns into it. Rebinding
+        ``self._df`` instead would be a dead write: the accessor holds a
+        reference to the caller's frame, and a fresh accessor is built on every
+        ``df.ta`` access. ``to_utc()`` itself leaves its argument unchanged.
+        """
+        self._df.index = to_utc(self._df).index
 
     @property
     def version(self) -> str:

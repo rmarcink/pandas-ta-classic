@@ -303,6 +303,14 @@ class TestUtilities(TestCase):
         result = self.utils.to_utc(self.data.copy())
         self.assertTrue(isinstance(result.index.dtype, pd.DatetimeTZDtype))
 
+    def test_to_utc_does_not_mutate_the_caller(self):
+        # The helper returns a copy; df.ta.to_utc writes the index back itself.
+        df = self.data.copy()
+        result = self.utils.to_utc(df)
+        self.assertIsNot(result, df)
+        self.assertTrue(isinstance(result.index.dtype, pd.DatetimeTZDtype))
+        self.assertNotIsInstance(df.index.dtype, pd.DatetimeTZDtype)
+
     def test_total_time(self):
         result = self.utils.total_time(self.data)
         self.assertEqual(30.182539682539684, result)

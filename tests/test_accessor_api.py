@@ -427,6 +427,23 @@ class TestAccessorToUtcProperty(TestCase):
         with self.assertRaises(TypeError):
             df.ta.to_utc()  # type: ignore[operator]
 
+    def test_to_utc_converts_the_callers_frame(self):
+        """The property converts the caller's own index, not a copy of it.
+
+        ta.to_utc() returns a copy, so the accessor must write the converted
+        index back; assigning self._df would silently do nothing.
+        """
+        df = pd.DataFrame({"close": [1.0, 2.0]}, index=pd.date_range("2024-01-01", periods=2, freq="D"))
+        self.assertIsNone(df.index.tz)
+        df.ta.to_utc  # noqa: B018 - property access converts in place
+        self.assertEqual(str(df.index.tz), "UTC", "df.ta.to_utc must convert the caller's index, not a copy")
+
+    def test_to_utc_converts_tz_aware_index(self):
+        """A tz-aware index is converted, not localized a second time."""
+        df = pd.DataFrame({"close": [1.0, 2.0]}, index=pd.date_range("2024-01-01", periods=2, freq="D", tz="Europe/Berlin"))
+        df.ta.to_utc  # noqa: B018 - property access converts in place
+        self.assertEqual(str(df.index.tz), "UTC")
+
 
 class TestIsDatetimeOrdered(TestCase):
     """is_datetime_ordered edge-case robustness (fixes from PR #107 review)."""
