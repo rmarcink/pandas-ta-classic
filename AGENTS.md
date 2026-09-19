@@ -186,8 +186,9 @@ grep -rnE "^\s+(\w+) = ((int|float)\()?\1\)? if (\1 and \1 [<>]|\1 else|\1 is no
 grep -rnE "^\s+(\w+) = .*\b\1\b.* if .*\b\1\b.* else |int\(kwargs\[|= int\(abs\(" pandas_ta_classic/ --include=*.py
 
 # 7. Numeric options read from **kwargs without validation (wrap them: _pos_int(kwargs.pop("x", None), 5, "x")).
-#    Signal thresholds xa/xb are checked once, in utils/_signals.py signals().
-grep -rnE 'kwargs\.(pop|get)\("\w+", -?[0-9.]+\)' pandas_ta_classic/ --include=*.py | grep -vE '\bx[ab]=kwargs'
+#    Signal thresholds xa/xb are checked once, in utils/_signals.py signals(), and are read in two
+#    shapes: `xa=kwargs.pop(...)` as an argument and `"xa": kwargs.pop(...)` in macd's shared dict.
+grep -rnE 'kwargs\.(pop|get)\("\w+", -?[0-9.]+\)' pandas_ta_classic/ --include=*.py | grep -vE '"?x[ab]"?\s*[=:]\s*kwargs'
 
 # 8. True/False options read from **kwargs by truthiness (wrap them: _bool_param(kwargs.pop("x", None), False, "x")).
 #    stc's ma1/ma2/osc default to False but take Series; msw's tulipy flag is handled in its own module.
