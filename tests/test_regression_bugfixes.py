@@ -76,9 +76,11 @@ Run:
     python -m unittest tests/test_regression_bugfixes.py
 """
 
+import ast
 import importlib
 import inspect
 import math
+from pathlib import Path
 from unittest import TestCase, skipIf
 
 import numpy as np
@@ -1706,10 +1708,7 @@ class TestDriftParameterRemoved(TestCase):
                 self.assertNotIn("drift", inspect.signature(getattr(ta, name)).parameters)
 
     def test_accessor_stubs_have_no_drift(self):
-        import ast
-        from pathlib import Path
-
-        stub = ast.parse(Path(ta.__file__).with_name("core.pyi").read_text())
+        stub = ast.parse(Path(ta.__file__).with_name("core.pyi").read_text(encoding="utf-8"))
         methods = {n.name: n for n in ast.walk(stub) if isinstance(n, ast.FunctionDef)}
         for name in self.NAMES:
             with self.subTest(name=name):
@@ -1855,3 +1854,48 @@ class TestMswDoesNotDependOnTulipy(TestCase):
     def test_tulipy_flag_is_validated(self):
         with self.assertRaisesRegex(ValueError, r"msw\(\) tulipy must be True or False"):
             ta.msw(get_sample_data().close.iloc[:100], tulipy="yes")
+
+
+# Fix 34: text file I/O decoded with the locale codec
+# ---------------------------------------------------------------------------
+
+
+class TestTextFileIoDeclaresEncoding(TestCase):
+    """open() / read_text() / write_text() on repo files must pass encoding=.
+
+    Without it Python decodes with the locale codec, cp1252 on a default
+    Windows install: test_docstring_defaults raised UnicodeDecodeError on the
+    modules holding a non-ASCII character (ichimoku's macron, cksp's and
+    ttm_trend's curly quotes) and silently compared mojibake for the other 38
+    non-ASCII modules. All six CI jobs run on ubuntu-latest, where the locale
+    codec is UTF-8, so nothing caught it there.
+    """
+
+    ROOT = Path(__file__).resolve().parents[1]
+    SKIP_DIRS = frozenset({".git", ".venv", ".claude", "build", "dist", "_build", "__pycache__", ".mypy_cache", ".pytest_cache"})
+
+    @staticmethod
+    def _is_binary_open(call):
+        """True for open(..., "rb") / open(..., mode="wb"), which take no encoding."""
+        mode = next((kw.value for kw in call.keywords if kw.arg == "mode"), None)
+        if mode is None and len(call.args) > 1:
+            mode = call.args[1]
+        return isinstance(mode, ast.Constant) and isinstance(mode.value, str) and "b" in mode.value
+
+    def _offenders(self):
+        for path in sorted(self.ROOT.rglob("*.py")):
+            if self.SKIP_DIRS & set(path.relative_to(self.ROOT).parts):
+                continue
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call) or any(kw.arg == "encoding" for kw in node.keywords):
+                    continue
+                func = node.func
+                if isinstance(func, ast.Name) and func.id == "open" and not self._is_binary_open(node):
+                    yield f"{path.relative_to(self.ROOT)}:{node.lineno}: open() without encoding="
+                elif isinstance(func, ast.Attribute) and func.attr in ("read_text", "write_text"):
+                    yield f"{path.relative_to(self.ROOT)}:{node.lineno}: .{func.attr}() without encoding="
+
+    def test_no_locale_dependent_text_io(self):
+        offenders = list(self._offenders())
+        self.assertEqual(offenders, [], 'pass encoding="utf-8":\n' + "\n".join(offenders))

@@ -126,7 +126,7 @@ class TestCustom(TestCase):
 
         func_name = "_test_cust_pta_"
         module_path = os.path.join(cat_dir, f"{func_name}.py")
-        with open(module_path, "w") as f:
+        with open(module_path, "w", encoding="utf-8") as f:
             f.write(
                 f"def {func_name}(close, **kwargs):\n"
                 f"    return close\n"
@@ -158,7 +158,7 @@ class TestCustom(TestCase):
 
         func_name = "_test_cust_nofunc_"
         module_path = os.path.join(cat_dir, f"{func_name}.py")
-        with open(module_path, "w") as f:
+        with open(module_path, "w", encoding="utf-8") as f:
             f.write("def some_other_function(): pass\n")
 
         try:
@@ -177,7 +177,7 @@ class TestCustom(TestCase):
 
         func_name = "_test_cust_nomethod_"
         module_path = os.path.join(cat_dir, f"{func_name}.py")
-        with open(module_path, "w") as f:
+        with open(module_path, "w", encoding="utf-8") as f:
             f.write(f"def {func_name}(close, **kwargs):\n" f"    return close\n")
 
         try:

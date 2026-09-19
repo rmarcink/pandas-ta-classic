@@ -54,7 +54,7 @@ def main() -> int:
     # `repo:` with the `rev:` on the next line beats a PyYAML dependency.
     # Revs may be YAML-quoted, and ruff-pre-commit tags are v-prefixed
     # (v0.15.20) while black's are bare — normalize both away.
-    precommit = (ROOT / ".pre-commit-config.yaml").read_text()
+    precommit = (ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
     precommit_versions = {
         REPO_TO_TOOL[repo]: rev.strip("'\"").lstrip("v")
         for repo, rev in re.findall(r"- repo: (\S+)\s*\n\s*rev: (\S+)", precommit)

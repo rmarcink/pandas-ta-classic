@@ -106,7 +106,7 @@ def generate() -> None:
     # Merge-mode: load existing snapshots (if any) so optional-dependency keys
     # (e.g. cmo_14 when tulipy is absent) are preserved across regenerations.
     if _OUT_PATH.exists():
-        with open(_OUT_PATH) as fh:
+        with open(_OUT_PATH, encoding="utf-8") as fh:
             snapshots: dict[str, dict] = json.load(fh)
     else:
         snapshots = {}
@@ -123,7 +123,7 @@ def generate() -> None:
         else:
             print(f"  SKIP  {key!r:<32} (returned None)")
 
-    with open(_OUT_PATH, "w") as fh:
+    with open(_OUT_PATH, "w", encoding="utf-8") as fh:
         json.dump(snapshots, fh, indent=2)
     # ASCII only -- see the matching note in generate_fixtures.generate().
     print(f"\nWrote {len(snapshots)} regression snapshots -> {_OUT_PATH}")

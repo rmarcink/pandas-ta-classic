@@ -299,7 +299,7 @@ class TestImportDirPlugin(TestCase):
                 result = {self._IND_NAME}(close, length=length, offset=offset, **kwargs)
                 return self._post_process(result, **kwargs)
             """)
-        with open(module_path, "w") as fh:
+        with open(module_path, "w", encoding="utf-8") as fh:
             fh.write(src)
         return module_path
 

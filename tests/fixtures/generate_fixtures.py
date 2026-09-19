@@ -1282,7 +1282,7 @@ def generate() -> None:
     # Merge-mode: load existing fixtures (if any) so optional-dependency keys
     # (e.g. cmo_14 when tulipy is absent) are preserved across regenerations.
     if out_path.exists():
-        with open(out_path) as fh:
+        with open(out_path, encoding="utf-8") as fh:
             fixtures: dict[str, dict] = json.load(fh)
     else:
         fixtures = {}
@@ -1295,7 +1295,7 @@ def generate() -> None:
         col_summary = list(fixtures[key].keys())
         print(f"  OK    {key!r:30s}  cols={col_summary}")
 
-    with open(out_path, "w") as fh:
+    with open(out_path, "w", encoding="utf-8") as fh:
         json.dump(fixtures, fh, indent=2)
     # ASCII only: this now prints to a real console (it used to be swallowed by
     # a redirect_stdout in tests/__init__.py) and cp1252 cannot encode U+2192.

@@ -36,7 +36,7 @@ from tests.test_indicator_values import _compute_all, _load_data
 # ---------------------------------------------------------------------------
 
 _SNAP_PATH = Path(__file__).parent / "fixtures" / "regression_snapshots.json"
-with open(_SNAP_PATH) as _fh:
+with open(_SNAP_PATH, encoding="utf-8") as _fh:
     _SNAPSHOTS: dict[str, dict] = json.load(_fh)
 
 # ---------------------------------------------------------------------------

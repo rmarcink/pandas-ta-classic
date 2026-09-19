@@ -25,7 +25,7 @@ from tests.assertions import golden_value_close as _approx_equal
 # ---------------------------------------------------------------------------
 
 _FIXTURE_PATH = Path(__file__).parent / "fixtures" / "expected_values.json"
-with open(_FIXTURE_PATH) as _fh:
+with open(_FIXTURE_PATH, encoding="utf-8") as _fh:
     _FIXTURES: dict[str, dict] = json.load(_fh)
 
 _DATA_PATH = Path(__file__).parent.parent / "examples" / "data" / "SPY_D.csv"
