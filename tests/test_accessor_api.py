@@ -315,6 +315,27 @@ class TestAccessorSettablePropertiesPersist(TestCase):
         with self.assertRaisesRegex(ValueError, r"show_version must be True or False"):
             self.df.ta(kind="sma", length=10, show_version="yes")
 
+    def test_show_version_logs_the_version(self):
+        with self.assertLogs("pandas_ta_classic.core", level="INFO") as logs:
+            self.df.ta(kind="sma", length=10, show_version=True)
+        self.assertTrue(any(pandas_ta_classic.version in line for line in logs.output))
+
+    def test_timed_run_attaches_the_elapsed_time(self):
+        with self.assertLogs("pandas_ta_classic.core", level="INFO") as logs:
+            result = self.df.ta(kind="sma", length=10, timed=True)
+        self.assertIsInstance(result.timed, str)
+        self.assertIn("ms", result.timed)
+        self.assertTrue(any("sma" in line for line in logs.output))
+
+    def test_timed_run_warns_when_the_indicator_returns_none(self):
+        # long_run needs two Series the frame cannot supply, so the wrapper
+        # hands back something that is not a result and timed has nothing to
+        # attach.
+        short = self.df.iloc[:3]
+        with self.assertLogs("pandas_ta_classic.core", level="WARNING") as logs:
+            short.ta(kind="tsignals", timed=True)
+        self.assertTrue(any("produced no result" in line for line in logs.output))
+
 
 
 class TestAccessorNonSeriesColumnArgument(TestCase):

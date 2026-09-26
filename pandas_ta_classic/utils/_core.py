@@ -406,6 +406,11 @@ def signed_series(series: Series, initial: int | None = None) -> Series:
     sign = Series([NaN, -1.0, 0.0, -1.0, 0.0, 1.0, 1.0, 0.0, 1.0, -1.0])
     """
     series = verify_series(series)
+    # An unvalidated initial reached the float64 block and failed as
+    # "Invalid value 'zz' for dtype 'float64'", naming neither this function
+    # nor the parameter.
+    if initial is not None and (isinstance(initial, bool) or not isinstance(initial, Real)):
+        raise ValueError(f"signed_series() initial must be a number or None, got {initial!r}")
     sign = series.diff(1)
     sign[sign > 0] = 1
     sign[sign < 0] = -1
