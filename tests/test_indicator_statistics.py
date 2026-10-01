@@ -4,7 +4,6 @@ from pandas import DataFrame, Series
 
 import pandas_ta_classic as pandas_ta
 from tests.assertions import (
-    CORRELATION_THRESHOLD,
     IndicatorSpec,
     assert_all_nan,
     assert_indicator_standard,
@@ -186,12 +185,7 @@ class TestStatistics(TestCase):
             ),
         )
         if HAS_TALIB:
-            assert_talib(
-                self,
-                result,
-                talib.STDDEV(self.close, 30),
-                correlation_threshold=CORRELATION_THRESHOLD,
-            )
+            assert_talib(self, result, talib.STDDEV(self.close, 30))
 
     def test_tos_stdevall(self):
         assert_indicator_standard(
@@ -233,12 +227,7 @@ class TestStatistics(TestCase):
             ),
         )
         if HAS_TALIB:
-            assert_talib(
-                self,
-                result,
-                talib.VAR(self.close, 30),
-                correlation_threshold=CORRELATION_THRESHOLD,
-            )
+            assert_talib(self, result, talib.VAR(self.close, 30))
 
     def test_zscore(self):
         assert_indicator_standard(
