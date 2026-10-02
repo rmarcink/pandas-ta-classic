@@ -705,6 +705,11 @@ class TestNoneGuards(TestCase):
         result = pandas_ta.utils.verify_series(self.c, 4)
         self.assertIsInstance(result, Series)
 
+    def test_verify_series_applies_a_float_min_length(self):
+        # it used to be ignored: verify_series(4 rows, 4.5) returned the series
+        self.assertIsNone(pandas_ta.utils.verify_series(self.c, 4.5))
+        self.assertIsInstance(pandas_ta.utils.verify_series(self.c, 3.5), Series)
+
     def test_verify_series_non_series_raises_type_error(self):
         """Issue #145 case (A): non-Series input is a caller error.
 

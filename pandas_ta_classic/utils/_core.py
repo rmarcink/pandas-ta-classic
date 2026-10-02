@@ -560,7 +560,8 @@ def verify_series(series: Series, min_length: float | None = None) -> Series | N
     and raises TypeError, so the mistake surfaces where it was made rather than
     as a missing column or an unrelated error several frames later.
     """
-    has_length = min_length is not None and isinstance(min_length, int)
+    # A float min_length used to be ignored without a word, although the signature accepts it.
+    has_length = min_length is not None
     if series is not None and isinstance(series, Series):
         if has_length and series.size < min_length:
             logger.warning(f"[X] Series has {series.size} rows but indicator requires" f" at least {min_length}; the result is all NaN.")
