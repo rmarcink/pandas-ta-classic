@@ -91,7 +91,7 @@ class TestCandle(TestCase):
         self.assertTrue(callable(cdl_doji) and callable(cdl_inside))
 
     def test_cdl_doji(self):
-        result = pandas_ta.cdl_doji(self.open, self.high, self.low, self.close, talib=False)
+        result = pandas_ta.cdl_doji(self.open, self.high, self.low, self.close)
         if HAS_TALIB:
             np.testing.assert_array_equal(result.to_numpy(), talib.CDLDOJI(self.open, self.high, self.low, self.close))
         assert_indicator_standard(
