@@ -704,11 +704,13 @@ class TestTaLibCandleOracle(_SpyDataMixin, unittest.TestCase):
         """
         self._compare_candle(ta.cdl_doji(self.open, self.high, self.low, self.close), _tl.CDLDOJI(self.open, self.high, self.low, self.close), name="cdl_doji")
         lib = getattr(_tl, "_ta_lib", None)
-        if lib is None or not hasattr(lib, "_ta_set_candle_settings"):
-            self.skipTest("this TA-Lib build does not expose _ta_set_candle_settings")
+        private_api = ("_ta_set_candle_settings", "_ta_restore_candle_default_settings", "CandleSettingType")
+        if lib is None or not all(hasattr(lib, name) for name in private_api):
+            self.skipTest("this TA-Lib build does not expose the candle-settings API")
         high_low = 1  # TA_RangeType_HighLow
         try:
-            for length, factor in ((3, 10), (25, 10), (10, 25), (7, 2.5)):
+            # factor=0 is the run on which the old SMA-and-epsilon code differed on SPY.
+            for length, factor in ((10, 0), (3, 10), (25, 10), (10, 25), (7, 2.5)):
                 with self.subTest(length=length, factor=factor):
                     lib._ta_set_candle_settings(lib.CandleSettingType.BodyDoji, high_low, length, factor / 100)
                     pt = ta.cdl_doji(self.open, self.high, self.low, self.close, length=length, factor=factor)

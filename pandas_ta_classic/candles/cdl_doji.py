@@ -93,7 +93,7 @@ Sources:
 
 Calculation:
     Default values:
-        length=10, percent=10 (0.1), scalar=100
+        length=10, factor=10 (0.1), scalar=100
     ABS = Absolute Value
     TOTAL = running sum of HL_RANGE over the previous length bars,
         seeded left to right and updated as TA-Lib does
@@ -101,7 +101,7 @@ Calculation:
     BODY = ABS(close - open)
     HL_RANGE = ABS(high - low)
 
-    DOJI = scalar IF BODY <= (percent / 100) * (TOTAL / length) ELSE 0
+    DOJI = scalar IF BODY <= (factor / 100) * (TOTAL / length) ELSE 0
 
 Args:
     open_ (pd.Series): Series of 'open's
