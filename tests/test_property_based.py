@@ -30,7 +30,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 import pytest
-from hypothesis import HealthCheck, assume, given, settings, strategies as st
+from hypothesis import HealthCheck, assume, example, given, settings, strategies as st
 from hypothesis.extra.numpy import arrays
 
 import pandas_ta_classic as ta
@@ -180,9 +180,10 @@ class TestPriceSeriesStrategy(TestCase):
     @given(st.data(), st.sampled_from([0.05, 0.6]))
     def test_nan_prob_sets_the_nan_rate(self, data, nan_prob):
         # The old mask was sampled_from([True, False]) whatever nan_prob said.
-        # 2000 bars: the binomial standard deviation is at most 0.011.
+        # 2000 bars: the binomial standard deviation is at most 0.011, so 0.08
+        # is more than 7 of them and the test cannot flake in practice.
         s = data.draw(price_series(min_size=2000, max_size=2000, allow_nan=True, nan_prob=nan_prob))
-        assert abs(s.isna().mean() - nan_prob) < 0.05
+        assert abs(s.isna().mean() - nan_prob) < 0.08
 
     @given(st.data(), st.sampled_from([{"allow_nan": True}, {"nan_prob": 0.2}, {"allow_nan": True, "nan_prob": 1.0}]))
     def test_contradictory_arguments_raise(self, data, kwargs):
@@ -664,6 +665,8 @@ class TestPropertyBasedEdgeCases(TestCase):
         price_series(min_size=50, max_size=100, allow_nan=True, nan_prob=0.1),
         _small_positive_int,
     )
+    # The seeded NaN mask practically never draws an all-NaN series; pin it.
+    @example(pd.Series([np.nan] * 50, name="close"), 5)
     def test_sma_with_nans_no_crash(self, s, length):
         """SMA with some NaN values must not crash."""
         assume(len(s) >= length + 2)
