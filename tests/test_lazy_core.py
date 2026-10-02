@@ -381,3 +381,49 @@ class TestRegression(unittest.TestCase):
         accessor_cats = set(self.df.ta.categories)
         meta_cats = set(Category.keys())
         self.assertEqual(accessor_cats, meta_cats)
+
+
+class TestZipImport(unittest.TestCase):
+    def test_package_imports_from_a_zip_archive(self):
+        """Category and the candle patterns are discovered through the import
+        system: ``Path.iterdir`` / ``os.listdir`` raised FileNotFoundError when
+        the package was imported from a zip archive (zipimport)."""
+        import json
+        import subprocess
+        import sys
+        import tempfile
+        import zipfile
+        from pathlib import Path
+
+        from pandas_ta_classic.candles.cdl_pattern import _NATIVE_PATTERNS
+
+        package_dir = Path(pandas_ta_classic.__file__).parent
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = Path(tmp, "pandas_ta_classic.zip")
+            with zipfile.ZipFile(archive, "w") as zf:
+                for path in package_dir.rglob("*"):
+                    if path.is_file() and "__pycache__" not in path.parts:
+                        zf.write(path, path.relative_to(package_dir.parent).as_posix())
+            script = (
+                "import json, sys\n"
+                "sys.path.insert(0, sys.argv[1])\n"
+                "import pandas_ta_classic as ta\n"
+                "from pandas_ta_classic.candles.cdl_pattern import _NATIVE_PATTERNS\n"
+                "from tests.config import get_sample_data\n"
+                "df = get_sample_data().iloc[:300]\n"
+                "patterns = ta.cdl_pattern(df.open, df.high, df.low, df.close, name='all')\n"
+                "print(json.dumps([ta.__file__, list(ta.Category.items()), sorted(_NATIVE_PATTERNS), patterns.shape[1]]))\n"
+            )
+            result = subprocess.run(
+                [sys.executable, "-c", script, str(archive)],
+                capture_output=True,
+                text=True,
+                cwd=str(Path(__file__).resolve().parents[1]),
+                check=False,  # the return code is asserted below, with stderr as context
+            )
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        loaded_from, categories, patterns, columns = json.loads(result.stdout)
+        self.assertTrue(loaded_from.startswith(str(archive)), loaded_from)  # not the checkout or an editable install
+        self.assertEqual(categories, [[k, v] for k, v in Category.items()])
+        self.assertEqual(patterns, sorted(_NATIVE_PATTERNS))
+        self.assertEqual(columns, 62)
