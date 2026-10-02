@@ -54,7 +54,9 @@ def cdl_doji(
     # Average the previous ``length`` finite bars, as if NaN rows were dropped:
     # a row resample() inserts for a missing session would otherwise leave the
     # next ``length`` averages NaN, and weekend gaps keep every average NaN.
-    finite = (open_.notna() & high.notna() & low.notna() & close.notna()).to_numpy()
+    # An inf row is dropped too, as in run_pattern(): inside the running total
+    # it would make every later average inf and then NaN (inf - inf).
+    finite = np.isfinite(np.vstack([s.to_numpy(dtype=float) for s in (open_, high, low, close)])).all(axis=0)
     threshold = np.full(len(close), np.nan)
     threshold[finite] = period_average(hl_range.to_numpy(dtype=float)[finite], length, factor / 100, 1.0, 0, length)
     doji = body <= Series(threshold, index=close.index)
