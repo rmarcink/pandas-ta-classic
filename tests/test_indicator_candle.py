@@ -489,10 +489,27 @@ class TestCdlDojiAtTheEdges(TestCase):
         np.testing.assert_array_equal(naive, [0, 0] + [100] * 13)
 
     def test_naive_leaves_bars_with_a_window_alone_after_an_inf_range(self):
-        # An inf range at bar 12 makes the running total inf, then NaN from bar
-        # 23 on. Those bars have a window, so naive must not fill them with the
-        # own-range fallback; it agrees with naive=False from bar 10.
-        high = [2.0] * 12 + [np.inf] + [2.0] * 17
-        args = ([1.0] * 30, high, [0.0] * 30, [1.05] * 30)
+        # Finite prices whose range overflows (1e308 - -1e308 = inf) at bar 12
+        # make the running total inf, then NaN from bar 23 on. Those bars have a
+        # window, so naive must not fill them with the own-range fallback; it
+        # agrees with naive=False from bar 10.
+        high = [2.0] * 12 + [1e308] + [2.0] * 17
+        low = [0.0] * 12 + [-1e308] + [0.0] * 17
+        args = ([1.0] * 30, high, low, [1.05] * 30)
         np.testing.assert_array_equal(self._doji(*args, naive=True)[10:], self._doji(*args)[10:])
+
+    def test_inf_row_is_dropped_like_a_nan_row(self):
+        # An inf price used to enter the running total: 13 bars of threshold
+        # inf (all doji), then NaN for good (all 0). It is now skipped, as
+        # run_pattern() skips it, and reports 0 like a NaN row.
+        def doji_with(value, **kwargs):
+            high = [2.0] * 12 + [value] + [2.0] * 17
+            return self._doji([1.0] * 30, high, [0.0] * 30, [1.05] * 30, **kwargs)
+
+        for kwargs in ({}, {"naive": True}):
+            with self.subTest(**kwargs):
+                for value in (np.inf, -np.inf):
+                    np.testing.assert_array_equal(doji_with(value, **kwargs), doji_with(np.nan, **kwargs))
+                self.assertEqual(doji_with(np.inf, **kwargs)[12], 0)
+                self.assertEqual(doji_with(np.inf, **kwargs)[-1], 100)
 
