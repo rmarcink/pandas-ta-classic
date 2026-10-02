@@ -60,11 +60,12 @@ def cdl_doji(
     doji = body <= Series(threshold, index=close.index)
 
     if naive:
-        # sma(...).shift(1) produces NaN at indices 0..length (length+1 NaN),
-        # so the naive fallback must cover that full range. Use .to_numpy() on
-        # the RHS so pandas doesn't complain about mismatched slice lengths.
-        naive_vals = (body <= 0.01 * factor * hl_range).to_numpy()
-        doji.iloc[: length + 1] = naive_vals[: length + 1]
+        # Only bars without ``length`` previous finite bars -- the first
+        # ``length`` finite ones -- fall back to their own high-low range.
+        # Counted, not read off a NaN threshold: an inf range turns every
+        # later running total into NaN, and those bars do have a window.
+        no_window = finite & (np.cumsum(finite) <= length)
+        doji.iloc[no_window] = (body <= factor / 100 * hl_range).to_numpy()[no_window]
     if asint:
         doji = scalar * doji.astype(int)
 
@@ -113,9 +114,10 @@ Args:
     asint (bool): Keep results numerical instead of boolean. Default: True
 
 Kwargs:
-    naive (bool, optional): If True, prefills potential Doji less than
-        the length if less than a percentage of it's high-low range.
-        Default: False
+    naive (bool, optional): If True, the first ``length`` finite bars,
+        which have no window of previous bars, are compared with
+        ``factor`` percent of their own high-low range instead of
+        reporting 0. Default: False
     fillna (value, optional): pd.DataFrame.fillna(value)
     fill_method (value, optional): Type of fill method
 
