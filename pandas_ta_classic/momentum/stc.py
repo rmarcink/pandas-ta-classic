@@ -192,7 +192,7 @@ Calculation:
 
 Args:
     close (pd.Series): Series of 'close's, used for indexing Series, mandatory
-    tclen (int): SchaffTC Signal-Line length.  Default: 10 (adjust to the half of cycle)
+    tclength (int): SchaffTC Signal-Line length.  Default: 10 (adjust to the half of cycle)
     fast (int): The short period.   Default: 12
     slow (int): The long period.   Default: 26
     factor (float): smoothing factor for last stoch. calculation.   Default: 0.5
