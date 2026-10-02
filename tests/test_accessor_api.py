@@ -7,11 +7,13 @@ Covers:
   * ``prefix``/``suffix`` work as per-call kwargs, not as properties.
   * ``time_range`` accepts valid unit strings and rejects invalid ones.
   * ``to_utc`` is a property (not callable).
+  * ``append=True`` leaves the caller's warning filters unchanged.
   * ``indicators(as_list=True)`` and ``indicators(exclude=[...])`` behave as
     documented.
 """
 
 import inspect
+import warnings
 from contextlib import redirect_stdout
 from datetime import datetime, timezone
 from io import StringIO
@@ -495,6 +497,38 @@ class TestAccessorPropertyErrorsAreNotMasked(TestCase):
         with self.assertRaises(AttributeError) as ctx:
             _ = self.df.ta.definitely_not_an_indicator
         self.assertIn("has no attribute 'definitely_not_an_indicator'", str(ctx.exception))
+
+
+class TestAccessorAppendWarningFilter(TestCase):
+    """append=True silences pandas' fragmentation warning only while it appends.
+
+    _append() used to call warnings.simplefilter() bare, which prepended an
+    "ignore PerformanceWarning" filter for the rest of the caller's process.
+    """
+
+    def test_append_leaves_the_warning_filters_unchanged(self):
+        df = get_sample_data().iloc[:100].copy()
+        before = list(warnings.filters)
+        df.ta.sma(length=10, append=True)
+        df.ta.macd(append=True)
+        self.assertEqual(list(warnings.filters), before)
+
+    def test_callers_performance_warning_is_still_shown(self):
+        df = get_sample_data().iloc[:100].copy()
+        df.ta.sma(length=10, append=True)
+        # No simplefilter() here: one would sit in front of the leaked filter and hide it.
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.warn("caller's own warning", pd.errors.PerformanceWarning)
+        self.assertEqual([str(w.message) for w in caught], ["caller's own warning"])
+
+    def test_fragmentation_warning_stays_silenced_during_strategy(self):
+        # 400+ appended columns is far past pandas' 100-block threshold.
+        df = get_sample_data().iloc[:300].copy()
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            df.ta.strategy("all")
+        self.assertGreater(len(df.columns), 100)
+        self.assertEqual([w for w in caught if issubclass(w.category, pd.errors.PerformanceWarning)], [])
 
 
 class TestAccessorToUtcProperty(TestCase):
