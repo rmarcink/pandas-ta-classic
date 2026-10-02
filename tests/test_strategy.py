@@ -1,5 +1,6 @@
 # Must run seperately from the rest of the tests
 # in order to successfully run
+from datetime import datetime, timezone
 from multiprocessing import cpu_count
 from time import perf_counter
 from unittest import TestCase, mock
@@ -381,10 +382,12 @@ class TestStrategyDataclass(TestCase):
         self.assertIsNot(field_info.default_factory, dataclasses.MISSING)
         self.assertIs(field_info.default, dataclasses.MISSING)
 
-    def test_created_is_string(self):
+    def test_created_is_utc_timestamp(self):
+        before = datetime.now(timezone.utc)
         s = pandas_ta.Strategy("TestStrat", ta=[])
-        self.assertIsInstance(s.created, str)
-        self.assertGreater(len(s.created), 0)
+        self.assertIs(type(s.created), datetime)  # stdlib, not pd.Timestamp (a subclass)
+        self.assertIs(s.created.tzinfo, timezone.utc)
+        self.assertTrue(before <= s.created <= datetime.now(timezone.utc))
 
 
 class TestStrategyWorkerPayload(TestCase):
