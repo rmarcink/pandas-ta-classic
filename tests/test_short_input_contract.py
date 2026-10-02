@@ -44,7 +44,6 @@ _SERIES_PARAMS = frozenset({"open_", "open", "high", "low", "close", "volume", "
 _EXCLUDED = frozenset({"add", "div", "mult", "sub", "long_run", "short_run", "tsignals", "xsignals", "ma"})
 
 
-
 def _frame_kwargs(name: str, frame: dict[str, pd.Series]) -> dict:
     """Extra arguments that have to be built from *frame* itself."""
     if name == "mavp":
@@ -343,7 +342,8 @@ def test_cdl_pattern_skips_uncomputable_subpatterns() -> None:
     """
     result = _call("cdl_pattern")
     assert isinstance(result, pd.DataFrame)
-    assert "CDL_DOJI_10" not in result.columns
+    # the column is CDL_DOJI_10_0.1: checking for "CDL_DOJI_10" could never fail
+    assert not any(column.startswith("CDL_DOJI_") for column in result.columns), list(result.columns)
     assert "CDL_INSIDE" in result.columns
 
 
