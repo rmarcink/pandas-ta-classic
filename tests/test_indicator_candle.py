@@ -513,3 +513,22 @@ class TestCdlDojiAtTheEdges(TestCase):
                 self.assertEqual(doji_with(np.inf, **kwargs)[12], 0)
                 self.assertEqual(doji_with(np.inf, **kwargs)[-1], 100)
 
+    def test_inf_open_or_close_row_leaves_the_average(self):
+        # Bar 20 has an inf open or close but a finite range of 100. It is left
+        # out of the average like a NaN row, so bars 21+ average ranges of 2
+        # (threshold 0.2) and body 0.5 is no doji. TA-Lib keeps the range of 100
+        # in its average (threshold 1.18) and reports 100 there; the old code
+        # did the same.
+        for column in (0, 3):
+            with self.subTest(column=column):
+                ohlc = [[10.0] * 25, [11.0] * 25, [9.0] * 25, [10.5] * 25]
+                ohlc[1][20], ohlc[2][20] = 60.0, -40.0
+                ohlc[column][20] = np.inf
+                nan_row = [list(x) for x in ohlc]
+                nan_row[column][20] = np.nan
+                result = self._doji(*ohlc)
+                np.testing.assert_array_equal(result, self._doji(*nan_row))
+                np.testing.assert_array_equal(result[20:], [0] * 5)
+                if HAS_TALIB:
+                    np.testing.assert_array_equal(talib.CDLDOJI(*(np.array(x) for x in ohlc))[21:], [100] * 4)
+
