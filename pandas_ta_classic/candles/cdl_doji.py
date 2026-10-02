@@ -89,9 +89,11 @@ A candle body is Doji, when it is no longer than 10% of the
 average of the 10 previous candles' high-low range.
 
 Sources:
-    TA-Lib: CDLDOJI, bar for bar. Other ``length`` and ``factor`` values
-    match TA-Lib with its BodyDoji setting changed to
-    (HighLow, length, factor / 100).
+    TA-Lib: CDLDOJI, bar for bar on finite input. Other ``length`` and
+    ``factor`` values match TA-Lib with its BodyDoji setting changed to
+    (HighLow, length, factor / 100). A row with a NaN or infinite price
+    reports 0 and is left out of the average, as in the other candle
+    patterns; TA-Lib keeps an infinite open or close row in its average.
 
 Calculation:
     Default values:
