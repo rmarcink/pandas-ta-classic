@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-from pandas import DataFrame
+import numpy as np
+from pandas import DataFrame, Series
 
 import pandas_ta_classic as pandas_ta
 from tests.assertions import (
@@ -145,6 +146,24 @@ class TestMath(TestCase):
             pandas_ta.rolling_sum(self.close, length=0)
         with self.assertRaises(ValueError):
             pandas_ta.rolling_sum(self.close, length=-5)
+
+    def test_window_index_convention(self):
+        # position counted from the oldest bar of the window, not "bars back"; the oldest wins a tie
+        s = Series([1.0, 5.0, 2.0, 3.0, 4.0, 5.0])
+        self.assertEqual(pandas_ta.maxindex(s, length=5).tolist()[4:], [1.0, 0.0])
+        self.assertEqual(pandas_ta.minindex(s, length=5).tolist()[4:], [0.0, 1.0])
+        self.assertEqual(pandas_ta.minmaxindex(s, length=5).iloc[4:].to_numpy().tolist(), [[0.0, 1.0], [1.0, 0.0]])
+
+    def test_window_index_matches_talib_up_to_ties(self):
+        # TA-Lib returns the absolute index: talib = result + i - length + 1, except where a tie picks another bar
+        if not HAS_TALIB:
+            self.skipTest("TA-Lib not installed")
+        close = self.close.to_numpy(float)
+        bars = np.arange(close.size)
+        for func, oracle in ((pandas_ta.maxindex, talib.MAXINDEX), (pandas_ta.minindex, talib.MININDEX)):
+            got = func(self.close, length=30).to_numpy(float)[29:]
+            expected = np.asarray(oracle(self.close, 30), float)[29:] - (bars[29:] - 29)
+            np.testing.assert_array_equal(close[bars[29:] - 29 + got.astype(int)], close[bars[29:] - 29 + expected.astype(int)])
 
     def test_maxindex(self):
         assert_indicator_standard(
