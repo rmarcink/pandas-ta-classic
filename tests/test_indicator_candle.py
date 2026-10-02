@@ -467,3 +467,32 @@ class TestCdlDojiAtTheEdges(TestCase):
         self.assertEqual(result[-1], 100)
         if HAS_TALIB:
             self.assertEqual(talib.CDLDOJI(*(np.array(x) for x in ([0.0] * 11, high, low, close)))[-1], 100)
+
+    def test_naive_only_fills_bars_without_a_window(self):
+        # Bar 10 has ten previous bars: average range 1.0, body 0.0004 is a doji.
+        # naive=True used to overwrite it too, with its own range 0.0005, and
+        # report 0. The first ten bars have no window and use their own range.
+        high = [1.0] * 10 + [0.0005, 1.0, 1.0]
+        close = [0.05] * 10 + [0.0004, 0.05, 0.05]
+        plain = self._doji([0.0] * 13, high, [0.0] * 13, close)
+        naive = self._doji([0.0] * 13, high, [0.0] * 13, close, naive=True)
+        np.testing.assert_array_equal(plain, [0] * 10 + [100, 100, 100])
+        np.testing.assert_array_equal(naive, [100] * 13)
+
+    def test_naive_counts_finite_bars(self):
+        # Two leading NaN rows: the window is complete only from bar 12, so
+        # naive fills bars 2..11 and leaves the NaN rows at 0.
+        nan2 = [np.nan] * 2
+        high = nan2 + [1.0] * 13
+        close = nan2 + [0.05] * 13
+        naive = self._doji(nan2 + [0.0] * 13, high, nan2 + [0.0] * 13, close, naive=True)
+        np.testing.assert_array_equal(naive, [0, 0] + [100] * 13)
+
+    def test_naive_leaves_bars_with_a_window_alone_after_an_inf_range(self):
+        # An inf range at bar 12 makes the running total inf, then NaN from bar
+        # 23 on. Those bars have a window, so naive must not fill them with the
+        # own-range fallback; it agrees with naive=False from bar 10.
+        high = [2.0] * 12 + [np.inf] + [2.0] * 17
+        args = ([1.0] * 30, high, [0.0] * 30, [1.05] * 30)
+        np.testing.assert_array_equal(self._doji(*args, naive=True)[10:], self._doji(*args)[10:])
+
