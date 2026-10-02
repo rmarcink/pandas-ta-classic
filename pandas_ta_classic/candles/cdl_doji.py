@@ -1,14 +1,14 @@
 # Candle Doji (CDL_DOJI)
 from typing import Any
 
+import numpy as np
 from pandas import Series
 
-from pandas_ta_classic.overlap.sma import sma
+from pandas_ta_classic.candles._cdl_math import period_average
 from pandas_ta_classic.utils import (
     apply_fill,
     apply_offset,
     get_offset,
-    non_zero_range,
     verify_series,
 )
 from pandas_ta_classic.utils._core import _bool_param, _number, _pos_int, nan_on_short_input
@@ -44,19 +44,20 @@ def cdl_doji(
         return None
 
     # Calculate Result
-    # TA-Lib averages the HL range of the *previous* ``length`` bars
-    # (excluding the current bar), so shift the SMA by 1.
-    body = non_zero_range(close, open_).abs()
-    hl_range = non_zero_range(high, low).abs()
+    # TA-Lib's CDLDOJI: the body is compared with ``factor`` percent of the mean
+    # high-low range of the *previous* ``length`` bars, using TA-Lib's
+    # arithmetic (TA_CANDLEAVERAGE) so a body exactly on the threshold is judged
+    # as TA-Lib judges it. A flat bar has range and body 0, not epsilon, and is
+    # a doji (0 <= 0), as in TA-Lib.
+    body = (close - open_).abs()
+    hl_range = (high - low).abs()
     # Average the previous ``length`` finite bars, as if NaN rows were dropped:
     # a row resample() inserts for a missing session would otherwise leave the
     # next ``length`` averages NaN, and weekend gaps keep every average NaN.
-    finite = open_.notna() & high.notna() & low.notna() & close.notna()
-    hl_range_avg = sma(hl_range[finite], length)
-    if hl_range_avg is None:
-        return None
-    hl_range_avg = hl_range_avg.shift(1).reindex(close.index)
-    doji = body <= 0.01 * factor * hl_range_avg
+    finite = (open_.notna() & high.notna() & low.notna() & close.notna()).to_numpy()
+    threshold = np.full(len(close), np.nan)
+    threshold[finite] = period_average(hl_range.to_numpy(dtype=float)[finite], length, factor / 100, 1.0, 0, length)
+    doji = body <= Series(threshold, index=close.index)
 
     if naive:
         # sma(...).shift(1) produces NaN at indices 0..length (length+1 NaN),
@@ -81,22 +82,25 @@ def cdl_doji(
 
 cdl_doji.__doc__ = """Candle Type: Doji
 
-A candle body is Doji, when it's shorter than 10% of the
+A candle body is Doji, when it is no longer than 10% of the
 average of the 10 previous candles' high-low range.
 
 Sources:
-    TA-Lib: 96.56% Correlation
+    TA-Lib: CDLDOJI, bar for bar. Other ``length`` and ``factor`` values
+    match TA-Lib with its BodyDoji setting changed to
+    (HighLow, length, factor / 100).
 
 Calculation:
     Default values:
         length=10, percent=10 (0.1), scalar=100
     ABS = Absolute Value
-    SMA = Simple Moving Average
+    TOTAL = running sum of HL_RANGE over the previous length bars,
+        seeded left to right and updated as TA-Lib does
 
     BODY = ABS(close - open)
     HL_RANGE = ABS(high - low)
 
-    DOJI = scalar IF BODY < 0.01 * percent * SMA(HL_RANGE, length) ELSE 0
+    DOJI = scalar IF BODY <= (percent / 100) * (TOTAL / length) ELSE 0
 
 Args:
     open_ (pd.Series): Series of 'open's

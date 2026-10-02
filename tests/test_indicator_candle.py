@@ -5,7 +5,7 @@ from pandas import DataFrame, Series
 
 import pandas_ta_classic as pandas_ta
 from pandas_ta_classic.candles._cdl_math import CANDLE_DEFAULTS, CandleArrays, CandleSetting, RangeType, candle_average, candle_avg_period
-from tests.assertions import IndicatorSpec, assert_indicator_standard, assert_talib
+from tests.assertions import IndicatorSpec, assert_indicator_standard
 from tests.config import get_sample_data
 
 try:
@@ -93,12 +93,7 @@ class TestCandle(TestCase):
     def test_cdl_doji(self):
         result = pandas_ta.cdl_doji(self.open, self.high, self.low, self.close, talib=False)
         if HAS_TALIB:
-            assert_talib(
-                self,
-                result,
-                talib.CDLDOJI(self.open, self.high, self.low, self.close),
-                correlation_threshold=0.99,
-            )
+            np.testing.assert_array_equal(result.to_numpy(), talib.CDLDOJI(self.open, self.high, self.low, self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -441,3 +436,34 @@ class TestCandleAtTheExactThreshold(TestCase):
             with self.subTest(pattern=name):
                 got = getattr(talib, talib_name)(*(np.array(x) for x in (open_, high, low, close)))
                 self.assertEqual(int(got[-1]), expected)
+
+
+class TestCdlDojiAtTheEdges(TestCase):
+    """`cdl_doji` follows CDLDOJI where the old SMA-and-epsilon version did not."""
+
+    @staticmethod
+    def _doji(open_, high, low, close, **kwargs):
+        return pandas_ta.cdl_doji(*(Series(x, dtype=float) for x in (open_, high, low, close)), **kwargs).to_numpy()
+
+    def test_flat_bars_are_doji(self):
+        # Range and body 0 compare as 0 <= 0.1 * 0, as in TA-Lib. The old code
+        # replaced both zeros with epsilon and reported 0.
+        result = self._doji([5.0] * 12, [5.0] * 12, [5.0] * 12, [5.0] * 12)
+        np.testing.assert_array_equal(result, [0] * 10 + [100, 100])
+
+    def test_zero_body_is_doji_at_factor_zero(self):
+        # body 0 <= 0 * average; with epsilon in place of the zero body it was not.
+        result = self._doji([1.0] * 11, [2.0] * 11, [0.0] * 11, [1.0] * 11, factor=0)
+        self.assertEqual(result[-1], 100)
+
+    def test_body_exactly_on_the_threshold(self):
+        # body == 0.1 * (sum / 10) with TA-Lib's left-to-right sum: a doji (<=).
+        # The old sma()-based threshold came out one unit in the last place lower
+        # and reported 0.
+        high = [1.76, 1.03, 1.82, 1.08, 1.24, 2.68, 0.76, 1.91, 0.34, 2.51, 1.1513]
+        low = [0.0] * 10 + [-1.0]
+        close = [0.0] * 10 + [0.15130000000000002]
+        result = self._doji([0.0] * 11, high, low, close)
+        self.assertEqual(result[-1], 100)
+        if HAS_TALIB:
+            self.assertEqual(talib.CDLDOJI(*(np.array(x) for x in ([0.0] * 11, high, low, close)))[-1], 100)
