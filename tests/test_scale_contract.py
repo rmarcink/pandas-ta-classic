@@ -51,7 +51,6 @@ _BOUNDARY_ROUNDING = (
     "on 1-2 bars; TA-Lib's CDLHIGHWAVE flips the same bars"
 )
 OPEN_FINDINGS: dict[tuple[str, str], str] = {
-    ("fisher", "tiny"): _ABSOLUTE_THRESHOLD.format("hlr[hlr < 0.001] = 0.001 floors the range of hl2"),
     ("msw", "tiny"): _ABSOLUTE_THRESHOLD.format("`if abs(rp) > 0.001` decides the phase"),
 }
 # Columns compared nowhere, with the reason; the rest of their indicator still is.
