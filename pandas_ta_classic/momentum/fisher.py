@@ -31,7 +31,7 @@ def _fisher_loop(pos_arr, m, length):
 
 
 @nan_on_short_input
-@skip_leading_nan("high", "low")
+@skip_leading_nan("high", "low", interior=True)
 def fisher(
     high: Series,
     low: Series,
@@ -57,14 +57,14 @@ def fisher(
     highest_hl2 = hl2_.rolling(length).max()
     lowest_hl2 = hl2_.rolling(length).min()
 
-    # The floor below already keeps a flat window off a zero divisor.
-    hlr = highest_hl2 - lowest_hl2
-    hlr[hlr < 0.001] = 0.001
-
-    hl_range = hlr
+    # A window with no range sits at its own midpoint: position 0.0, the
+    # degenerate-window marker. This replaces a floor of 0.001 on the range,
+    # an absolute price that decided every window once prices were small
+    # (all of them at 1e-4) and pushed a flat window to -0.5, the bottom.
+    hl_range = highest_hl2 - lowest_hl2
     m = high.size
 
-    pos_arr = ((hl2_ - lowest_hl2) / hl_range - 0.5).to_numpy()
+    pos_arr = ((hl2_ - lowest_hl2) / hl_range - 0.5).mask(hl_range == 0, 0.0).to_numpy()
     fisher_arr = _fisher_loop(pos_arr, m, length)
     fisher = Series(fisher_arr, index=high.index)
     signalma = fisher.shift(signal)
