@@ -11,7 +11,7 @@ from pandas_ta_classic.utils import (
     get_offset,
     verify_series,
 )
-from pandas_ta_classic.utils._core import _bool_param, _pos_int, _str_param, nan_on_short_input
+from pandas_ta_classic.utils._core import _bool_param, _pos_int, _str_param, degenerate_zero, nan_on_short_input
 
 from .rsi import rsi
 
@@ -92,9 +92,13 @@ def stochrsi(
     lowest_rsi = rsi_.rolling(length).min()
     highest_rsi = rsi_.rolling(length).max()
 
-    # A window with no RSI range reads 0.0, TA-Lib's marker (see willr).
+    # A window with no RSI range reads 0.0, TA-Lib's marker (see willr). On a
+    # flat price run the RSI is constant in exact arithmetic but its Wilder
+    # averages wobble by ~1e-14, and %K divided that wobble by itself into
+    # noise anywhere in 0..100. RSI has a fixed 0..100 scale, so a range below
+    # degenerate_zero()'s 1e-12 is that residue, never a real move.
     rsi_range = highest_rsi - lowest_rsi
-    stoch = (100 * (rsi_ - lowest_rsi) / rsi_range).mask(rsi_range == 0, 0.0)
+    stoch = (100 * (rsi_ - lowest_rsi) / rsi_range).mask(degenerate_zero(rsi_range), 0.0)
 
     stochrsi_k = ma(mamode, stoch, length=k)
     if stochrsi_k is None:

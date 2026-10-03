@@ -409,9 +409,9 @@ _TALIB_CCI_RESIDUE = (
     "reads the 0.0 marker"
 )
 _STOCHRSI_NOISE = (
-    "OPEN DEFECT, both sides: RSI is constant on a flat block in exact arithmetic but wobbles by "
-    "1e-14, and %K divides that wobble by itself -- native reads 0/50/100, TA-Lib 33/40; the "
-    "degenerate window should read 0.0"
+    "RSI is constant on a flat block in exact arithmetic but wobbles by 1e-14; TA-Lib's STOCHRSI "
+    "divides that wobble by itself and reads noise (33, 40, ...), native treats the residue range "
+    "as no range and reads the 0.0 marker"
 )
 _HILBERT_ON_A_CONSTANT = (
     "the Hilbert transform of a constant input has no dominant cycle; both sides amplify "
