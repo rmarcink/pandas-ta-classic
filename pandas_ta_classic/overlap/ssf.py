@@ -32,7 +32,7 @@ def ssf(
     offset: int | None = None,
     **kwargs: Any,
 ) -> Series | None:
-    """Indicator: Ehler's Super Smoother Filter (SSF)"""
+    """Indicator: Ehlers' Super Smoother Filter (SSF)"""
     # Validate Arguments
     length = _pos_int(length, 10, "length")
     poles = _pos_int(poles, 2, "poles")
@@ -85,9 +85,9 @@ def ssf(
     return ssf
 
 
-ssf.__doc__ = """Ehler's Super Smoother Filter (SSF) © 2013
+ssf.__doc__ = """Ehlers' Super Smoother Filter (SSF) © 2013
 
-John F. Ehlers's solution to reduce lag and remove aliasing noise with his
+John F. Ehlers' solution to reduce lag and remove aliasing noise with his
 research in aerospace analog filter design. This indicator comes with two
 versions determined by the keyword poles. By default, it uses two poles but
 there is an option for three poles. Since SSF is a (Resursive) Digital Filter,

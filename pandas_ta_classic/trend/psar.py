@@ -175,7 +175,7 @@ def psar(
 
 psar.__doc__ = """Parabolic Stop and Reverse (psar)
 
-Parabolic Stop and Reverse (PSAR) was developed by J. Wells Wilder, that is used
+Parabolic Stop and Reverse (PSAR) was developed by J. Welles Wilder, that is used
 to determine trend direction and it's potential reversals in price. PSAR uses a
 trailing stop and reverse method called "SAR," or stop and reverse, to identify
 possible entries and exits. It is also known as SAR.

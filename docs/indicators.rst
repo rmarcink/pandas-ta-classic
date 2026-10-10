@@ -393,7 +393,7 @@ Moving averages and trend-following indicators:
 * *WildeR's Moving Average*: **rma**
 * *Sine Weighted Moving Average*: **sinwma**
 * *Simple Moving Average*: **sma**
-* *Ehler's Super Smoother Filter*: **ssf**
+* *Ehlers' Super Smoother Filter*: **ssf**
 * *Supertrend*: **supertrend**
 * *Symmetric Weighted Moving Average*: **swma**
 * *T3 Moving Average*: **t3**

@@ -18,7 +18,7 @@ def willr(
     offset: int | None = None,
     **kwargs: Any,
 ) -> Series | None:
-    """Indicator: William's Percent R (WILLR)"""
+    """Indicator: Williams' Percent R (WILLR)"""
     # Validate arguments
     length = _pos_int(length, 14, "length")
     min_periods = _pos_int(kwargs.get("min_periods"), length, "min_periods", gt=None, ge=0)
@@ -67,9 +67,9 @@ def willr(
     return willr
 
 
-willr.__doc__ = """William's Percent R (WILLR)
+willr.__doc__ = """Williams' Percent R (WILLR)
 
-William's Percent R is a momentum oscillator similar to the RSI that
+Williams' Percent R is a momentum oscillator similar to the RSI that
 attempts to identify overbought and oversold conditions.
 
 Sources:
