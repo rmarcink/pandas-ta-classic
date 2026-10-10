@@ -164,7 +164,7 @@ Repo-wide. Each rule is marked *enforced* (ruff fails the build) or *convention*
 
 #### Convention checklist (run before finishing)
 
-The enforced rules are covered by the **Gate condition** above. The conventions have no CI backstop, so run these greps before considering a task complete. **Each must print nothing**; a hit is a violation to fix or to justify in review.
+The enforced rules are covered by the **Gate condition** above. The conventions have no CI backstop, so run these greps before considering a task complete. **Each must print nothing**; a hit is a violation to fix or to justify in review. Greps 5, 6 and 9 use backreferences (`\1`) and are written `command grep` so they run GNU grep: some agent shells (Claude Code among them) replace `grep` with a function that rejects backreferences, prints the error to stderr and nothing to stdout, which reads as a pass.
 
 ```bash
 # 1. numpy/pandas imported inside a function or block (must be module scope)
@@ -180,11 +180,11 @@ grep -rnE "pkg_resources|^\s*#\s*(from|import) (numpy|pandas)" pandas_ta_classic
 grep -rnE "reduce\(mul|numerator // denominator|0\.3275911" pandas_ta_classic/
 
 # 5. Numeric parameters validated by a silent-default guard instead of _pos_int/_pos_float/_number
-grep -rnE "^\s+(\w+) = ((int|float)\()?\1\)? if (\1 and \1 [<>]|\1 else|\1 is not None|isinstance\(\1)" pandas_ta_classic/
+command grep -rnE "^\s+(\w+) = ((int|float)\()?\1\)? if (\1 and \1 [<>]|\1 else|\1 is not None|isinstance\(\1)" pandas_ta_classic/
 
 # 6. Silent-default guards grep 5 misses: is_percent(), membership and range tests, bool()/abs()
 #    coercion, int(kwargs[...]) (any "x = <x transformed> if <test on x> else <default>")
-grep -rnE "^\s+(\w+) = .*\b\1\b.* if .*\b\1\b.* else |int\(kwargs\[|= int\(abs\(" pandas_ta_classic/ --include=*.py
+command grep -rnE "^\s+(\w+) = .*\b\1\b.* if .*\b\1\b.* else |int\(kwargs\[|= int\(abs\(" pandas_ta_classic/ --include=*.py
 
 # 7. Numeric options read from **kwargs without validation (wrap them: _pos_int(kwargs.pop("x", None), 5, "x")).
 #    Signal thresholds xa/xb are checked once, in utils/_signals.py signals().
@@ -197,7 +197,7 @@ grep -rnE 'kwargs\.(pop|get)\("\w+", (True|False)\)' pandas_ta_classic/ --includ
 # 9. A bare coercion of a declared parameter (`refined = bool(refined)`), which greps 5 and 6
 #    miss because there is no `if`. It turned refined="yes" into True and refined=[] into the
 #    default without a word; use _bool_param / _pos_int / _pos_float instead.
-grep -rnE "^\s+(\w+) = (bool|int|float)\(\1\)\s*$" pandas_ta_classic/ --include=*.py
+command grep -rnE "^\s+(\w+) = (bool|int|float)\(\1\)\s*$" pandas_ta_classic/ --include=*.py
 ```
 
 Not greppable, so check in review: **dead code** your change orphaned, and the **stdlib over hand-rolled** preference.
