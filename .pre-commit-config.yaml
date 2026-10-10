@@ -11,7 +11,7 @@ repos:
         files: ^pandas_ta_classic/
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.0
+    rev: v0.17.0
     hooks:
       # Same gate as CI: `ruff check` with [tool.ruff.lint], on every changed file.
       - id: ruff-check
