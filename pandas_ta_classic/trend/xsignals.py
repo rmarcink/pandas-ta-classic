@@ -106,7 +106,7 @@ ta.xsignals(rsi, 20, 80, above=True)
 # Returns tsignal DataFrame when RSI crosses below 20 and then above 80
 ta.xsignals(rsi, 20, 80, above=False)
 
-Source: pandas-ta
+Source: Kevin Johnson
 
 Calculation:
     Default Inputs:

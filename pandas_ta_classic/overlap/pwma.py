@@ -53,7 +53,7 @@ pwma.__doc__ = """Pascal's Weighted Moving Average (PWMA)
 Pascal's Weighted Moving Average is similar to a symmetric triangular window
 except PWMA's weights are based on Pascal's Triangle.
 
-Source: pandas-ta
+Source: Kevin Johnson
 
 Calculation:
     Default Inputs:
