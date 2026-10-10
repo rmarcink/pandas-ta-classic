@@ -70,7 +70,7 @@ def price_series(
         If True, each value is NaN with probability *nan_prob*.
     nan_prob : float
         Probability of a value being NaN, in (0, 1). Required with
-        *allow_nan* and rejected without it.
+        *allow_nan*; a value above 0 without it is rejected.
     """
     if allow_nan != (nan_prob > 0) or not 0 <= nan_prob < 1:
         raise ValueError(f"price_series() needs allow_nan=True with 0 < nan_prob < 1, or neither; got allow_nan={allow_nan}, nan_prob={nan_prob}")
@@ -183,10 +183,12 @@ class TestPriceSeriesStrategy(TestCase):
     @given(st.data(), st.sampled_from([0.05, 0.6]))
     def test_nan_prob_sets_the_nan_rate(self, data, nan_prob):
         # The old mask was sampled_from([True, False]) whatever nan_prob said.
-        # 2000 bars: the binomial standard deviation is at most 0.011, so 0.08
-        # is more than 7 of them and the test cannot flake in practice.
-        s = data.draw(price_series(min_size=2000, max_size=2000, allow_nan=True, nan_prob=nan_prob))
-        assert abs(s.isna().mean() - nan_prob) < 0.08
+        # Five binomial standard deviations over 2000 bars (0.024 at 0.05, 0.055
+        # at 0.6): a rate off by 0.05 fails, and a correct one exceeds the bound
+        # with probability below 1e-6 per example.
+        n = 2000
+        s = data.draw(price_series(min_size=n, max_size=n, allow_nan=True, nan_prob=nan_prob))
+        assert abs(s.isna().mean() - nan_prob) < 5 * math.sqrt(nan_prob * (1 - nan_prob) / n)
 
     @given(st.data(), st.sampled_from([{"allow_nan": True}, {"nan_prob": 0.2}, {"allow_nan": True, "nan_prob": 1.0}]))
     def test_contradictory_arguments_raise(self, data, kwargs):
