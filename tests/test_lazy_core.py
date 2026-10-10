@@ -13,10 +13,13 @@ Covers:
 
 import importlib.metadata
 import os
+import re
 import sys
 import types
 import unittest
 from unittest import mock
+
+import pytest
 
 import pandas_ta_classic
 from pandas_ta_classic._indicator_loader import (
@@ -386,6 +389,18 @@ class TestRegression(unittest.TestCase):
         self.assertEqual(accessor_cats, meta_cats)
 
 
+def test_category_discovery_raises_when_it_finds_no_categories():
+    """A layout pkgutil cannot list (frozen, sourceless) used to give Category = {}
+    without a word, and every indicator lookup failed later; Path.iterdir raised there."""
+    from pandas_ta_classic import _meta
+
+    with (
+        mock.patch.object(_meta.pkgutil, "iter_modules", return_value=iter(())),
+        pytest.raises(ImportError, match=r"could not list the indicator modules of \['candles', 'cycles'"),
+    ):
+        _meta._build_category_dict()
+
+
 def _numba_cannot_cache_from_a_zip() -> bool:
     """numba >= 0.62 fails to import an ``@njit(cache=True)`` module from a zip on Windows.
 
@@ -400,7 +415,9 @@ def _numba_cannot_cache_from_a_zip() -> bool:
         version = importlib.metadata.version("numba")
     except importlib.metadata.PackageNotFoundError:
         return False
-    return tuple(int(part) for part in version.split(".")[:2]) >= (0, 62)
+    # "0.63.0rc1" and the like: compare the leading major.minor numbers only
+    major, minor = (int(part) for part in re.match(r"(\d+)\.(\d+)", version).groups())
+    return (major, minor) >= (0, 62)
 
 
 @unittest.skipIf(
@@ -429,8 +446,7 @@ class TestZipImport(unittest.TestCase):
                     if path.is_file() and "__pycache__" not in path.parts:
                         zf.write(path, path.relative_to(package_dir.parent).as_posix())
             script = (
-                "import json, sys\n"
-                "sys.path.insert(0, sys.argv[1])\n"
+                "import json\n"
                 "import pandas_ta_classic as ta\n"
                 "from pandas_ta_classic.candles.cdl_pattern import _NATIVE_PATTERNS\n"
                 "from tests.config import get_sample_data\n"
@@ -438,11 +454,17 @@ class TestZipImport(unittest.TestCase):
                 "patterns = ta.cdl_pattern(df.open, df.high, df.low, df.close, name='all')\n"
                 "print(json.dumps([ta.__file__, list(ta.Category.items()), sorted(_NATIVE_PATTERNS), patterns.shape[1]]))\n"
             )
+            # The archive comes first on PYTHONPATH, the checkout second for
+            # tests.config. cwd is the temp dir: with -c, sys.path[0] is the cwd,
+            # and the checkout there would shadow the archive.
+            repo_root = Path(__file__).resolve().parents[1]
             result = subprocess.run(
-                [sys.executable, "-c", script, str(archive)],
+                [sys.executable, "-c", script],
                 capture_output=True,
                 text=True,
-                cwd=str(Path(__file__).resolve().parents[1]),
+                cwd=tmp,
+                env={**os.environ, "PYTHONPATH": os.pathsep.join([str(archive), str(repo_root)])},
+                timeout=300,
                 check=False,  # the return code is asserted below, with stderr as context
             )
         self.assertEqual(result.returncode, 0, msg=result.stderr)

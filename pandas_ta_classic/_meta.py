@@ -101,6 +101,12 @@ def _build_category_dict():
         if indicators:
             categories[category_name] = indicators
 
+    # A layout pkgutil cannot list (frozen, sourceless) would leave Category
+    # empty without a word, and every lookup fail later; say so here instead.
+    missing = sorted(_VALID_CATEGORIES - categories.keys())
+    if missing:
+        raise ImportError(f"pandas_ta_classic could not list the indicator modules of {missing} under {package_dir}")
+
     return categories
 
 
