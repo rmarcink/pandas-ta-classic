@@ -39,7 +39,7 @@ def cti(
 
 cti.__doc__ = """Correlation Trend Indicator (CTI)
 
-The Correlation Trend Indicator is an oscillator created by John Ehler in 2020.
+The Correlation Trend Indicator is an oscillator created by John Ehlers in 2020.
 It assigns a value depending on how close prices in that range are to following
 a positively- or negatively-sloping straight line. Values range from -1 to 1.
 This is a wrapper for ta.linreg(close, r=True).
