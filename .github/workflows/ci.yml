@@ -72,9 +72,6 @@ jobs:
       # Targets Python 3.12 (see the Makefile): numpy >= 2.5 stubs need it.
       run: make typecheck PYTHON=python
 
-    - name: Verify black/ruff versions match .pre-commit-config.yaml
-      run: python tools/check_lint_versions.py
-
   # Job 2: Generate Python version matrix dynamically
   # Computes 5 Python versions (LATEST and 4 previous minor versions) from LATEST_PYTHON_VERSION
   # These versions are used for:

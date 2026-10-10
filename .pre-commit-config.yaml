@@ -1,23 +1,30 @@
 # `pre-commit install` sets up both hook types; the formatting and lint hooks run on
 # commit, the type check (about a minute) runs on push.
+#
+# Every hook runs the tools installed in the virtualenv (`pip install -e ".[lint]"`),
+# the same ones CI installs, so pyproject.toml is the only place a tool version lives.
 default_install_hook_types: [pre-commit, pre-push]
 default_stages: [pre-commit]
 
 repos:
-  - repo: https://github.com/psf/black
-    rev: 26.5.1
-    hooks:
-      - id: black
-        files: ^pandas_ta_classic/
-
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.17.0
-    hooks:
-      # Same gate as CI: `ruff check` with [tool.ruff.lint], on every changed file.
-      - id: ruff-check
-
   - repo: local
     hooks:
+      - id: black
+        name: black
+        entry: black
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+        files: ^pandas_ta_classic/
+
+      # Same gate as CI: `ruff check` with [tool.ruff.lint], on every changed file.
+      - id: ruff-check
+        name: ruff check
+        entry: ruff check --force-exclude
+        language: system
+        types_or: [python, pyi, jupyter]
+        require_serial: true
+
       - id: gen-core-stub
         name: Regenerate core.pyi
         entry: bash -c 'python tools/gen_core_stub.py && ruff check --fix --quiet pandas_ta_classic/core.pyi && black --quiet pandas_ta_classic/core.pyi'

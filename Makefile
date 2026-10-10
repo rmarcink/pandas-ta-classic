@@ -121,8 +121,6 @@ lint:
 	@echo "Running ruff..."
 	ruff check .
 	ruff check pandas_ta_classic --extend-select C901,E501 --exit-zero
-	@echo "Checking black/ruff versions match .pre-commit-config.yaml..."
-	$(PYTHON) tools/check_lint_versions.py
 
 format:
 	@echo "Formatting code with black..."

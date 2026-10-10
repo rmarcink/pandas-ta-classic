@@ -130,13 +130,13 @@ After each coding session, execute the code/module in local venv and troubleshoo
 - **black** — formatter: `line-length=150`, `skip-string-normalization = true` (keep quotes as-is). CI runs `black --check --diff pandas_ta_classic/`. Apply locally with `black pandas_ta_classic/`. Black owns formatting.
 - **ruff** — linter only (ruff format is disabled; black owns formatting). Gate: `ruff check .` over the whole repo, using ruff's default rule set plus `ICN` from `[tool.ruff.lint]` (`numpy` is always `np.`, never `from numpy import`). The `>=` pin floats, so new default rules are adopted, not suppressed: fix the code. Library code has no per-file ignores; an unavoidable exception gets an inline `# noqa: <rule>` with a reason. Advisory: `ruff check pandas_ta_classic --extend-select C901,E501 --exit-zero`.
 - **`--select` replaces the configured rule set, it does not add to it.** The gate is a bare `ruff check .`, which reads `[tool.ruff.lint]`. A command such as `ruff check --select E9,F63,F7,F82` silently skips every other rule (`F403`, `E402`, `ICN`, `UP`, `I`, ...); those four are already part of the default set.
-- **pre-commit runs the same gates as CI.** `pre-commit install` installs commit and push hooks: black, ruff and the `core.pyi` regeneration run on commit, `make typecheck` runs on push. The `ruff-check` hook reads `[tool.ruff.lint]` with no `--select` and no package-only `files:` filter. Black stays package-only in pre-commit, matching CI's `black --check pandas_ta_classic/`.
+- **pre-commit runs the same gates as CI, with the same tools.** `pre-commit install` installs commit and push hooks: black, ruff and the `core.pyi` regeneration run on commit, `make typecheck` runs on push. Every hook is `repo: local` with `language: system`, so it runs the black and ruff that `pip install -e ".[lint]"` installed; there is no hook `rev` to keep in step with `pyproject.toml`. The `ruff-check` hook reads `[tool.ruff.lint]` with no `--select` and no package-only `files:` filter. Black stays package-only in pre-commit, matching CI's `black --check pandas_ta_classic/`.
 - **Generated `core.pyi`** goes through **gen → `ruff check --fix` → black**, so the stub matches lint-fixed source. That pipeline lives in three places that must stay identical: the CI `code-quality` job (followed by `git diff --exit-code`), the `gen-core-stub` hook in `.pre-commit-config.yaml`, and any manual regeneration. Changing `tools/gen_core_stub.py` or the pipeline means updating all three.
 - Config in `pyproject.toml` under `[tool.black]`, `[tool.ruff]`, `[tool.ruff.lint]` and `[tool.ruff.lint.isort]` (`combine-as-imports = true`)
 - **mypy** — `make typecheck` (targets Python 3.12: numpy >= 2.5 stubs cannot be parsed below it); blocking in CI. It runs two passes: the package, then `pandas_ta_classic/core.py` on its own, because `core.pyi` (the IDE stub for `df.ta`) shadows `core.py` during package discovery.
 - If black and ruff format disagree on a region, lock it with `# fmt: off` / `# fmt: on`
 - **Gate condition:** `black --check --diff pandas_ta_classic/`, `ruff check .` and `make typecheck` must all return EXIT=0 before the task is considered complete. If black reports a reformat, run `black pandas_ta_classic/` then re-check.
-- **Dual config pattern:** black/ruff versions appear in two places — `pyproject.toml` under `[project.optional-dependencies].lint` (CI installs via `pip install -e ".[lint]"`) AND `.pre-commit-config.yaml` under each hook's `rev`. When bumping a version, update BOTH. Enforced: `tools/check_lint_versions.py` (run by the CI `code-quality` job and `make lint`) fails on any mismatch. Because the pins are `>=` floors, it also compares the *installed* tools with the pre-commit `rev` by release series (ruff `0.MINOR`, black's year): when a new series is out, CI fails with instructions to bump both files, so pre-commit and CI never enforce different rules. Patch releases within a series pass.
+- **One version source:** black and ruff versions live only in `pyproject.toml` under `[project.optional-dependencies].lint`, as `>=` floors. CI installs the latest release and pre-commit runs whatever the virtualenv holds, so a new ruff series reaches CI first and shows up as ordinary `ruff check .` findings: fix the code (see the ruff bullet above). `pip install -U -e ".[lint]"` brings the same rules to a local checkout. Do not reintroduce a pinned hook `rev`: a second version source drifts, and the parity check it needed failed CI on every new ruff release.
 
 ## Imports and Paths
 
@@ -206,7 +206,7 @@ Not greppable, so check in review: **dead code** your change orphaned, and the *
 
 | Job | Description |
 |---|---|
-| `code-quality` | Black formatting check, `ruff check .` (blocking) + advisory ruff, mypy, core.pyi sync, lint-version parity |
+| `code-quality` | Black formatting check, `ruff check .` (blocking) + advisory ruff, mypy, core.pyi sync |
 | `generate-matrix` | Dynamically computes 5 supported Python versions (LATEST-4 through LATEST) |
 | `testing-core` | Runs non-oracle tests on all 5 Python versions (`pytest tests/` excluding oracle suites) |
 | `testing-numba` | Runs the same tests with numba installed on the second-newest Python, so the `@njit` path is tested; includes `test_numba_parity.py` (JIT vs `NUMBA_DISABLE_JIT=1`) |
@@ -266,7 +266,7 @@ General rules taken from #142 (lint modernization, import conventions, silent-fa
 ### Documentation
 
 8. **Docstring defaults match the code.** Every `Default:` in an indicator docstring equals the value the validation call resolves `None` to. *Enforced:* `tests/test_docstring_defaults.py`.
-9. **Duplicated facts have one owner or a parity check.** Tool versions (`pyproject.toml` floor, pre-commit `rev`, installed release series), the `core.pyi` pipeline (CI, pre-commit, manual), and indicator/pattern counts (224 / 62) must agree. *Enforced:* `tools/check_lint_versions.py`, the CI stub sync; counts by *review*.
+9. **Duplicated facts have one owner or a parity check.** The `core.pyi` pipeline (CI, pre-commit, manual) and indicator/pattern counts (224 / 62) must agree; black and ruff versions have one owner, `pyproject.toml`. *Enforced:* the CI stub sync; counts by *review*.
 10. **Docs, examples and notebooks move with the API.** A removal or rename also updates `docs/`, `README.md`, `examples/` (scripts and notebooks), tests, `pyproject.toml` extras, `Imports` keys and mypy overrides, and leaves a removal note where the old API was documented. *Review;* the checklist greps catch leftover imports.
 
 ### Deprecation, removal and change records
