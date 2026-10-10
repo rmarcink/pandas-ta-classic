@@ -203,6 +203,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Documentation
 * **Name spellings in docstrings**: John Ehlers (`cti`, `zlma`, `ssf`, and `ssf` in `docs/indicators.rst`), J. Welles Wilder (`psar`) and Williams' Percent R (`willr`).
+* **Source references**: three historical changelog entries now cite the `pandas-ta` project, with no external repository links; a follow-up to #2 ahead of the next major release.
 * **`AGENTS.md` checklist greps 5, 6 and 9 always passed in Claude Code**: they use backreferences (`\1`), and Claude Code's shell replaces `grep` with a function that rejects them, printing the error to stderr and nothing to stdout, which the checklist reads as clean. They are now written `command grep`, which runs GNU grep; with a planted violation of each, the old lines print nothing and the new ones print every hit.
 * **`volatility` docstring example**: it called `ta.volatility(close, ...)`, which raises because the name belongs to the volatility category; the example now calls `ta.utils.volatility(close, ...)`, as `docs/performance.rst` already does.
 * **`signal_indicators` and its options are documented**: `er`, `macd`, `macdfix`, `rsi` and `rsx` accept `signal_indicators`, `xa`, `xb`, `cross_values`, `xserie`, `xserie_a`, `xserie_b` and `cross_series` through `**kwargs`, and none of them appeared in a docstring or in `docs/`. All five now list them under `Kwargs:` with their defaults (`macd` uses `xa=0`/`xb=None` and picks `cross_values` per line; `macdfix` forwards them to `macd`), the three that switch return type say so under `Returns:`, and `docs/indicators.rst` gains a "Signal columns" section with the column names a call produces.
@@ -480,7 +481,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * _Candle Patterns_ (**cdl_pattern**) If TA Lib is installed, then all those Candle Patterns are available. See the list and examples above on how to call the patterns. See ```help(ta.cdl_pattern)```
 * _Candle Z Score_ (**cdl_z**) normalizes OHLC Candles with a rolling Z Score. See ```help(ta.cdl_z)```
 * _Correlation Trend Indicator_ (**cti**) is an oscillator created by John Ehler in 2020. See ```help(ta.cti)```
-* _Cross Signals_ (**xsignals**) was created by Kevin Johnson. It is a wrapper of Trade Signals that returns Trends, Trades, Entries and Exits. Cross Signals are commonly used for **bbands**, **rsi**, **zscore** crossing some value either above or below two values at different times. See ```help(ta.xsignals)```
+* _Cross Signals_ (**xsignals**) was introduced in pandas-ta. It is a wrapper of Trade Signals that returns Trends, Trades, Entries and Exits. Cross Signals are commonly used for **bbands**, **rsi**, **zscore** crossing some value either above or below two values at different times. See ```help(ta.xsignals)```
 * _Directional Movement_ (**dm**) developed by J. Welles Wilder in 1978 attempts to determine which direction the price of an asset is moving. See ```help(ta.dm)```
 * _Even Better Sinewave_ (**ebsw**) measures market cycles and uses a low pass filter to remove noise. See: ```help(ta.ebsw)```
 * _Jurik Moving Average_ (**jma**) attempts to eliminate noise to see the "true" underlying activity.. See: ```help(ta.jma)```
@@ -508,12 +509,12 @@ of the last bars defined by the length parameter. See ```help(ta.tos_stdevall)``
 * _Decreasing_ (**decreasing**): New argument ```strict``` checks if the series is continuously decreasing over period ```length``` with a faster calculation. Default: ```False```. The ```percent``` argument has also been added with default None. See ```help(ta.decreasing)```.
 * _Increasing_ (**increasing**): New argument ```strict``` checks if the series is continuously increasing over period ```length``` with a faster calculation. Default: ```False```. The ```percent``` argument has also been added with default None. See ```help(ta.increasing)```.
 * _Klinger Volume Oscillator_ (**kvo**): Implements TradingView's Klinger Volume Oscillator version. See ```help(ta.kvo)```.
-* _Linear Regression_ (**linreg**): Checks **numpy**'s version to determine whether to utilize the ```as_strided``` method or the newer ```sliding_window_view``` method. This should resolve Issues with Google Colab and it's delayed dependency updates as well as TensorFlow's dependencies as discussed in Issues [#285](https://github.com/twopirllc/pandas-ta/issues/285) and [#329](https://github.com/twopirllc/pandas-ta/issues/329).
+* _Linear Regression_ (**linreg**): Checks **numpy**'s version to determine whether to utilize the ```as_strided``` method or the newer ```sliding_window_view``` method. This should resolve Issues with Google Colab and it's delayed dependency updates as well as TensorFlow's dependencies as discussed in pandas-ta issues #285 and #329.
 * _Moving Average Convergence Divergence_ (**macd**): New argument ```asmode``` enables AS version of MACD. Default is False.  See ```help(ta.macd)```.
 * _Parabolic Stop and Reverse_ (**psar**): Bug fix and adjustment to match TradingView's ```sar```. New argument ```af0``` to initialize the Acceleration Factor. See ```help(ta.psar)```.
 * _Percentage Price Oscillator_ (**ppo**): Included new argument ```mamode``` as an option. Default is **sma** to match TA Lib. See ```help(ta.ppo)```.
 * _True Strength Index_ (**tsi**): Added ```signal``` with default ```13``` and Signal MA Mode ```mamode``` with default **ema** as arguments. See ```help(ta.tsi)```.
-* _Volume Profile_ (**vp**): Calculation improvements. See [Pull Request #320](https://github.com/twopirllc/pandas-ta/pull/320) See ```help(ta.vp)```.
+* _Volume Profile_ (**vp**): Calculation improvements. See pandas-ta pull request #320. See ```help(ta.vp)```.
 * _Volume Weighted Moving Average_ (**vwma**): Fixed bug in DataFrame Extension call. See ```help(ta.vwma)```.
 * _Volume Weighted Average Price_ (**vwap**): Added a new parameter called ```anchor```. Default: "D" for "Daily". See [Timeseries Offset Aliases](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#timeseries-offset-aliases) for additional options. **Requires** the DataFrame index to be a DatetimeIndex. See ```help(ta.vwap)```.
 * _Volume Weighted Moving Average_ (**vwma**): Fixed bug in DataFrame Extension call. See ```help(ta.vwma)```.
