@@ -412,6 +412,20 @@ class TestStrategyNameDoesNotSelect(TestCase):
             with self.subTest(name=name):
                 self.assert_runs_only_its_list(name)
 
+    def test_empty_list_runs_nothing(self):
+        # Strategy("All", ta=[]) used to run every indicator (403 columns on these rows)
+        df = self.data.copy()
+        df.ta.strategy(pandas_ta.Strategy("All", ta=[]))
+        self.assertEqual(list(df.columns), list(self.data.columns))
+
+    def test_missing_input_column_raises_for_a_list(self):
+        # all/category mode skips an indicator whose column is missing and reports it;
+        # an explicit list asked for that indicator, so the run raises instead. A
+        # Strategy named after a category used to take the skipping path.
+        df = self.data.drop(columns=["volume"])
+        with self.assertRaisesRegex(KeyError, "volume"):
+            df.ta.strategy(pandas_ta.Strategy("momentum", ta=[{"kind": "obv"}]))
+
     def test_ta_none_still_runs_every_indicator(self):
         expected = self.data.copy()
         expected.ta.strategy("all")

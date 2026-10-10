@@ -950,10 +950,11 @@ class AnalysisIndicators(PandasObject):
                 performance (td_seq), not a ohlcv chart (vp) etc. A custom
                 Strategy lists its own entries, so passing 'exclude' with one
                 raises.
-            name (str): Select all indicators or indicators by
-                Category such as: "candles", "cycles", "momentum", "overlap",
-                "performance", "statistics", "trend", "volatility", "volume", or
-                "all". Default: "all"
+            name (str): Not a selector: the first positional argument picks
+                "all", a category or a Strategy. Like any other keyword, name
+                is passed to every indicator the run calls; it is the moving
+                average ma() dispatches to, so ma runs only when name is given.
+                Default: None
             timed (bool): Show the process time of the strategy().
                 Default: False
             verbose (bool): Provide some additional insight on the progress of
