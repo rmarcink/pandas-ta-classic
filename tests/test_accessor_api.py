@@ -507,13 +507,23 @@ class TestAccessorAppendWarningFilter(TestCase):
         self.assertEqual([str(w.message) for w in caught], ["caller's own warning"])
 
     def test_fragmentation_warning_stays_silenced_during_strategy(self):
-        # 400+ appended columns is far past pandas' 100-block threshold.
+        # 400+ appended columns is far past pandas' 100-block threshold. The
+        # filter names PerformanceWarning only: a bare "always" would sit in
+        # front of pyproject's error::UserWarning/DeprecationWarning gates.
+        def performance_warnings(run):
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always", pd.errors.PerformanceWarning)
+                run()
+            return [w for w in caught if issubclass(w.category, pd.errors.PerformanceWarning)]
+
+        # Control: the same kind of column-by-column insertion warns without the silence,
+        # so an empty result below means "silenced", not "pandas did not warn".
+        plain = get_sample_data().iloc[:300].copy()
+        self.assertNotEqual(performance_warnings(lambda: [plain.insert(len(plain.columns), f"x{i}", 0.0) for i in range(120)]), [])
+
         df = get_sample_data().iloc[:300].copy()
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
-            df.ta.strategy("all")
+        self.assertEqual(performance_warnings(lambda: df.ta.strategy("all")), [])
         self.assertGreater(len(df.columns), 100)
-        self.assertEqual([w for w in caught if issubclass(w.category, pd.errors.PerformanceWarning)], [])
 
 
 class TestAccessorToUtcProperty(TestCase):
