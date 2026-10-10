@@ -20,8 +20,9 @@ def minindex(
     Named after TA-Lib's MININDEX, but the convention differs on purpose: this
     returns the 0-based position of the minimum *within* the rolling window,
     counted from its oldest bar: 0 is the bar ``length - 1`` bars back, and
-    ``length - 1`` is the current bar. On a tie the oldest bar wins. TA-Lib
-    returns the absolute array index instead, so at bar ``i``
+    ``length - 1`` is the current bar. On a tie the oldest bar wins, and a
+    window holding a NaN gives NaN. TA-Lib returns the absolute array index
+    instead, so at bar ``i`` (its position in the series)
     ``talib = result + i - length + 1``, except on a tie, where TA-Lib may pick
     a later bar. There is deliberately no ``talib`` passthrough, and neither
     tulipy nor Tulip Indicators expose an equivalent.

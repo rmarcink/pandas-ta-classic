@@ -21,10 +21,11 @@ def minmaxindex(
     values ``minindex`` and ``maxindex`` return: the 0-based position of the
     minimum and maximum *within* the rolling window, counted from its oldest
     bar (0 is the bar ``length - 1`` bars back, ``length - 1`` the current
-    bar). On a tie the oldest bar wins.
+    bar). On a tie the oldest bar wins, and a window holding a NaN gives NaN.
 
     Named after TA-Lib's MINMAXINDEX, but the convention differs on purpose:
-    TA-Lib returns the absolute array index, so at bar ``i``
+    TA-Lib returns the absolute array index, so at bar ``i`` (its position in
+    the series)
     ``talib = result + i - length + 1``, except on a tie, where TA-Lib may pick
     a later bar. There is deliberately no ``talib`` passthrough, and neither
     tulipy nor Tulip Indicators expose an equivalent.
