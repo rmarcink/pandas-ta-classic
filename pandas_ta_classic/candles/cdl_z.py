@@ -97,7 +97,7 @@ cdl_z.__doc__ = """Candle Type: Z
 
 Normalizes OHLC Candles with a rolling Z Score.
 
-Source: Kevin Johnson
+Source: pandas-ta
 
 Calculation:
     Default values:
