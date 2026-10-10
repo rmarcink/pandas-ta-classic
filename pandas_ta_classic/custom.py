@@ -1,5 +1,4 @@
 import importlib
-import importlib.util
 import logging
 import os
 import sys
@@ -79,6 +78,16 @@ def get_module_functions(module):
     return module_functions
 
 
+def _resolve(name):
+    """The spec an import of *name* would load now, found the way reload() finds it: through sys.meta_path, ignoring sys.modules."""
+    for finder in sys.meta_path:
+        find_spec = getattr(finder, "find_spec", None)
+        spec = find_spec(name, None) if find_spec is not None else None
+        if spec is not None:
+            return spec
+    return None
+
+
 def _load_and_bind_module(module_path, dirname, category_dir, verbose):
     """Load one indicator module from *module_path* and bind it to
     ``pandas_ta_classic``.
@@ -98,21 +107,26 @@ def _load_and_bind_module(module_path, dirname, category_dir, verbose):
         verbose (bool): Whether to emit info-level log messages on success.
     """
     module_name = splitext(basename(module_path))[0]
-
-    if category_dir not in sys.path:
-        sys.path.append(category_dir)
+    if not module_name.isidentifier():
+        # ab.cd.py would import a package 'ab'; an empty name has nothing to import
+        raise ImportError(f"custom indicator '{module_path}': '{module_name}' is not a valid module name. Rename the file.")
 
     # The module is imported by name, and category_dir comes last on sys.path, so
     # a name that is already taken (a stdlib or installed module, or the same file
     # name in another category) used to reload that other module and bind it.
-    spec = importlib.util.find_spec(module_name)
-    if spec is not None:  # None: not found at all, which load_indicator_module reports
+    # Resolve it the way reload() does, ignoring the sys.modules cache, and do so
+    # before category_dir joins sys.path, so a refusal leaves sys.path unchanged.
+    spec = _resolve(module_name)
+    if spec is not None:  # None: not found yet; category_dir is added below
         origin = spec.origin  # a path, 'built-in', 'frozen', or None for a namespace package
         if origin is None or not exists(origin) or normcase(realpath(origin)) != normcase(realpath(module_path)):
             raise ImportError(
                 f"custom indicator '{module_path}' cannot be imported as '{module_name}': that name already resolves to "
                 f"{origin or spec}. Rename the file and its two functions."
             )
+
+    if category_dir not in sys.path:
+        sys.path.append(category_dir)
 
     module_functions = load_indicator_module(module_name)
 

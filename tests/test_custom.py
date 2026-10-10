@@ -269,6 +269,46 @@ class TestCustom(TestCase):
         finally:
             self._unload(name, *cat_dirs)
 
+    def test_import_dir_rejects_a_name_taken_earlier_on_sys_path_after_the_first_import(self):
+        # the check read the cached sys.modules entry, but reload() resolves the
+        # name afresh over sys.path, so a same-named file put earlier on sys.path
+        # after the first import_dir ran under this indicator's category
+        name = "_test_cust_shadow_"
+        cat_dir = os.path.join(self.tmpdir, "shadow_dir", "momentum")
+        other = os.path.join(self.tmpdir, "shadow_other")
+        self._write_indicator(cat_dir, name, 2)
+        try:
+            import_dir(os.path.dirname(cat_dir), verbose=False)
+            self._write_indicator(other, name, 300)
+            sys.path.insert(0, other)
+            importlib.invalidate_caches()
+            with self.assertRaisesRegex(ImportError, rf"cannot be imported as '{name}': that name already resolves to .*shadow_other"):
+                import_dir(os.path.dirname(cat_dir), verbose=False)
+            self.assertEqual(getattr(pandas_ta_classic, name)(10), 20)
+        finally:
+            self._unload(name, cat_dir, other)
+
+    def test_import_dir_leaves_sys_path_alone_when_it_refuses_a_name(self):
+        cat_dir = os.path.join(self.tmpdir, "stdlib_path_dir", "trend")
+        self._write_indicator(cat_dir, "statistics", 2)
+        before = list(sys.path)
+        with self.assertRaises(ImportError):
+            import_dir(os.path.dirname(cat_dir), verbose=False)
+        self.assertEqual(sys.path, before)
+
+    def test_import_dir_rejects_a_file_name_that_is_not_a_module_name(self):
+        # ab.cd.py imported package 'ab' and raised a bare ModuleNotFoundError
+        cat_dir = os.path.join(self.tmpdir, "dotted_dir", "momentum")
+        os.makedirs(cat_dir, exist_ok=True)
+        with open(os.path.join(cat_dir, "ab.cd.py"), "w") as f:
+            f.write("def x(close):\n    return close\n")
+        try:
+            with self.assertRaisesRegex(ImportError, r"'ab\.cd' is not a valid module name"):
+                import_dir(os.path.dirname(cat_dir), verbose=False)
+        finally:
+            if cat_dir in sys.path:
+                sys.path.remove(cat_dir)
+
     def test_import_dir_reloads_an_edited_indicator(self):
         name = "_test_cust_reload_"
         cat_dir = os.path.join(self.tmpdir, "reload_dir", "momentum")
