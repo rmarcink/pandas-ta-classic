@@ -583,4 +583,4 @@ Utility / signal functions (accessible directly or via ``df.ta``):
 .. seealso::
 
    :doc:`indicator_support_matrix` — per-indicator table of which
-   implementations (Native / TA-Lib / tulipy) back each entry above.
+   implementations (Native / TA-Lib / tulipy) back the indicators listed above.
