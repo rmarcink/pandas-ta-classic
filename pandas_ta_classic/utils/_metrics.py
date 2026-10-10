@@ -363,7 +363,7 @@ def volatility(
             trailing NaN run of returns (the first bar of a percent return) is
             not counted.
 
-    >>> result = ta.volatility(close, tf="years", returns=False, log=False, **kwargs)
+    >>> result = ta.utils.volatility(close, tf="years", returns=False, log=False, **kwargs)
     """
     close = verify_series(close)
     if close is None:
