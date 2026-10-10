@@ -171,11 +171,11 @@ Schaff Trend Cycle should be calculated.
 
 Feed external moving averages:
 Internally calculation..
-    stc = ta.stc(close=df["close"], tclen=stc_tclen, fast=ma1_interval, slow=ma2_interval, factor=stc_factor)
+    stc = ta.stc(close=df["close"], tclength=stc_tclen, fast=ma1_interval, slow=ma2_interval, factor=stc_factor)
 becomes..
     extMa1 = df.ta.zlma(close=df["close"], length=ma1_interval, append=True)
     extMa2 = df.ta.ema(close=df["close"], length=ma2_interval, append=True)
-    stc = ta.stc(close=df["close"], tclen=stc_tclen, ma1=extMa1, ma2=extMa2, factor=stc_factor)
+    stc = ta.stc(close=df["close"], tclength=stc_tclen, ma1=extMa1, ma2=extMa2, factor=stc_factor)
 
 The same goes for osc=, which allows the input of an externally calculated oscillator, overriding ma1 & ma2.
 

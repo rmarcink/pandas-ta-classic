@@ -66,6 +66,8 @@ Args:
     offset (int): How many periods to offset the result. Default: 0
 
 Kwargs:
+    drift (int): Passed to the moving average; only mamode='vidya' reads it.
+        Default: 1
     fillna (value, optional): pd.DataFrame.fillna(value)
     fill_method (value, optional): Type of fill method
 
