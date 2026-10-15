@@ -52,6 +52,7 @@ from hypothesis.extra.numpy import arrays
 
 import pandas_ta_classic as ta
 from tests.assertions import output_columns
+from tests.contracts import pin
 from tests.test_lookahead import candidate_calls
 
 try:
@@ -583,7 +584,7 @@ def test_no_column_is_infinite_on_a_degenerate_window(name: str, label: str, fra
     reads as a real and enormous value and passes every NaN check above. Both
     `chop` (log of HH - LL) and `vhf` (non_zero_range in the numerator) did.
     """
-    _pin_open_finding(request, "inf", name, label)
+    pin(request, _OPEN_FINDINGS, ("inf", name, label))
     result = _call(name, frames[label])
     if result is None:
         pytest.skip(f"{name} returns None for this input")
@@ -607,12 +608,6 @@ _OPEN_FINDINGS: dict[tuple[str, str, str], str] = {
     ("bleed", "vwap", "zero_volume"): _NO_VOLUME_NO_PRICE,
     ("bleed", "vwmacd", "zero_volume"): _NO_VOLUME_NO_PRICE,
 }
-
-
-def _pin_open_finding(request, check: str, name: str, label: str) -> None:
-    reason = _OPEN_FINDINGS.get((check, name, label))
-    if reason:
-        request.applymarker(pytest.mark.xfail(strict=True, reason=reason))
 
 
 # An unguarded divider multiplies by 1/epsilon = 4.5e15. A legitimate blow-up
@@ -686,7 +681,7 @@ def test_a_degenerate_window_does_not_bleed_nan(name: str, label: str, frames, r
     centres its SMA and ``ichimoku`` shifts its Chikou span back, so both carry
     trailing NaN by design on any input, and only an *increase* is a bleed.
     """
-    _pin_open_finding(request, "bleed", name, label)
+    pin(request, _OPEN_FINDINGS, ("bleed", name, label))
     result = _call(name, frames[label])
     control = _call(name, frames[f"{label}:control"])
     if result is None or control is None:

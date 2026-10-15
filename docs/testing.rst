@@ -152,6 +152,12 @@ Edge-Case Tests
 
 Each of these keeps its known exceptions in a table of strict xfails with the
 reason, so an entry that starts passing fails until it is removed.
+``tests/contracts.py`` holds what they share: the ``SPY_D`` loader
+(``spy(bars)``), the list of OHLCV indicators and the call that feeds them, and
+``params()`` / ``pin()``, which turn an exception table into strict xfails. A
+reason starts with ``OPEN:`` (a defect to fix), ``KEPT:`` (decided behaviour)
+or ``TALIB:`` (TA-Lib's difference, not ours); any other reason fails at
+collection.
 
 **Run:** ``python -m pytest tests/test_indicator_edge_cases.py -v``
 

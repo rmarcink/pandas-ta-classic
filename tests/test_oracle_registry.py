@@ -33,6 +33,7 @@ import pandas as pd
 import pytest
 
 import pandas_ta_classic as ta
+from tests.contracts import params, spy
 
 talib = pytest.importorskip("talib")
 
@@ -60,10 +61,7 @@ def _bars(o, h, l, c, v, index) -> Bars:
 
 
 def _spy() -> pd.DataFrame:
-    df = pd.read_csv(_ROOT / "examples" / "data" / "SPY_D.csv", index_col="date", parse_dates=True)
-    df = df.drop(columns=["Unnamed: 0"], errors="ignore")
-    df.columns = df.columns.str.lower()
-    return df.iloc[-_N:].astype(float)
+    return spy(_N).astype(float)
 
 
 def _frame_spy() -> Bars:
@@ -404,17 +402,17 @@ def _disagreement(native, oracle, settle: int = 0) -> str | None:
 # the reason. A pair listed here that starts agreeing fails (strict xfail), so
 # the list cannot go stale.
 _TALIB_CCI_RESIDUE = (
-    "TA-Lib's running-sum mean leaves 1.1e-13 on a window of one typical price, so its mean "
+    "TALIB: TA-Lib's running-sum mean leaves 1.1e-13 on a window of one typical price, so its mean "
     "deviation and tp - mean are both that residue and CCI reads +-1/0.015 = +-66.67; native "
     "reads the 0.0 marker"
 )
 _STOCHRSI_NOISE = (
-    "RSI is constant on a flat block in exact arithmetic but wobbles by 1e-14; TA-Lib's STOCHRSI "
+    "TALIB: RSI is constant on a flat block in exact arithmetic but wobbles by 1e-14; TA-Lib's STOCHRSI "
     "divides that wobble by itself and reads noise (33, 40, ...), native treats the residue range "
     "as no range and reads the 0.0 marker"
 )
 _HILBERT_ON_A_CONSTANT = (
-    "the Hilbert transform of a constant input has no dominant cycle; both sides amplify "
+    "KEPT: the Hilbert transform of a constant input has no dominant cycle; both sides amplify "
     "rounding (equal to 1e-8, then up to 19 apart), so neither value means anything"
 )
 KNOWN_DIFFERENCES: dict[tuple[str, str], str] = {
@@ -432,22 +430,14 @@ KNOWN_DIFFERENCES: dict[tuple[str, str], str] = {
     ("mama", "flat_block"): _HILBERT_ON_A_CONSTANT,
     ("mama", "planted"): _HILBERT_ON_A_CONSTANT,
     ("correl", "x1e-6"): (
-        "TA-Lib's CORREL reads 0.0 at small prices (0.958 natively, unchanged from x1): the product of "
+        "TALIB: TA-Lib's CORREL reads 0.0 at small prices (0.958 natively, unchanged from x1): the product of "
         "the two variances, about 1e-20 there, falls under TA-Lib's absolute zero test; correlation "
         "does not depend on the unit"
     ),
 }
 
 
-def _params():
-    for name in sorted(ORACLE):
-        for frame in FRAMES:
-            reason = KNOWN_DIFFERENCES.get((name, frame))
-            marks = [pytest.mark.xfail(strict=True, reason=reason)] if reason else []
-            yield pytest.param(name, frame, marks=marks, id=f"{name}-{frame}")
-
-
-@pytest.mark.parametrize(("name", "frame"), list(_params()))
+@pytest.mark.parametrize(("name", "frame"), params([(name, frame) for name in sorted(ORACLE) for frame in FRAMES], KNOWN_DIFFERENCES))
 def test_native_matches_talib(name: str, frame: str, frames) -> None:
     case = ORACLE[name]
     bars = frames[frame]
@@ -465,15 +455,13 @@ def test_native_matches_talib(name: str, frame: str, frames) -> None:
 _NO_CDL_TWIN = {"inside", "z", "ha"}
 
 
-def _candle_params():
-    for pattern in sorted(p for p in ta.ALL_PATTERNS if p not in _NO_CDL_TWIN):
-        for frame in FRAMES:
-            reason = KNOWN_DIFFERENCES.get((f"cdl_{pattern}", frame))
-            marks = [pytest.mark.xfail(strict=True, reason=reason)] if reason else []
-            yield pytest.param(pattern, frame, marks=marks, id=f"cdl_{pattern}-{frame}")
+_CANDLE_ROWS = [(pattern, frame) for pattern in sorted(p for p in ta.ALL_PATTERNS if p not in _NO_CDL_TWIN) for frame in FRAMES]
 
 
-@pytest.mark.parametrize(("pattern", "frame"), list(_candle_params()))
+@pytest.mark.parametrize(
+    ("pattern", "frame"),
+    params(_CANDLE_ROWS, KNOWN_DIFFERENCES, key=lambda row: (f"cdl_{row[0]}", row[1]), id=lambda row: f"cdl_{row[0]}-{row[1]}"),
+)
 def test_candle_pattern_matches_talib(pattern: str, frame: str, frames) -> None:
     b = frames[frame]
     native = ta.cdl_pattern(b.open, b.high, b.low, b.close, name=pattern).iloc[:, 0]

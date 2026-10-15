@@ -15,20 +15,18 @@ Indicators are discovered through ``ta.Category``.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import pytest
 
-from tests.test_leading_nan_contract import INDICATORS, _call
+from tests.contracts import OHLCV_INDICATORS as INDICATORS, call as _call, params, spy
 
 DTYPES = ("int64", "Int64", "Float64")
 RTOL = 1e-12
 
 # (indicator, dtype) pairs that break the contract today, as strict xfails: one
 # that starts passing fails, so the table cannot go stale.
-_NULLABLE = "OPEN DEFECT: verify_series keeps the extension dtype"
+_NULLABLE = "OPEN: verify_series keeps the extension dtype"
 _FAILS_ON_FLOAT64_EXT = {"cdl_doji", "cdl_inside", "cdl_pattern", "decreasing", "increasing", "smc_sweep", "td_seq", "ttm_trend"}
 _FAILS_ON_INT64_EXT = _FAILS_ON_FLOAT64_EXT | {
     "aberration", "amat", "aobv", "atr", "ce", "cksp", "dema", "efi", "ema", "eri", "kc", "macdext", "massi", "mmar",
@@ -44,22 +42,15 @@ OPEN_FINDINGS: dict[tuple[str, str], str] = {
 @pytest.fixture(scope="module")
 def ticks() -> pd.DataFrame:
     """SPY_D in cents, as integers, so every dtype holds exactly the same numbers."""
-    df = pd.read_csv(Path(__file__).parent.parent / "examples" / "data" / "SPY_D.csv", index_col="date", parse_dates=True)
-    df = df.drop(columns=["Unnamed: 0"], errors="ignore")
-    df.columns = df.columns.str.lower()
-    df = df.iloc[-1000:]
+    df = spy(1000)
     return (df[["open", "high", "low", "close"]] * 100).round().join(df[["volume"]].round()).astype("int64")
 
 
 def _params():
-    for dtype in DTYPES:
-        for name in INDICATORS:
-            reason = OPEN_FINDINGS.get((name, dtype))
-            marks = [pytest.mark.xfail(strict=True, reason=reason)] if reason else []
-            yield pytest.param(name, dtype, marks=marks, id=f"{name}-{dtype}")
+    return params([(name, dtype) for dtype in DTYPES for name in INDICATORS], OPEN_FINDINGS)
 
 
-@pytest.mark.parametrize(("name", "dtype"), list(_params()))
+@pytest.mark.parametrize(("name", "dtype"), _params())
 def test_integer_and_nullable_input_give_the_float_answer(name: str, dtype: str, ticks: pd.DataFrame) -> None:
     expected = _call(name, ticks.astype("float64"))
     result = _call(name, ticks.astype(dtype))

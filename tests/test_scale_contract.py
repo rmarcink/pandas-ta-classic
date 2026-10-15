@@ -16,13 +16,12 @@ Indicators are discovered through ``ta.Category``.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import pytest
 
-from tests.test_leading_nan_contract import INDICATORS as OHLCV_INDICATORS, _call
+from tests import contracts
+from tests.contracts import OHLCV_INDICATORS, call as _call, params
 
 # Elementwise transforms of their input (sin(k x) is not k**p sin(x)); scale is
 # meaningless for them.
@@ -40,7 +39,7 @@ RTOL = 1e-6
 
 # (indicator, scale) pairs that break the contract today, as strict xfails: one
 # that starts passing fails, so the table cannot go stale.
-_ABSOLUTE_THRESHOLD = "OPEN DEFECT: an absolute constant binds at small prices -- {}"
+_ABSOLUTE_THRESHOLD = "OPEN: an absolute constant binds at small prices -- {}"
 _BOUNDARY_ROUNDING = (
     "CDL_HIGHWAVE: scaling rounds a comparison that sits exactly on its threshold to the other side "
     "on 1-2 bars; TA-Lib's CDLHIGHWAVE flips the same bars"
@@ -54,10 +53,7 @@ BOUNDARY_COLUMNS = {"CDL_HIGHWAVE": _BOUNDARY_ROUNDING}
 
 @pytest.fixture(scope="module")
 def spy() -> pd.DataFrame:
-    df = pd.read_csv(Path(__file__).parent.parent / "examples" / "data" / "SPY_D.csv", index_col="date", parse_dates=True)
-    df = df.drop(columns=["Unnamed: 0"], errors="ignore")
-    df.columns = df.columns.str.lower()
-    return df.iloc[-1000:]
+    return contracts.spy(1000)
 
 
 def _scales_by(base: np.ndarray, scaled: np.ndarray, k: float) -> int | None:
@@ -73,15 +69,7 @@ def _scales_by(base: np.ndarray, scaled: np.ndarray, k: float) -> int | None:
     return None
 
 
-def _params():
-    for scale in SCALES:
-        for name in INDICATORS:
-            reason = OPEN_FINDINGS.get((name, scale))
-            marks = [pytest.mark.xfail(strict=True, reason=reason)] if reason else []
-            yield pytest.param(name, scale, marks=marks, id=f"{name}-{scale}")
-
-
-@pytest.mark.parametrize(("name", "scale"), list(_params()))
+@pytest.mark.parametrize(("name", "scale"), params([(name, scale) for scale in SCALES for name in INDICATORS], OPEN_FINDINGS))
 def test_output_scales_with_the_price(name: str, scale: str, spy: pd.DataFrame) -> None:
     k = SCALES[scale]
     scaled = spy.copy()
