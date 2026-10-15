@@ -101,7 +101,6 @@ Kwargs:
 Zero volume:
     A bar that moved on no volume divides by zero, and every window that
     contains it reads NaN; see "Zero Volume" in the indicator reference.
-    Not settled yet.
 
 Returns:
     pd.Series: New feature generated.

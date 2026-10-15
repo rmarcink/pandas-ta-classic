@@ -87,7 +87,7 @@ Kwargs:
 
 Zero volume:
     A bar that moved on no volume divides by zero and reads +-inf; see
-    "Zero Volume" in the indicator reference. Not settled yet.
+    "Zero Volume" in the indicator reference.
 
 Returns:
     pd.Series

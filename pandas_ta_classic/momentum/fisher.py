@@ -98,6 +98,11 @@ two lines cross.
 Sources:
     TradingView (Correlation >99%)
 
+    TradingView's ta.fisher floors the range at 0.001, an absolute price; this
+    one does not. A window without range reads position 0.0, so on flat
+    windows and at small prices (where 0.001 decides every window) the two
+    differ: a flat series reads 0.0 here and drifts to -7.6 there.
+
 Calculation:
     Default Inputs:
         length=9, signal=1
@@ -106,9 +111,9 @@ Calculation:
     LHL2 = HL2.rolling(length).min()
 
     HLR = HHL2 - LHL2
-    HLR[HLR < 0.001] = 0.001
 
     position = ((HL2 - LHL2) / HLR) - 0.5
+    position[HLR == 0] = 0.0
 
     v = 0
     m = high.size

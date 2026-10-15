@@ -599,7 +599,7 @@ _ZERO_VOLUME_WINDOW_NAN = "OPEN: a window with no volume divides 0/0 and reads N
 _NO_VOLUME_NO_PRICE = "OPEN: a volume-weighted price over a window with no volume is undefined; NaN may be the right answer"
 _OPEN_FINDINGS: dict[tuple[str, str, str], str] = {
     ("inf", "emv", "zero_volume"): _X_OVER_ZERO_VOLUME,
-    ("inf", "marketfi", "zero_volume"): _X_OVER_ZERO_VOLUME + " (kept on purpose by the marketfi entry in CHANGELOG.md)",
+    ("inf", "marketfi", "zero_volume"): "KEPT: a bar with a range and no volume reads inf, on purpose (marketfi entry in CHANGELOG.md)",
     ("bleed", "eom", "zero_volume"): _X_OVER_ZERO_VOLUME + "; sma() turns the inf into NaN for 146 bars",
     ("bleed", "cmf", "zero_volume"): _ZERO_VOLUME_WINDOW_NAN,
     ("bleed", "vosc", "zero_volume"): _ZERO_VOLUME_WINDOW_NAN,

@@ -16,19 +16,14 @@ Indicators are discovered through ``ta.Category``.
 
 from __future__ import annotations
 
-import inspect
-import warnings
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
-import pandas_ta_classic as ta
+from tests.test_leading_nan_contract import INDICATORS as OHLCV_INDICATORS, _call
 
-COLUMNS = {"open_": "open", "high": "high", "low": "low", "close": "close", "volume": "volume"}
-NOT_OHLCV = {"add", "sub", "mult", "div", "above", "above_value", "below", "below_value", "cross", "cross_value"}
-NOT_OHLCV |= {"long_run", "short_run", "tsignals", "xsignals", "beta", "correl", "mavp", "ma", "vp"}
 # Elementwise transforms of their input (sin(k x) is not k**p sin(x)); scale is
 # meaningless for them.
 NOT_A_PRICE_FUNCTION = {"acos", "asin", "atan", "ceil", "cos", "cosh", "exp", "floor", "ln", "log10", "sin", "sinh", "sqrt", "tan", "tanh"}
@@ -38,7 +33,7 @@ SCALE_IS_THE_ANSWER = {
     "linregangle": "the angle of a slope in price per bar; TA-Lib's LINEARREG_ANGLE depends on the unit too",
     "decay": "decays a signal by a fixed step per bar; its input is a 0/1 signal, not a price",
 }
-INDICATORS = sorted({name for names in ta.Category.values() for name in names} - NOT_OHLCV - NOT_A_PRICE_FUNCTION - set(SCALE_IS_THE_ANSWER))
+INDICATORS = sorted(set(OHLCV_INDICATORS) - NOT_A_PRICE_FUNCTION - set(SCALE_IS_THE_ANSWER))
 SCALES = {"tiny": 1e-6, "huge": 1e6}
 EXPONENTS = (0, 1, 2)
 RTOL = 1e-6
@@ -63,14 +58,6 @@ def spy() -> pd.DataFrame:
     df = df.drop(columns=["Unnamed: 0"], errors="ignore")
     df.columns = df.columns.str.lower()
     return df.iloc[-1000:]
-
-
-def _call(name: str, df: pd.DataFrame) -> pd.DataFrame:
-    fn = getattr(ta, name)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        result = fn(**{p: df[c] for p, c in COLUMNS.items() if p in inspect.signature(fn).parameters})
-    return result.to_frame() if isinstance(result, pd.Series) else result
 
 
 def _scales_by(base: np.ndarray, scaled: np.ndarray, k: float) -> int | None:

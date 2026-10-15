@@ -5,7 +5,7 @@ nullable extension dtypes (``Int64``, ``Float64``) as soon as a column has a
 missing value or ``dtype_backend="numpy_nullable"`` is set. The numbers are the
 same, so the result must be too. Two defects of this kind are already known:
 ``non_zero_range`` downcast its epsilon to 0 on ``int64`` (0.8.32), and the
-nullable dtypes failed in numpy-backed kernels (``fix/nullable-numeric-input``).
+nullable dtypes failed in numpy-backed kernels.
 
 Each input is compared against the same values as ``float64``, for every
 registered indicator: the NaN mask must match and the values agree to 1e-12.
@@ -15,26 +15,20 @@ Indicators are discovered through ``ta.Category``.
 
 from __future__ import annotations
 
-import inspect
-import warnings
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
-import pandas_ta_classic as ta
+from tests.test_leading_nan_contract import INDICATORS, _call
 
-COLUMNS = {"open_": "open", "high": "high", "low": "low", "close": "close", "volume": "volume"}
-NOT_OHLCV = {"add", "sub", "mult", "div", "above", "above_value", "below", "below_value", "cross", "cross_value"}
-NOT_OHLCV |= {"long_run", "short_run", "tsignals", "xsignals", "beta", "correl", "mavp", "ma", "vp"}
-INDICATORS = sorted({name for names in ta.Category.values() for name in names} - NOT_OHLCV)
 DTYPES = ("int64", "Int64", "Float64")
 RTOL = 1e-12
 
 # (indicator, dtype) pairs that break the contract today, as strict xfails: one
 # that starts passing fails, so the table cannot go stale.
-_NULLABLE = "OPEN DEFECT, fixed on branch fix/nullable-numeric-input (all 48 pass there): verify_series keeps the extension dtype"
+_NULLABLE = "OPEN DEFECT: verify_series keeps the extension dtype"
 _FAILS_ON_FLOAT64_EXT = {"cdl_doji", "cdl_inside", "cdl_pattern", "decreasing", "increasing", "smc_sweep", "td_seq", "ttm_trend"}
 _FAILS_ON_INT64_EXT = _FAILS_ON_FLOAT64_EXT | {
     "aberration", "amat", "aobv", "atr", "ce", "cksp", "dema", "efi", "ema", "eri", "kc", "macdext", "massi", "mmar",
@@ -55,14 +49,6 @@ def ticks() -> pd.DataFrame:
     df.columns = df.columns.str.lower()
     df = df.iloc[-1000:]
     return (df[["open", "high", "low", "close"]] * 100).round().join(df[["volume"]].round()).astype("int64")
-
-
-def _call(name: str, df: pd.DataFrame) -> pd.DataFrame:
-    fn = getattr(ta, name)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        result = fn(**{p: df[c] for p, c in COLUMNS.items() if p in inspect.signature(fn).parameters})
-    return result.to_frame() if isinstance(result, pd.Series) else result
 
 
 def _params():

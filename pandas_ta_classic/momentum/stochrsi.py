@@ -127,6 +127,11 @@ The most common choices are a 14 period %K and a 3 period SMA for %D.
 Sources:
     https://www.tradingview.com/wiki/Stochastic_(STOCH)
 
+    On a flat run after real movement the RSI is constant in exact arithmetic
+    but wobbles by about 1e-14. A window whose RSI range is below 1e-12 has no
+    range and reads 0.0 here; TA-Lib's STOCHRSI divides the wobble by itself
+    and reads noise anywhere in 0..100.
+
 Calculation:
     Default Inputs:
         length=14, rsi_length=14, k=3, d=3

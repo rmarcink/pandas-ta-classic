@@ -27,28 +27,22 @@ decided rather than a defect goes into a table here, with the reason.
 
 from __future__ import annotations
 
-import inspect
-import warnings
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
-import pandas_ta_classic as ta
+from tests.test_leading_nan_contract import INDICATORS, _call as _frame
 
 GAP = 600
 TAIL = 200  # compared bars at the end, 700+ bars after the gap
-COLUMNS = {"open_": "open", "high": "high", "low": "low", "close": "close", "volume": "volume"}
-NOT_OHLCV = {"add", "sub", "mult", "div", "above", "above_value", "below", "below_value", "cross", "cross_value"}
-NOT_OHLCV |= {"long_run", "short_run", "tsignals", "xsignals", "beta", "correl", "mavp", "ma", "vp"}
 CUMULATIVE = {"ad", "aobv", "nvi", "obv", "pvi", "pvt", "wad"}
 WHOLE_SERIES = {"tos_stdevall"}
 # Non-causal by design (see test_lookahead.py): bars before a gap depend on later bars.
 LOOKAHEAD = {"dpo", "ichimoku", "tos_stdevall"}
 # Anchored to calendar periods, so the timestamps are input.
 TIME_BASED = {"vwap", "cpr"}
-INDICATORS = sorted({name for names in ta.Category.values() for name in names} - NOT_OHLCV)
 
 GAPS = {
     "whole_bar": (slice(GAP, GAP + 1), ("open", "high", "low", "close", "volume")),
@@ -71,12 +65,7 @@ def clean() -> pd.DataFrame:
 
 
 def _call(name: str, df: pd.DataFrame) -> np.ndarray:
-    fn = getattr(ta, name)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        result = fn(**{p: df[c] for p, c in COLUMNS.items() if p in inspect.signature(fn).parameters})
-    frame = result.to_frame() if isinstance(result, pd.Series) else result
-    return frame.to_numpy(float, na_value=np.nan)
+    return _frame(name, df).to_numpy(float, na_value=np.nan)
 
 
 def _params(gaps):

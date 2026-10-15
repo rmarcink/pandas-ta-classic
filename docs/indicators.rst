@@ -80,9 +80,9 @@ Zero Volume
 -----------
 
 A session with no volume -- a halt, an illiquid instrument, a feed that writes
-0 for "unknown" -- has **no settled behaviour yet**. What each volume divider
-does today, pinned in ``tests/test_degenerate_input.py`` so that any change is
-noticed:
+0 for "unknown" -- leaves the volume dividers without a value to divide by.
+What each one does, pinned in ``tests/test_degenerate_input.py`` so that any
+change is noticed:
 
 * ``emv`` and ``eom`` divide the bar's movement by its volume. A bar that moved
   on no volume reads ``+-inf`` in ``emv``, and ``eom`` (a 14-bar average of the

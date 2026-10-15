@@ -493,6 +493,17 @@ def _matrix_talib_indicators() -> set[str]:
     return {name.strip() for name, _category, _native, talib_ in rows[1:] if talib_.strip() == "yes"}
 
 
+def test_the_cmo_case_stays_native() -> None:
+    # The cmo case compares native Wilder smoothing with TA-Lib only while scalar=50
+    # keeps talib=True off TA-Lib (rule 6). If TA-Lib ever runs there, this fails
+    # before the case turns into TA-Lib compared with itself.
+    close = pd.Series(np.linspace(100.0, 120.0, 60) + np.sin(np.arange(60.0)))
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setitem(ta.Imports, "talib", False)
+        native = ta.cmo(close, 14, scalar=50, talib=True)
+    pd.testing.assert_series_equal(ta.cmo(close, 14, scalar=50, talib=True), native)
+
+
 def test_every_talib_indicator_has_an_oracle() -> None:
     """An indicator with a TA-Lib counterpart is compared, or says why not."""
     listed = _matrix_talib_indicators()
