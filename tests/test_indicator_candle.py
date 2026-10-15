@@ -499,9 +499,9 @@ class TestCdlDojiAtTheEdges(TestCase):
         np.testing.assert_array_equal(self._doji(*args, naive=True)[10:], self._doji(*args)[10:])
 
     def test_inf_row_is_dropped_like_a_nan_row(self):
-        # An inf price used to enter the running total: 13 bars of threshold
-        # inf (all doji), then NaN for good (all 0). It is now skipped, as
-        # run_pattern() skips it, and reports 0 like a NaN row.
+        # An inf high made sma() of the range NaN for every window holding it,
+        # so the next length bars read 0 whatever their body. It is now skipped,
+        # as run_pattern() skips it, and reports 0 like a NaN row.
         def doji_with(value, **kwargs):
             high = [2.0] * 12 + [value] + [2.0] * 17
             return self._doji([1.0] * 30, high, [0.0] * 30, [1.05] * 30, **kwargs)
