@@ -6,7 +6,7 @@ from concurrent.futures import Executor, ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from multiprocessing import cpu_count, current_process, get_context
 from numbers import Integral
 from threading import Lock
@@ -125,7 +125,7 @@ class Strategy:
     # Helpful. More descriptive version or notes or w/e.
     description: str = "TA Description"
     # Optional. When the Strategy was created, in UTC.
-    created: datetime | None = field(default_factory=lambda: datetime.now(timezone.utc))
+    created: datetime | None = field(default_factory=lambda: datetime.now(UTC))
 
     def __post_init__(self):
         required_args = ["[X] Strategy requires the following argument(s):"]
@@ -380,7 +380,7 @@ class AnalysisIndicators(PandasObject):
 
         # Run the indicator
         result = fn(**kwargs)
-        self._df.attrs["_ta_last_run"] = datetime.now(timezone.utc)  # Save when it completed its run
+        self._df.attrs["_ta_last_run"] = datetime.now(UTC)  # Save when it completed its run
 
         if timed:
             if result is not None:
@@ -1100,7 +1100,7 @@ class AnalysisIndicators(PandasObject):
         else:
             self._run_serially(tasks, verbose)
 
-        self._df.attrs["_ta_last_run"] = datetime.now(timezone.utc)
+        self._df.attrs["_ta_last_run"] = datetime.now(UTC)
 
         if verbose:
             logger.info(f"Total indicators: {len(ta)}")
