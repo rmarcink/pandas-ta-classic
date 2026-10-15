@@ -982,3 +982,16 @@ class TestNpRollingMoments(TestCase):
         (m2,) = self.fn(arr, 1, 2)
         # Window of size 1: deviation is 0, sum = 0
         np.testing.assert_allclose(m2[0], 0.0, atol=1e-12)
+
+
+class TestNonZeroRangeRemoved(TestCase):
+    """non_zero_range() was removed in 0.9.0; both access paths name the replacement."""
+
+    def test_attribute_access_raises_with_the_recipe(self):
+        for owner in (pandas_ta, pandas_ta.utils):
+            with self.subTest(owner=owner.__name__), self.assertRaisesRegex(AttributeError, r"non_zero_range\(\) was removed in 0\.9\.0"):
+                owner.non_zero_range  # noqa: B018
+
+    def test_import_raises(self):
+        with self.assertRaises(ImportError):
+            from pandas_ta_classic.utils import non_zero_range  # noqa: F401
