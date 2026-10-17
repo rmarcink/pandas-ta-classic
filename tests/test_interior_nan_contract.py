@@ -26,14 +26,10 @@ import numpy as np
 import pytest
 
 import pandas_ta_classic as ta
-from tests.contracts import COLUMNS, OHLCV_INDICATORS as INDICATORS, call, params, spy
+from tests.contracts import COLUMNS, CUMULATIVE, LOOKAHEAD, OHLCV_INDICATORS as INDICATORS, WHOLE_SERIES, params, spy, values as _call
 
 GAP = 600
 TAIL = 200  # compared bars at the end, 700+ bars after the gap
-CUMULATIVE = {"ad", "aobv", "nvi", "obv", "pvi", "pvt", "wad"}
-WHOLE_SERIES = {"tos_stdevall"}
-# Non-causal by design (see test_lookahead.py): bars before the gap depend on later bars.
-LOOKAHEAD = {"dpo", "ichimoku", "tos_stdevall"}
 
 
 @pytest.fixture(scope="module")
@@ -42,10 +38,6 @@ def frames():
     gapped = clean.copy()
     gapped.iloc[GAP, gapped.columns.get_loc("close")] = np.nan
     return clean, gapped
-
-
-def _call(name, df):
-    return call(name, df).to_numpy(float, na_value=np.nan)
 
 
 @pytest.mark.parametrize("name", INDICATORS)

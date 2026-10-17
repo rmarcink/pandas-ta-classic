@@ -21,12 +21,11 @@ import pandas as pd
 import pytest
 
 from tests import contracts
-from tests.contracts import OHLCV_INDICATORS, call as _call, params
+from tests.contracts import ELEMENTWISE, OHLCV_INDICATORS, call as _call, params
 
 # Elementwise transforms of their input (sin(k x) is not k**p sin(x)); scale is
-# meaningless for them.
-NOT_A_PRICE_FUNCTION = {"acos", "asin", "atan", "ceil", "cos", "cosh", "exp", "floor", "ln", "log10", "sin", "sinh", "sqrt", "tan", "tanh"}
-NOT_A_PRICE_FUNCTION |= {"npround", "trunc"}
+# meaningless for them. abs, todeg and torad are linear, so they keep the contract.
+NOT_A_PRICE_FUNCTION = ELEMENTWISE - {"npabs", "todeg", "torad"}
 # Unit-dependent by definition, not by accident.
 SCALE_IS_THE_ANSWER = {
     "linregangle": "the angle of a slope in price per bar; TA-Lib's LINEARREG_ANGLE depends on the unit too",

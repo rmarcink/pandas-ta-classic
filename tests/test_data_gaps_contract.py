@@ -31,14 +31,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tests.contracts import OHLCV_INDICATORS as INDICATORS, call, params, spy
+from tests.contracts import CUMULATIVE, LOOKAHEAD, OHLCV_INDICATORS as INDICATORS, WHOLE_SERIES, params, spy, values as _call
 
 GAP = 600
 TAIL = 200  # compared bars at the end, 700+ bars after the gap
-CUMULATIVE = {"ad", "aobv", "nvi", "obv", "pvi", "pvt", "wad"}
-WHOLE_SERIES = {"tos_stdevall"}
-# Non-causal by design (see test_lookahead.py): bars before a gap depend on later bars.
-LOOKAHEAD = {"dpo", "ichimoku", "tos_stdevall"}
 # Anchored to calendar periods, so the timestamps are input.
 TIME_BASED = {"vwap", "cpr"}
 
@@ -57,10 +53,6 @@ OPEN_FINDINGS: dict[tuple[str, str], str] = {}
 @pytest.fixture(scope="module")
 def clean() -> pd.DataFrame:
     return spy(1500)
-
-
-def _call(name: str, df: pd.DataFrame) -> np.ndarray:
-    return call(name, df).to_numpy(float, na_value=np.nan)
 
 
 def _params(gaps):
