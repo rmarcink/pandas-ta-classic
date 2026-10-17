@@ -59,6 +59,11 @@ CUMULATIVE = {"ad", "aobv", "nvi", "obv", "pvi", "pvt", "wad"}
 WHOLE_SERIES = {"tos_stdevall"}
 # Non-causal by design at their defaults (see test_lookahead.py): a bar depends on later bars.
 LOOKAHEAD = {"dpo", "ichimoku", "tos_stdevall"}
+# Columns no price-transform contract (scale, shift) compares, with the reason;
+# the rest of their indicator still is. Not a dependence on scale or level:
+# moving the prices rounds a comparison that sits exactly on its threshold to
+# the other side.
+BOUNDARY_COLUMNS = {"CDL_HIGHWAVE": "flips 1-2 bars that sit exactly on its threshold; TA-Lib's CDLHIGHWAVE flips the same bars"}
 # Boolean parameters candidate_calls() leaves alone: talib selects a different
 # implementation altogether, and whether TA-Lib is installed varies by environment.
 SKIP_BOOL_KWARGS = {"talib"}

@@ -21,7 +21,7 @@ import pandas as pd
 import pytest
 
 from tests import contracts
-from tests.contracts import ELEMENTWISE, OHLCV_INDICATORS, call as _call, params
+from tests.contracts import BOUNDARY_COLUMNS, ELEMENTWISE, OHLCV_INDICATORS, call as _call, params
 
 # Elementwise transforms of their input (sin(k x) is not k**p sin(x)); scale is
 # meaningless for them. abs, todeg and torad are linear, so they keep the contract.
@@ -39,15 +39,9 @@ RTOL = 1e-6
 # (indicator, scale) pairs that break the contract today, as strict xfails: one
 # that starts passing fails, so the table cannot go stale.
 _ABSOLUTE_THRESHOLD = "OPEN: an absolute constant binds at small prices -- {}"
-_BOUNDARY_ROUNDING = (
-    "CDL_HIGHWAVE: scaling rounds a comparison that sits exactly on its threshold to the other side "
-    "on 1-2 bars; TA-Lib's CDLHIGHWAVE flips the same bars"
-)
 OPEN_FINDINGS: dict[tuple[str, str], str] = {
     ("msw", "tiny"): _ABSOLUTE_THRESHOLD.format("`if abs(rp) > 0.001` decides the phase"),
 }
-# Columns compared nowhere, with the reason; the rest of their indicator still is.
-BOUNDARY_COLUMNS = {"CDL_HIGHWAVE": _BOUNDARY_ROUNDING}
 
 
 @pytest.fixture(scope="module")
