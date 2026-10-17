@@ -39,9 +39,9 @@ import numpy as np
 import pandas as pd
 
 import pandas_ta_classic as ta
+from tests.config import get_sample_data
 
 _HERE = Path(__file__).parent
-_DATA_PATH = _HERE.parent / "examples" / "data" / "SPY_D.csv"
 _ORACLE_PATH = _HERE / "fixtures" / "tulipy_oracle.json"
 
 ORACLE_AVAILABLE = _ORACLE_PATH.is_file()
@@ -53,9 +53,7 @@ class TestTulipyOracle(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        df = pd.read_csv(_DATA_PATH, index_col="date", parse_dates=True)
-        df.drop(columns=["Unnamed: 0"], errors="ignore", inplace=True)
-        df.columns = df.columns.str.lower()
+        df = get_sample_data()
         cls.idx = df.index
         cls.open = df["open"]
         cls.high = df["high"]

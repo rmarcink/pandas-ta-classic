@@ -28,8 +28,6 @@ import inspect
 import typing
 import warnings
 from collections.abc import Callable, Hashable, Iterable, Mapping
-from functools import cache
-from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -37,8 +35,7 @@ import pandas as pd
 import pytest
 
 import pandas_ta_classic as ta
-
-SPY_CSV = Path(__file__).parent.parent / "examples" / "data" / "SPY_D.csv"
+from tests.config import get_sample_data
 
 COLUMNS = {"open_": "open", "high": "high", "low": "low", "close": "close", "volume": "volume"}
 INDICATORS = sorted({name for names in ta.Category.values() for name in names})
@@ -71,18 +68,10 @@ SKIP_BOOL_KWARGS = {"talib"}
 REASON_PREFIXES = ("OPEN:", "KEPT:", "TALIB:")
 
 
-@cache
-def _spy_csv() -> pd.DataFrame:
-    df = pd.read_csv(SPY_CSV, index_col="date", parse_dates=True)
-    df = df.drop(columns=["Unnamed: 0"], errors="ignore")
-    df.columns = df.columns.str.lower()
-    return df
-
-
 def spy(bars: int | None = None) -> pd.DataFrame:
     """The last *bars* rows of SPY_D (all of it for None), as a copy the caller may change."""
-    df = _spy_csv()
-    return (df if bars is None else df.iloc[-bars:]).copy()
+    df = get_sample_data()
+    return df if bars is None else df.iloc[-bars:].copy()
 
 
 def inputs(name: str, df: pd.DataFrame) -> dict[str, Any]:
