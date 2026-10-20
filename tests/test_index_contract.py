@@ -49,6 +49,7 @@ import pytest
 
 import pandas_ta_classic as ta
 from tests.assertions import output_columns
+from tests.contracts import INDICATORS
 
 _N_ROWS = 250
 
@@ -108,12 +109,6 @@ def frame() -> dict[str, pd.Series]:
     return _build_frame()
 
 
-def _indicator_names() -> list[str]:
-    return sorted(
-        {name for names in ta.Category.values() for name in names if callable(getattr(ta, name, None)) and not inspect.isclass(getattr(ta, name))}
-    )
-
-
 def _extra_kwargs(name: str, frame: dict[str, pd.Series]) -> dict:
     """Arguments with no sensible default for a blind sweep."""
     if name == "ma":
@@ -142,7 +137,7 @@ def _results(name: str, frame: dict[str, pd.Series], **kwargs):
     return [part for part in parts if part is not None]
 
 
-@pytest.mark.parametrize("name", [n for n in _indicator_names() if n not in _EXEMPT])
+@pytest.mark.parametrize("name", [n for n in INDICATORS if n not in _EXEMPT])
 def test_result_keeps_the_input_index(name: str, frame: dict[str, pd.Series]) -> None:
     """Output is as long as the input and carries the input's index."""
     expected = frame["close"].index
@@ -160,7 +155,7 @@ _DUPLICATE_LABEL_EXEMPT = _EXEMPT | {"vwap"}
 
 
 @pytest.mark.parametrize("lead", [0, 20], ids=["plain", "leading-nan"])
-@pytest.mark.parametrize("name", [n for n in _indicator_names() if n not in _DUPLICATE_LABEL_EXEMPT])
+@pytest.mark.parametrize("name", [n for n in INDICATORS if n not in _DUPLICATE_LABEL_EXEMPT])
 def test_a_duplicated_index_label_computes_like_a_unique_one(name: str, lead: int, frame: dict[str, pd.Series]) -> None:
     """One repeated label changes no value: indicators work by position.
 
@@ -199,7 +194,7 @@ def _takes_fill_kwargs(name: str) -> bool:
 _OFFSET = 2
 
 
-@pytest.mark.parametrize("name", [n for n in _indicator_names() if n not in _EXEMPT and _accepts(n, "offset")])
+@pytest.mark.parametrize("name", [n for n in INDICATORS if n not in _EXEMPT and _accepts(n, "offset")])
 def test_offset_shifts_every_output_column(name: str, frame: dict[str, pd.Series]) -> None:
     """``f(..., offset=N)`` equals ``f(...).shift(N)`` -- for *every* column.
 
@@ -328,7 +323,7 @@ def _measured_lag(plain: pd.Series, shifted: pd.Series) -> int | None:
     return None
 
 
-@pytest.mark.parametrize("name", [n for n in _indicator_names() if n not in _EXEMPT and _takes_fill_kwargs(n)])
+@pytest.mark.parametrize("name", [n for n in INDICATORS if n not in _EXEMPT and _takes_fill_kwargs(n)])
 def test_fillna_reaches_every_output_column(name: str, frame: dict[str, pd.Series]) -> None:
     """``fillna=0`` leaves no ``NaN`` behind, in any column of any part.
 
@@ -366,7 +361,7 @@ def test_fillna_reaches_every_output_column(name: str, frame: dict[str, pd.Serie
 
 
 @pytest.mark.parametrize("method", ["ffill", "bfill"])
-@pytest.mark.parametrize("name", [n for n in _indicator_names() if n not in _EXEMPT and _takes_fill_kwargs(n)])
+@pytest.mark.parametrize("name", [n for n in INDICATORS if n not in _EXEMPT and _takes_fill_kwargs(n)])
 def test_fill_method_reaches_every_output_column(name: str, method: str, frame: dict[str, pd.Series]) -> None:
     """``fill_method`` reaches every column, as ``fillna`` does above.
 
@@ -454,7 +449,7 @@ def _input_state(series: pd.Series) -> dict:
     }
 
 
-@pytest.mark.parametrize("name", _indicator_names())
+@pytest.mark.parametrize("name", INDICATORS)
 def test_call_leaves_its_inputs_untouched(name: str) -> None:
     """An indicator reads its inputs; it never writes to them.
 
@@ -491,7 +486,7 @@ def test_call_leaves_its_inputs_untouched(name: str) -> None:
 
 def test_exempt_indicators_still_exist() -> None:
     """An exemption for a renamed indicator would silently stop covering it."""
-    missing = _EXEMPT - set(_indicator_names())
+    missing = _EXEMPT - set(INDICATORS)
     assert not missing, f"exempt indicator(s) no longer registered: {sorted(missing)}"
 
 
@@ -574,7 +569,7 @@ def _frame_state(df: pd.DataFrame) -> dict:
     }
 
 
-@pytest.mark.parametrize("name", _indicator_names())
+@pytest.mark.parametrize("name", INDICATORS)
 def test_accessor_call_leaves_the_frame_untouched(name: str) -> None:
     """``df.ta.<name>()`` reads the frame; with ``append=False`` it writes nothing.
 
@@ -601,7 +596,7 @@ def test_accessor_call_leaves_the_frame_untouched(name: str) -> None:
     np.testing.assert_array_equal(after["values"], before["values"], err_msg=f"df.ta.{name}() rewrote the frame's data")
 
 
-@pytest.mark.parametrize("name", _indicator_names())
+@pytest.mark.parametrize("name", INDICATORS)
 def test_accessor_append_only_adds_columns(name: str) -> None:
     """``append=True`` may add columns -- it may not disturb the index or the data.
 
@@ -637,7 +632,7 @@ def test_the_accessor_sweeps_actually_compute() -> None:
     expected_empty = {"acos", "asin", "vfi"}
     identity, empty = [], []
 
-    for name in _indicator_names():
+    for name in INDICATORS:
         df = _build_df()
         frame = {**_build_frame(), "close": df["close"]}
         method = getattr(df.ta, name)
@@ -715,7 +710,7 @@ def test_strategy_appends_without_touching_the_index_or_the_inputs(case: str) ->
 _REGISTERED_CATEGORY = {name: category for category, names in ta.Category.items() for name in names}
 
 
-@pytest.mark.parametrize("name", _indicator_names())
+@pytest.mark.parametrize("name", INDICATORS)
 def test_result_category_matches_the_registry(name: str, frame: dict[str, pd.Series]) -> None:
     """``result.category`` names the category the indicator is registered under.
 
