@@ -44,3 +44,21 @@ def test_sweep_compares_a_meaningful_number_of_defaults():
     sources = (m.read_text(encoding="utf-8") for m in _MODULES)
     compared = sum(len(_doc_defaults(source).keys() & _code_defaults(source).keys()) for source in sources)
     assert compared > 300
+
+
+_EMA = _PACKAGE / "overlap" / "ema.py"
+_EMA_FORWARDERS = [m for m in _MODULES if m != _EMA and re.search(r"_ema_chain\([^)]*\*\*kwargs", m.read_text(encoding="utf-8"))]
+
+
+def test_ema_forwarders_found():
+    assert {m.stem for m in _EMA_FORWARDERS} >= {"tema", "t3"}
+
+
+@pytest.mark.parametrize("module", _EMA_FORWARDERS, ids=lambda p: p.stem)
+def test_ema_forwarders_document_the_ema_options(module):
+    """tema and t3 hand **kwargs to every ema() of their chain, so ema's own
+    options are theirs too. t3 and tema documented adjust with ema's old default
+    (True) and left sma out."""
+    options = {k: v for k, v in _code_defaults(_EMA.read_text(encoding="utf-8")).items() if k not in ("length", "talib")}
+    doc = _doc_defaults(module.read_text(encoding="utf-8"))
+    assert {k: doc.get(k) for k in options} == options
