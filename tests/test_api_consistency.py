@@ -186,6 +186,10 @@ FRAME_NAME_STYLE = {"ha": "Heikin-Ashi"}
 # Passing a parameter's default explicitly leaves the result alone (#292).
 EXPLICIT_DEFAULT_RENAMES: dict[tuple[str, str], str] = {}
 
+# fast > slow (#374, undecided): the majority swaps the pair silently and returns
+# the result of fast < slow; these compute the pair as passed.
+FAST_ABOVE_SLOW = {name: "computed as given" for name in ("adosc", "amat", "coppock", "kama", "kvo", "tsi", "uo")}
+
 
 # ---------------------------------------------------------------------------
 # Signatures, docs and the accessor
@@ -530,6 +534,27 @@ def test_explicit_default_keeps_the_column_names() -> None:
     _check(found, EXPLICIT_DEFAULT_RENAMES, "OPEN: passing the default explicitly renames the output")
 
 
+def test_fast_above_slow() -> None:
+    """Every indicator with integer `fast` and `slow` windows, called with fast > slow. The
+    majority answers with the swapped pair's result; `coppock` keeps the order in its name
+    although its two ROCs add up to the same values."""
+    found, swept = {}, []
+    for name in INDICATORS:
+        params = inspect.signature(getattr(ta, name)).parameters
+        if not {"fast", "slow"} <= set(params) or "int" not in str(params["fast"].annotation):
+            continue
+        swept.append(name)
+        try:
+            given = _frame(_call(name, fast=30, slow=10))
+        except ValueError:
+            found[name] = "raises"
+            continue
+        if not given.equals(_frame(_call(name, fast=10, slow=30))):
+            found[name] = "computed as given"
+    assert len(swept) >= 19, f"the sweep finds only {swept}"
+    _check(found, FAST_ABOVE_SLOW, "OPEN: #374 fast > slow is computed as given (majority: the pair is swapped)")
+
+
 def test_signature_shape() -> None:
     defaults = {}
     no_offset = set()
@@ -654,6 +679,6 @@ def test_name_shadowing() -> None:
 def test_tables_name_registered_indicators() -> None:
     tables = [NOT_FLOAT64, KEEPS_FLOAT32, MIXED_FLOAT32, INVENTS_VALUES_FROM_NAN, COLUMNS_DEPEND_ON_INPUT, DUPLICATE_INDEX_RAISES, UNSORTED_INDEX_RAISES,
               CATEGORY_ATTRIBUTE_MISMATCH, SINGLE_COLUMN_DATAFRAME, COLUMN_NAME_STYLE, FRAME_NAME_STYLE, SIGNATURE_DEFAULTS, NO_OFFSET,
-              NO_DOCSTRING, ACCESSOR_DIFFERS, WINDOW_SYNONYMS, CANDLE_STANDALONE_DTYPE]  # fmt: skip
+              NO_DOCSTRING, ACCESSOR_DIFFERS, WINDOW_SYNONYMS, CANDLE_STANDALONE_DTYPE, FAST_ABOVE_SLOW]  # fmt: skip
     named = {k for t in tables for k in t} | {n for n, _ in EXPLICIT_DEFAULT_RENAMES} | {k.split(":")[0] for k in FLAG_COLUMNS}
     assert not named - set(REGISTRY), f"not registered: {sorted(named - set(REGISTRY))}"
