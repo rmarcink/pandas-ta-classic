@@ -6,14 +6,15 @@ does not exist until bar `drift`, and the recursion started at bar
 `length` from a NaN ratio, so the NaN rode it to the end. `linreg(length=1)`
 fit a line through one point: 0/0 on every bar, a RuntimeWarning and an
 empty column. Every int parameter of every registered indicator is set to
-0, 1, 2, 3 and 5, and so is every int option read from **kwargs
-(min_periods=0 made median, mad, stdev and variance drop the last bar).
-Compared with the same call at its default, a value the indicator accepts
-may not leave a column with at most one value, open a gap in a column that
-has none, add an infinity, raise anything but ValueError, or warn a
-RuntimeWarning from any file (numpy's own for a 0/0 inside np.nanmedian);
-a value its formula cannot use is rejected by its validation (that the error
-names the parameter is checked in test_parameter_validation.py).
+0, 1, 2, 3 and 5, and so is every int option read from **kwargs that the
+default call validates (min_periods=0 made median, mad, stdev and variance
+drop the last bar). A value the indicator accepts may not raise anything but
+ValueError or warn a RuntimeWarning from any file (numpy's own for the mean
+of an empty window inside np.median); compared with the same call at its
+default, it may not leave a column with at most one value, open a gap in a
+column that has none, or add an infinity. A value its formula cannot use is
+rejected by its validation (that the error names the parameter is checked
+in test_parameter_validation.py).
 
 Each value is tried on every option path, not only the default call:
 kc(mamode="linreg", length=1) and squeeze(lazybear=True, kc_length=1)
@@ -176,7 +177,7 @@ def test_a_small_int_parameter_is_rejected_or_clean(name, param, path, frame):
                 found.append(f"{param}={value}: {type(error).__name__}: {error}")
                 continue
         where = f"{param}={value}"
-        # Any file: a 0/0 inside numpy (np.nanmedian of an empty window) is attributed to numpy's own file.
+        # Any file: a 0/0 inside numpy (the mean of an empty window in np.median) is attributed to numpy's own file.
         found += sorted({f"{where}: RuntimeWarning at {Path(w.filename).name}:{w.lineno}" for w in caught if issubclass(w.category, RuntimeWarning)})
         # The parameter is often in the column name (LR_1 for LR_14): pair the columns by position.
         pairs = zip(default.columns, result.columns) if default.shape[1] == result.shape[1] else ((c, c) for c in result.columns if c in default)
