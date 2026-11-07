@@ -6,17 +6,21 @@ does not exist until bar `drift`, and the recursion started at bar
 `length` from a NaN ratio, so the NaN rode it to the end. `linreg(length=1)`
 fit a line through one point: 0/0 on every bar, a RuntimeWarning and an
 empty column. Every int parameter of every registered indicator is set to
-0, 1, 2, 3 and 5. A value the indicator accepts may not come back with a
-column the same call without the value fills at most one value, with an
-infinity that call does not have, or with a RuntimeWarning from the package;
+0, 1, 2, 3 and 5, and so is every int option read from **kwargs
+(min_periods=0 made median, mad, stdev and variance drop the last bar).
+Compared with the same call at its default, a value the indicator accepts
+may not leave a column with at most one value, open a gap in a column that
+has none, add an infinity, raise anything but ValueError, or warn a
+RuntimeWarning from any file (numpy's own for a 0/0 inside np.nanmedian);
 a value its formula cannot use is rejected by its validation (that the error
 names the parameter is checked in test_parameter_validation.py).
 
 Each value is tried on every option path, not only the default call:
 kc(mamode="linreg", length=1) and squeeze(lazybear=True, kc_length=1)
 divided 0 by 0 while the default call of both was clean. A path is one
-boolean option flipped (from the signature or read from **kwargs) or one
-choice of a string option.
+flag flipped or one choice of a string option. Options in the signature
+are known by their annotation; an option read from **kwargs is known by
+what its validation says about "bogus".
 """
 
 import ast
@@ -31,11 +35,10 @@ import pandas as pd
 import pytest
 
 import pandas_ta_classic as ta
+from pandas_ta_classic.utils._keywords import _KWARGS_OPTIONS
 from tests.contracts import INDICATORS, NOT_OHLCV, SKIP_BOOL_KWARGS, boolean_kwargs, inputs, params, spy
 
 VALUES = (0, 1, 2, 3, 5)
-PACKAGE = str(Path(ta.__file__).parent)
-_KWARGS_BOOL = re.compile(r'_bool_param\(kwargs\.pop\("(\w+)"')
 _CHOICES = re.compile(r" must be one of (\[.*\]), got 'bogus'$")
 
 
@@ -43,30 +46,53 @@ def _annotated(name: str, kind: type) -> list[str]:
     return [p for p, spec in inspect.signature(getattr(ta, name)).parameters.items() if spec.annotation is kind or kind in typing.get_args(spec.annotation)]
 
 
-def _choices(name: str, param: str, frame: pd.DataFrame) -> list[str]:
-    """The choices _str_param lists in its error; [] for a free-form string (vwap's anchor)."""
-    try:
-        getattr(ta, name)(**inputs(name, frame), **{param: "bogus"})
-    except ValueError as error:
-        found = _CHOICES.search(str(error))
-        return ast.literal_eval(found.group(1)) if found else []
-    return []
+def _rejection(name: str, option: str, frame: pd.DataFrame) -> str:
+    """What the validation says about option="bogus": it names the option's kind ("" when it takes any value)."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        try:
+            getattr(ta, name)(**inputs(name, frame), **{option: "bogus"})
+        except (TypeError, ValueError) as error:  # TypeError: a removed option, which says so
+            return str(error)
+    return ""
 
 
-def _paths(name: str) -> dict[str, dict]:
-    """The default call ("") and each option path of *name*, keyed by its label."""
-    func = getattr(ta, name)
+def _options(name: str) -> tuple[list[str], dict[str, dict]]:
+    """The int parameters of *name* and its option paths ("" is the default call), keyed by label.
+
+    The signature gives the annotated ones. An option read from **kwargs (utils/_keywords.py) is
+    sorted by what its validation says about "bogus": "must be True or False" is a flag,
+    "must be one of [...]" lists the choices, "must be an integer" makes it one more int parameter.
+    """
     frame = spy(300)
+    signature = inspect.signature(getattr(ta, name)).parameters
+    ints = [p for p in _annotated(name, int) if p != "offset"]
     flags = boolean_kwargs(name)
-    flags += sorted(set(_KWARGS_BOOL.findall(inspect.getsource(inspect.getmodule(func)))) - set(flags) - SKIP_BOOL_KWARGS)
+    strings = {param: _rejection(name, param, frame) for param in _annotated(name, str)}
+    for option in sorted(_KWARGS_OPTIONS.get(name, set()) - set(signature) - SKIP_BOOL_KWARGS):
+        message = _rejection(name, option, frame)
+        if "must be True or False" in message:
+            flags.append(option)
+        elif "must be one of" in message:
+            strings[option] = message
+        elif "must be an integer" in message:
+            ints.append(option)
     paths: dict[str, dict] = {"": {}}
     paths.update({f"{flag}={value}": {flag: value} for flag in flags for value in (True, False)})
-    paths.update({f"{param}={choice}": {param: choice} for param in _annotated(name, str) for choice in _choices(name, param, frame)})
-    return paths
+    for option, message in strings.items():
+        found = _CHOICES.search(message)  # none for a free-form string (vwap's anchor)
+        paths.update({f"{option}={choice}": {option: choice} for choice in (ast.literal_eval(found.group(1)) if found else [])})
+    return ints, paths
 
 
-PATHS = {name: _paths(name) for name in INDICATORS if name not in NOT_OHLCV and [p for p in _annotated(name, int) if p != "offset"]}
-CASES = [(name, param, path) for name, paths in PATHS.items() for param in _annotated(name, int) if param != "offset" for path in paths]
+# Paths with no result to check, with the reason.
+NO_RESULT = {
+    ("tos_stdevall", "lookahead=False"): "no causal mode: returns None with a UserWarning, by design",
+    ("vp", "lookahead=False"): "no causal mode: returns None with a UserWarning, by design",
+}
+OPTIONS = {name: _options(name) for name in INDICATORS if name not in NOT_OHLCV}
+PATHS = {name: paths for name, (ints, paths) in OPTIONS.items() if ints}
+CASES = [(name, param, path) for name, (ints, paths) in OPTIONS.items() for param in ints for path in paths if (name, path) not in NO_RESULT]
 _LINE_THROUGH_ONE_POINT = "OPEN: length=1 fits a line through one point, 0/0 in linreg on every bar; the formula needs length > 1"
 KNOWN = {
     ("vidya", "drift"): "OPEN: the CMO starts at bar length + drift - 1, the SMA seed sits at bar length - 1; where to seed is undecided",
@@ -79,6 +105,12 @@ KNOWN = {
     ("chop", "length"): "OPEN: length=1 divides by log10(1) = 0: +inf or NaN on every bar, without a warning",
     ("brar", "length"): "OPEN: x/0 in a short window: BR is +inf where every low is at or above the previous close (length 1, 2, 3), AR where open == low (length 1)",
     ("vp", "width"): "KEPT: width=1 is one price bin, a one-row result, not an empty column",
+    **{
+        (name, "min_periods"): "OPEN: min_periods=0 passes ge=0, and the window loop then writes position -1: the last bar becomes NaN"
+        for name in ("mad", "median", "stdev", "variance")
+    },
+    ("quantile", "min_periods"): "OPEN: min_periods=0 passes ge=0, and the window loop indexes an empty window: IndexError",
+    ("qstick", "length", "ma=linreg"): "OPEN: ma='linreg' hands a one-bar window to linreg, a line through one point",
     ("squeeze", "kc_length", "lazybear=True"): "OPEN: lazybear's momentum is a linreg over kc_length; at 1 it fits a line through one point",
     **{
         (name, param, "mamode=linreg"): "OPEN: mamode='linreg' hands a one-bar window to linreg, a line through one point"
@@ -108,6 +140,12 @@ def _frame(result) -> pd.DataFrame:
     return result.to_frame() if isinstance(result, pd.Series) else result
 
 
+def _holes(column: pd.Series) -> int:
+    """Missing values after the first one: 0 for a column that, once it starts, has a value on every bar."""
+    valid = column.notna().to_numpy()
+    return int((~valid[valid.argmax() :]).sum()) if valid.any() else 0
+
+
 def _infinite(column: pd.Series) -> bool:
     return pd.api.types.is_numeric_dtype(column) and bool(np.isinf(column.to_numpy(float, na_value=np.nan)).any())
 
@@ -115,6 +153,8 @@ def _infinite(column: pd.Series) -> bool:
 def test_sweep_found_the_parameters_and_paths():
     assert ("kama", "drift", "") in CASES and ("linreg", "length", "") in CASES
     assert ("squeeze", "kc_length", "lazybear=True") in CASES and ("kc", "length", "mamode=linreg") in CASES
+    assert ("median", "min_periods", "") in CASES and ("qstick", "length", "ma=linreg") in CASES  # read from **kwargs
+    assert ("dema", "length", "adjust=True") in CASES and ("kc", "length", "tr=False") in CASES
     assert ("vwap", "anchor") not in {row[:2] for row in CASES}  # str, not int; and its anchor is free-form
     assert len({row[:2] for row in CASES}) > 250 and len(CASES) > 1500
 
@@ -132,13 +172,19 @@ def test_a_small_int_parameter_is_rejected_or_clean(name, param, path, frame):
                 result = _frame(func(**inputs(name, frame), **option, **{param: value}))
             except ValueError:  # outside the parameter's range (ddof >= length, poles not 2 or 3, ...)
                 continue
+            except Exception as error:  # noqa: BLE001 -- any other exception is a finding: quantile(min_periods=0) raised IndexError
+                found.append(f"{param}={value}: {type(error).__name__}: {error}")
+                continue
         where = f"{param}={value}"
-        found += sorted({f"{where}: RuntimeWarning at {Path(w.filename).name}:{w.lineno}" for w in caught if issubclass(w.category, RuntimeWarning) and w.filename.startswith(PACKAGE)})
+        # Any file: a 0/0 inside numpy (np.nanmedian of an empty window) is attributed to numpy's own file.
+        found += sorted({f"{where}: RuntimeWarning at {Path(w.filename).name}:{w.lineno}" for w in caught if issubclass(w.category, RuntimeWarning)})
         # The parameter is often in the column name (LR_1 for LR_14): pair the columns by position.
         pairs = zip(default.columns, result.columns) if default.shape[1] == result.shape[1] else ((c, c) for c in result.columns if c in default)
         for d, c in pairs:
             if default[d].notna().any() and result[c].notna().sum() <= 1:
                 found.append(f"{where}: {c} blank")
+            elif default[d].notna().any() and not _holes(default[d]) and _holes(result[c]):  # min_periods=0 lost the last bar
+                found.append(f"{where}: {c} has {_holes(result[c])} missing bars after its first value")
             if _infinite(result[c]) and not _infinite(default[d]):
                 found.append(f"{where}: {c} infinite")
     assert not found, f"{name}: {found}"

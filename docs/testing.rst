@@ -194,12 +194,13 @@ Edge-Case Tests
   The ``offset`` and ``fillna`` checks run on every option path: each
   ``mamode``, ``talib=True`` and each boolean option.
 - ``test_int_parameter_contract.py`` — for every registered indicator, each
-  whole-number parameter set to 0, 1, 2, 3 and 5 is either rejected by a
-  ``ValueError``, or leaves values in every column the call without it fills,
-  adds no infinity that call does not have and raises no ``RuntimeWarning``.
-  Each value is tried on the default call and on every option path: each
-  boolean option flipped (from the signature or ``**kwargs``) and each choice
-  of a string option (``mamode="linreg"``, ...).
+  whole-number parameter and option (``min_periods`` from ``**kwargs`` too)
+  set to 0, 1, 2, 3 and 5 is either rejected by a ``ValueError``, or, compared
+  with the call without it, leaves values in every column, opens no gap in a
+  gap-free column, adds no infinity, raises nothing else and warns no
+  ``RuntimeWarning``. Each value is tried on the default call and on every
+  option path: each flag flipped and each choice of a string option
+  (``mamode="linreg"``, ...), from the signature or ``**kwargs``.
 - ``test_option_effect_contract.py`` — for every registered indicator, each
   MA choice changes every column it smooths, and each boolean parameter
   changes the values or the column names when flipped, so an option that is
