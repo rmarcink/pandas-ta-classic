@@ -9,8 +9,8 @@ empty column. Every int parameter of every registered indicator is set to
 0, 1, 2, 3 and 5. A value the indicator accepts may not come back with a
 column the default call fills at most one value, with an infinity the
 default call does not have, or with a RuntimeWarning from the package; a
-value its formula cannot use is rejected by its validation, naming the
-parameter.
+value its formula cannot use is rejected by its validation (that the error
+names the parameter is checked in test_parameter_validation.py).
 """
 
 import inspect
@@ -35,21 +35,16 @@ CASES = [
     if param != "offset" and (spec.annotation is int or int in typing.get_args(spec.annotation))
 ]
 _LINE_THROUGH_ONE_POINT = "OPEN: length=1 fits a line through one point, 0/0 in linreg on every bar; the formula needs length > 1"
-_NAMES_THE_CALLEE = "OPEN: {param}={value} raises, but the error names {callee}(), not {name}() and {param}"
 KNOWN = {
     ("vidya", "drift"): "OPEN: the CMO starts at bar length + drift - 1, the SMA seed sits at bar length - 1; where to seed is undecided",
     **{
         (name, "length"): _LINE_THROUGH_ONE_POINT
         for name in ("cfo", "cti", "fosc", "inertia", "linreg", "linregangle", "linregintercept", "linregslope", "po", "tsf")
     },
-    ("inertia", "rvi_length"): _NAMES_THE_CALLEE.format(param="rvi_length", value=1, callee="rvi", name="inertia"),
-    ("squeeze", "bb_length"): _NAMES_THE_CALLEE.format(param="bb_length", value=1, callee="bbands", name="squeeze"),
-    ("squeeze_pro", "bb_length"): _NAMES_THE_CALLEE.format(param="bb_length", value=1, callee="bbands", name="squeeze_pro"),
-    ("trixh", "drift"): _NAMES_THE_CALLEE.format(param="drift", value=0, callee="trix", name="trixh"),
-    ("stderr", "length"): "OPEN: length=1 divides by length - 1 = 0, an empty column without a warning; the formula needs length > 1",
+    ("stderr", "length"): "OPEN: length=1 with the default ddof=1 is an empty column without a warning; ddof < length is checked only when ddof is given",
     ("hvol", "length"): "OPEN: length=1 takes the standard deviation of one return, an empty column without a warning",
-    ("chop", "length"): "OPEN: length=1 divides by log10(1) = 0, +inf on every bar without a warning",
-    ("brar", "length"): "OPEN: x/0 when every bar of a short window sits on one side of the previous close: +inf at length 1, 2 and 3",
+    ("chop", "length"): "OPEN: length=1 divides by log10(1) = 0: +inf or NaN on every bar, without a warning",
+    ("brar", "length"): "OPEN: x/0 in a short window: BR is +inf where every low is at or above the previous close (length 1, 2, 3), AR where open == low (length 1)",
     ("vp", "width"): "KEPT: width=1 is one price bin, a one-row result, not an empty column",
 }
 
@@ -81,9 +76,7 @@ def test_a_small_int_parameter_is_rejected_or_clean(name, param, frame):
             warnings.simplefilter("always", RuntimeWarning)
             try:
                 result = _frame(func(**inputs(name, frame), **{param: value}))
-            except ValueError as error:  # outside the parameter's range (ddof >= length, poles not 2 or 3, ...)
-                if f"{name}()" not in str(error) or param not in str(error):
-                    found.append(f"{param}={value}: rejected, but the error does not name {name}() and {param}: {error}")
+            except ValueError:  # outside the parameter's range (ddof >= length, poles not 2 or 3, ...)
                 continue
         where = f"{param}={value}"
         found += sorted({f"{where}: RuntimeWarning at {Path(w.filename).name}:{w.lineno}" for w in caught if issubclass(w.category, RuntimeWarning) and w.filename.startswith(PACKAGE)})

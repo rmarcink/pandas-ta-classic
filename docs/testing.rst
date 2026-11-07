@@ -195,9 +195,9 @@ Edge-Case Tests
   ``mamode``, ``talib=True`` and each boolean option.
 - ``test_int_parameter_contract.py`` — for every registered indicator, each
   whole-number parameter set to 0, 1, 2, 3 and 5 is either rejected by a
-  ``ValueError`` that names the indicator and the parameter, or leaves values
-  in every column the default call fills, adds no infinity the default call
-  does not have and raises no ``RuntimeWarning``.
+  ``ValueError``, or leaves values in every column the default call fills,
+  adds no infinity the default call does not have and raises no
+  ``RuntimeWarning``.
 - ``test_option_effect_contract.py`` — for every registered indicator, each
   MA choice changes every column it smooths, and each boolean parameter
   changes the values or the column names when flipped, so an option that is
