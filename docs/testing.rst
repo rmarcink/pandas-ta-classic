@@ -194,8 +194,10 @@ Edge-Case Tests
   The ``offset`` and ``fillna`` checks run on every option path: each
   ``mamode``, ``talib=True`` and each boolean option.
 - ``test_int_parameter_contract.py`` — for every registered indicator, each
-  whole-number parameter set to 2, 3 and 5 leaves values in every column the
-  default call fills.
+  whole-number parameter set to 0, 1, 2, 3 and 5 is either rejected by a
+  ``ValueError`` that names the indicator and the parameter, or leaves values
+  in every column the default call fills, adds no infinity the default call
+  does not have and raises no ``RuntimeWarning``.
 - ``test_option_effect_contract.py`` — for every registered indicator, each
   MA choice changes every column it smooths, and each boolean parameter
   changes the values or the column names when flipped, so an option that is
@@ -440,12 +442,15 @@ Running All Tests
    python -m pytest --cov=pandas_ta_classic --cov-report=html tests/
 
 **Warnings are errors.** ``[tool.pytest.ini_options] filterwarnings`` in
-``pyproject.toml`` turns any ``UserWarning``, ``DeprecationWarning`` or
-``FutureWarning`` raised from ``pandas_ta_classic`` into a test failure. The
+``pyproject.toml`` turns any ``UserWarning``, ``DeprecationWarning``, ``FutureWarning`` or
+``RuntimeWarning`` raised from ``pandas_ta_classic`` into a test failure. The
 package ships no deprecation warnings (a removal raises at once), and a
 deprecated pandas or numpy call made from the
 package (such as pandas 3's ``Pandas4Warning``) fails CI instead of reaching
-users. A test that expects a warning asserts it with ``pytest.warns``.
+users. A ``RuntimeWarning`` (a 0/0 or an overflow) means a case the formula
+cannot compute: a parameter that causes it is rejected at the boundary, and a
+data case (a flat window) is handled under a local ``np.errstate``. A test
+that expects a warning asserts it with ``pytest.warns``.
 
 
 Fixture Files
