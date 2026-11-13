@@ -329,11 +329,6 @@ class TestOverlapExtension(TestCase):
         self.assertEqual(self.data.columns[-1], "HT_TRENDLINE")
 
 
-# ---------------------------------------------------------------------------
-# Overlap / MA
-# ---------------------------------------------------------------------------
-
-
 class TestExtOverlapDeeper(AccessorValueCase):
 
     def test_ema_ext(self):

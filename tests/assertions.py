@@ -192,7 +192,11 @@ def output_columns(result: Any) -> dict[str, Series]:
 
 
 class AccessorValueCase(TestCase):
-    """Load sample data once; each test gets a fresh copy."""
+    """Base of the accessor value checks: df.ta.<indicator>(append=True) appends
+    a column with at least one valid row and a finite last value.
+
+    Loads the sample data once; each test gets a fresh copy.
+    """
 
     @classmethod
     def setUpClass(cls):

@@ -63,11 +63,6 @@ class TestCylesExtension(TestCase):
         self.assertEqual(self.data.columns[-1], "HT_TRENDMODE")
 
 
-# ---------------------------------------------------------------------------
-# Cycles
-# ---------------------------------------------------------------------------
-
-
 class TestExtCyclesDeeper(AccessorValueCase):
 
     def test_ebsw_ext(self):

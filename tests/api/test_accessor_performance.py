@@ -51,11 +51,6 @@ class TestPerformaceExtension(TestCase):
         self.assertEqual(list(self.data.columns[-3:]), ["DD", "DD_PCT", "DD_LOG"])
 
 
-# ---------------------------------------------------------------------------
-# Performance
-# ---------------------------------------------------------------------------
-
-
 class TestExtPerformanceDeeper(AccessorValueCase):
 
     def test_log_return_ext(self):

@@ -3,6 +3,8 @@
 from unittest import TestCase
 
 import pandas as pd
+import pytest
+from hypothesis import assume, given, strategies as st
 from pandas import DataFrame
 
 import pandas_ta_classic as pandas_ta
@@ -64,3 +66,17 @@ class TestTimeUtilities(TestCase):
         self.assertEqual(self.utils.total_time(self.data.iloc[:1]), 0)
         twice = pd.concat([self.data.iloc[:1], self.data.iloc[:1]])
         self.assertEqual(self.utils.total_time(twice, "days"), 0)
+
+
+class TestTotalTimeProperties(TestCase):
+    """Properties of total_time."""
+
+    @given(st.integers(min_value=2, max_value=60), st.data())
+    def test_total_time_rejects_any_unsorted_index(self, n, data):
+        """A descending index gave a negative span; any reordering now raises."""
+        index = pd.date_range("2021-01-04", periods=n, freq="D")
+        order = data.draw(st.permutations(range(n)))
+        assume(list(order) != list(range(n)))
+        with pytest.raises(ValueError, match="sorted in ascending order"):
+            pandas_ta.utils.total_time(pd.Series(range(n), index=index[list(order)]))
+        assert pandas_ta.utils.total_time(pd.Series(range(n), index=index), "days") == n - 1

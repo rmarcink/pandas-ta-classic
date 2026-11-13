@@ -44,7 +44,10 @@ accessor with ``append=True``.
 ``test_accessor_momentum.py``, ``test_accessor_overlap.py``,
 ``test_accessor_performance.py``, ``test_accessor_statistics.py``,
 ``test_accessor_trend.py``, ``test_accessor_volatility.py``,
-``test_accessor_volume.py``.
+``test_accessor_volume.py``. Besides the column name, each category's
+``TestExt<Category>Deeper`` class checks that the appended column has valid
+rows and a finite last value (base class ``AccessorValueCase`` in
+``tests/assertions.py``).
 
 **Run:** ``python -m pytest tests/api/test_accessor_momentum.py -v``
 
@@ -59,7 +62,7 @@ naming, ``indicators()`` discovery, and time range filtering.
 frame cannot supply (a benchmark, a ``fast``/``slow`` pair, a trend) raises.
 
 **Files:** ``test_accessor_api.py``, ``test_accessor_conformance.py``,
-``test_accessor_values.py``, ``test_lazy_loading.py`` (lazy loading of the
+``test_lazy_loading.py`` (lazy loading of the
 category subpackages and of top-level indicator names).
 
 **Run:** ``python -m pytest tests/api/test_accessor_api.py -v``
@@ -324,14 +327,18 @@ Property-Based Tests
 deterministic tests miss — overflow conditions, NaN propagation bugs,
 boundary violations.
 
-**Files:** ``test_property_based.py``.
+**Files:** ``test_property_based.py`` for the indicators; the properties of
+a utility live with its other tests in ``utils/test_utils_<module>.py``
+(classes ending in ``Properties``). The shared strategies are in
+``tests/strategies.py``.
 
 **What's tested:**
 
 * **Output invariants** — Type correctness, length preservation, naming.
 * **Mathematical invariants** — Bollinger Band ordering, ATR/STDEV
   non-negativity, MOM/ROC relationship.
-* **Core utilities** — ``verify_series``, ``apply_offset``, ``apply_fill``.
+* **Core utilities** — ``verify_series``, ``apply_offset``, ``apply_fill``
+  (in ``utils/test_utils_core.py``).
 * **None-guard safety** — Indicators return ``None`` for ``None`` input.
 * **NaN propagation** — All-NaN input → all-NaN output, no crash.
 * **Idempotence** — Same args twice → identical result.
@@ -353,6 +360,7 @@ boundary violations.
    python -m pytest tests/indicators/test_property_based.py -v
    python -m pytest tests/indicators/test_property_based.py -v --hypothesis-show-statistics
    python -m pytest tests/indicators/test_property_based.py -v --hypothesis-profile=ci
+   python -m pytest tests/utils -v -k Properties   # the utilities' properties
 
 **Adding property tests for a new indicator:**
 
@@ -360,6 +368,8 @@ boundary violations.
 
    import hypothesis.strategies as st
    from hypothesis import assume, given, settings
+
+   from tests.strategies import price_series
 
    @given(price_series(min_size=30, max_size=200), st.integers(min_value=2, max_value=20))
    @settings(max_examples=100)
@@ -386,11 +396,14 @@ the two paths (1e-12 relative). It skips without numba; the CI job
 Utility Tests
 -------------
 
-**Files:** ``test_utils.py`` (``verify_series``, ``apply_offset``,
-``apply_fill``, cross detection), ``test_utils_metrics.py`` (Sharpe ratio,
-drawdown, CAGR, Jensen's alpha).
+**Files:** one module per ``pandas_ta_classic/utils`` module:
+``test_utils_core.py`` (``verify_series``, ``apply_offset``, ``apply_fill``,
+parameter validation), ``test_utils_math.py`` (combinatorics, weights, linear
+regression, rolling moments), ``test_utils_signals.py`` (above/below, cross),
+``test_utils_time.py`` (time ranges, time zones), ``test_utils_metrics.py``
+(Sharpe ratio, drawdown, CAGR, Jensen's alpha).
 
-**Run:** ``python -m pytest tests/utils/test_utils.py -v``
+**Run:** ``python -m pytest tests/utils -v``
 
 
 Repository Guards

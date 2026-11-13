@@ -137,8 +137,6 @@ class TestSignalUtilities(TestCase):
 
 
 _A = pd.Series([np.nan, np.nan, 5, 6, 4, 4, 4, 6, 5, 5, 3], name="a", dtype=float)
-
-
 _B = pd.Series([5.0] * 11, name="b")
 
 

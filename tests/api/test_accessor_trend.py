@@ -200,11 +200,6 @@ class TestTrendExtension(TestCase):
         self.assertEqual(self.data.columns[-1], "VHF_28")
 
 
-# ---------------------------------------------------------------------------
-# Trend
-# ---------------------------------------------------------------------------
-
-
 class TestExtTrendDeeper(AccessorValueCase):
 
     def test_adx_ext(self):

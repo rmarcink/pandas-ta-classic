@@ -141,11 +141,6 @@ class TestVolatilityExtension(TestCase):
         self.assertEqual(self.data.columns[-1], "HVOL_20")
 
 
-# ---------------------------------------------------------------------------
-# Volatility
-# ---------------------------------------------------------------------------
-
-
 class TestExtVolatilityDeeper(AccessorValueCase):
 
     def test_atr_ext(self):

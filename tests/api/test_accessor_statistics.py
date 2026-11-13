@@ -99,11 +99,6 @@ class TestStatisticsExtension(TestCase):
         self.assertEqual(self.data.columns[-1], "STDERR_14")
 
 
-# ---------------------------------------------------------------------------
-# Statistics
-# ---------------------------------------------------------------------------
-
-
 class TestExtStatisticsDeeper(AccessorValueCase):
 
     def test_entropy_ext(self):

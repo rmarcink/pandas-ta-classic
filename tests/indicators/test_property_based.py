@@ -1,21 +1,18 @@
 """
-Property-based tests for pandas-ta-classic indicator functions and core utilities.
+Property-based tests for pandas-ta-classic indicator functions.
 
 Uses Hypothesis to generate diverse inputs and verify invariants that hold
 across the entire input space — catching edge cases deterministic tests miss.
 
 Test categories
 ---------------
-1. **Core utility properties** — verify_series, apply_offset, apply_fill, etc.
-2. **Indicator output invariants** — type, length, name conventions.
-3. **Mathematical invariants** — bounding, monotonicity, relationships.
-4. **Edge-case robustness** — None guards, NaN propagation, constant inputs.
+1. **Indicator output invariants** — type, length, name conventions.
+2. **Mathematical invariants** — bounding, monotonicity, relationships.
+3. **Edge-case robustness** — None guards, NaN propagation, constant inputs.
 
-Strategy design
----------------
-We use ``hypothesis.extra.numpy`` and ``hypothesis.extra.pandas`` to generate
-realistic price series while also injecting pathological values (NaN, ±Inf,
-zero, negative) at controlled rates to probe boundary behaviour.
+The properties of the utilities live with their other tests in
+``tests/utils/test_utils_<module>.py``; the strategies are in
+``tests/strategies.py``.
 
 Running
 -------
@@ -35,9 +32,7 @@ import pytest
 from hypothesis import HealthCheck, assume, example, given, settings, strategies as st
 
 import pandas_ta_classic as ta
-from pandas_ta_classic.utils import (
-    df_error_analysis,
-)
+from pandas_ta_classic.utils import df_error_analysis
 from tests.config import get_sample_data
 from tests.strategies import ohlcv_dataframe, price_series
 
@@ -73,7 +68,7 @@ class TestPriceSeriesStrategy(TestCase):
 
 
 # ======================================================================
-# 2. Indicator output invariants
+# 1. Indicator output invariants
 # ======================================================================
 
 
@@ -289,7 +284,7 @@ class TestNoDirectionOnBarZero(TestCase):
 
 
 # ======================================================================
-# 3. Mathematical invariants
+# 2. Mathematical invariants
 # ======================================================================
 
 
@@ -394,7 +389,7 @@ class TestMathematicalInvariants(TestCase):
 
 
 # ======================================================================
-# 4. None-guard / null-safety
+# 3. None-guard / null-safety
 # ======================================================================
 
 
@@ -431,7 +426,7 @@ class TestNoneGuards(TestCase):
 
 
 # ======================================================================
-# 5. Edge-case robustness
+# 4. Edge-case robustness
 # ======================================================================
 
 
@@ -522,7 +517,7 @@ class TestPropertyBasedEdgeCases(TestCase):
 
 
 # ======================================================================
-# 6. Category-wide indicator discovery tests
+# 5. Category-wide indicator discovery tests
 # ======================================================================
 
 
@@ -552,7 +547,7 @@ class TestCategoryDiscovery(TestCase):
 
 
 # ======================================================================
-# 7. pytest-style Hypothesis tests (alternative to unittest)
+# 6. pytest-style Hypothesis tests (alternative to unittest)
 # ======================================================================
 
 

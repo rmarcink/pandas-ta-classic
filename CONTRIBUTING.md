@@ -150,6 +150,8 @@ Property-based test pattern (Hypothesis):
 import hypothesis.strategies as st
 from hypothesis import assume, given, settings
 
+from tests.strategies import price_series
+
 @given(price_series(min_size=30, max_size=200), st.integers(min_value=2, max_value=20))
 @settings(max_examples=100)
 def test_my_indicator_invariant(s, length):
@@ -161,7 +163,7 @@ def test_my_indicator_invariant(s, length):
     assert str(length) in result.name
 ```
 
-See ``tests/indicators/test_property_based.py`` and ``docs/testing.rst`` for the full strategy catalog.
+See ``tests/strategies.py`` (the shared strategies), ``tests/indicators/test_property_based.py`` and ``docs/testing.rst`` for the full strategy catalog.
 
 ### 3. Documentation
 

@@ -371,11 +371,6 @@ class TestMomentumExtension(TestCase):
         self.assertEqual(list(self.data.columns[-2:]), ["STOCHFk_5_3", "STOCHFd_5_3"])
 
 
-# ---------------------------------------------------------------------------
-# Momentum
-# ---------------------------------------------------------------------------
-
-
 class TestExtMomentumDeeper(AccessorValueCase):
 
     def test_ao_ext(self):

@@ -143,11 +143,6 @@ class TestVolumeExtension(TestCase):
         self.assertEqual(self.data.columns[-1], "WAD")
 
 
-# ---------------------------------------------------------------------------
-# Volume
-# ---------------------------------------------------------------------------
-
-
 class TestExtVolumeDeeper(AccessorValueCase):
 
     def test_ad_ext(self):

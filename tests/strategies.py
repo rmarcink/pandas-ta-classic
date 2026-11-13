@@ -1,4 +1,9 @@
-"""Hypothesis strategies shared by the property-based tests."""
+"""Hypothesis strategies shared by the property-based tests.
+
+We use ``hypothesis.extra.numpy`` and ``hypothesis.extra.pandas`` to generate
+realistic price series while also injecting pathological values (NaN, ±Inf,
+zero, negative) at controlled rates to probe boundary behaviour.
+"""
 
 import numpy as np
 import pandas as pd
