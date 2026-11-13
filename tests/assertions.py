@@ -1,11 +1,16 @@
 import inspect
+import math
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
+from unittest import TestCase
 
 import numpy as np
+import pandas as pd
 from pandas import DataFrame, Series
 from pandas.testing import assert_frame_equal, assert_series_equal
+
+from tests.config import get_sample_data
 
 # ---------------------------------------------------------------------------
 # Golden-value comparison
@@ -184,3 +189,41 @@ def output_columns(result: Any) -> dict[str, Series]:
             for column in part.columns:
                 columns[f"[{position}]{column}"] = part[column]
     return columns
+
+
+class AccessorValueCase(TestCase):
+    """Load sample data once; each test gets a fresh copy."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls._base = get_sample_data()
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls._base
+
+    def fresh(self) -> pd.DataFrame:
+        """Return an independent copy of the sample data."""
+        return self._base.copy()
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _check_appended(self, df: pd.DataFrame, col_name: str) -> None:
+        """Assert *col_name* exists, has valid rows, and a finite last value."""
+        self.assertIn(
+            col_name,
+            df.columns,
+            f"Expected column {col_name!r} not found in DataFrame after append",
+        )
+        series = df[col_name]
+        valid = series.dropna()
+        self.assertFalse(valid.empty, f"Column {col_name!r} is all-NaN after append")
+        last = float(valid.iloc[-1])
+        self.assertTrue(math.isfinite(last), f"Column {col_name!r} last value is not finite: {last}")
+
+    def _check_last_col(self, df: pd.DataFrame) -> None:
+        """Check the last column of *df* (for indicators that add a single column)."""
+        col = df.columns[-1]
+        self._check_appended(df, col)

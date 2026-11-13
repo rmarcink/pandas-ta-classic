@@ -4,6 +4,7 @@ from unittest import TestCase
 from pandas import DataFrame, Series
 
 import pandas_ta_classic  # noqa: F401  (registers the df.ta accessor)
+from tests.assertions import AccessorValueCase
 from tests.config import get_sample_data
 
 
@@ -326,3 +327,87 @@ class TestOverlapExtension(TestCase):
         self.data.ta.ht_trendline(append=True)
         self.assertIsInstance(self.data, DataFrame)
         self.assertEqual(self.data.columns[-1], "HT_TRENDLINE")
+
+
+# ---------------------------------------------------------------------------
+# Overlap / MA
+# ---------------------------------------------------------------------------
+
+
+class TestExtOverlapDeeper(AccessorValueCase):
+
+    def test_ema_ext(self):
+        df = self.fresh()
+        df.ta.ema(append=True)
+        self._check_appended(df, "EMA_10")
+
+    def test_fwma_ext(self):
+        df = self.fresh()
+        df.ta.fwma(append=True)
+        self._check_appended(df, "FWMA_10")
+
+    def test_hma_ext(self):
+        df = self.fresh()
+        df.ta.hma(append=True)
+        self._check_appended(df, "HMA_10")
+
+    def test_hwc_ext(self):
+        df = self.fresh()
+        df.ta.hwc(append=True)
+        self._check_appended(df, "HWM")
+
+    def test_kama_ext(self):
+        df = self.fresh()
+        df.ta.kama(append=True)
+        self._check_appended(df, "KAMA_10_2_30")
+
+    def test_linreg_ext(self):
+        df = self.fresh()
+        df.ta.linreg(append=True)
+        self._check_appended(df, "LR_14")
+
+    def test_rma_ext(self):
+        df = self.fresh()
+        df.ta.rma(append=True)
+        self._check_appended(df, "RMA_10")
+
+    def test_sma_ext(self):
+        df = self.fresh()
+        df.ta.sma(append=True)
+        self._check_appended(df, "SMA_10")
+
+    def test_ssf_ext(self):
+        df = self.fresh()
+        df.ta.ssf(append=True)
+        self._check_appended(df, "SSF_10_2")
+
+    def test_vwap_ext(self):
+        df = self.fresh()
+        df.ta.vwap(append=True)
+        self._check_appended(df, "VWAP_D")
+
+    def test_vwma_ext(self):
+        df = self.fresh()
+        df.ta.vwma(append=True)
+        self._check_appended(df, "VWMA_10")
+
+    def test_zlma_ext(self):
+        df = self.fresh()
+        df.ta.zlma(append=True)
+        # ZL_EMA_10 is the default; just check the last appended column
+        self._check_last_col(df)
+
+    def test_accbands_ext(self):
+        df = self.fresh()
+        df.ta.accbands(append=True)
+        self._check_appended(df, "ACCBL_20")
+        self._check_appended(df, "ACCBM_20")
+        self._check_appended(df, "ACCBU_20")
+
+    def test_bbands_ext(self):
+        df = self.fresh()
+        df.ta.bbands(append=True)
+        bb_cols = [c for c in df.columns if c.startswith("BB")]
+        self.assertTrue(len(bb_cols) >= 3, "Expected at least 3 BBands columns")
+        for col in bb_cols:
+            self._check_appended(df, col)
