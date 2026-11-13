@@ -3,6 +3,10 @@ import warnings
 from unittest import TestCase
 
 import numpy as np
+import pandas as pd
+import pytest
+from hypothesis import given, strategies as st
+from hypothesis.extra.numpy import arrays
 from pandas import DataFrame, Series, bdate_range
 
 import pandas_ta_classic as pandas_ta
@@ -334,3 +338,84 @@ class TestUtilityMetrics(TestCase):
             pandas_ta.pure_profit_score(rising)
         with self.assertRaisesRegex(ValueError, r"pure_profit_score\(\) needs at least 3 bars, got 2"):
             pandas_ta.pure_profit_score(Series([100.0, 101.0], index=idx[:2]))
+
+
+_returns = arrays(np.float64, st.integers(min_value=2, max_value=200), elements=st.floats(min_value=-0.2, max_value=0.2, width=64))
+
+
+def _daily(values: np.ndarray) -> pd.Series:
+    return pd.Series(values, index=pd.bdate_range("2021-01-04", periods=len(values)))
+
+
+class TestDownsideDeviationProperties(TestCase):
+    """Property tests for ``downside_deviation``.
+
+    Its sum of squares skipped NaN while the divisor counted it, so the result
+    depended on whether the leading NaN of a percent return was still there,
+    and a gap inside the series gave a smaller value without an error.
+    """
+
+    @given(_returns, st.floats(min_value=-0.1, max_value=0.2, width=64))
+    def test_matches_the_definition(self, values, rate):
+        returns = _daily(values)
+        years = (returns.index[-1] - returns.index[0]).total_seconds() / (365.25 * 86400)
+        periods = values.size / years
+        target = (1 + rate) ** (1 / periods) - 1
+        expected = math.sqrt(np.sum(np.minimum(values - target, 0.0) ** 2) / values.size) * math.sqrt(periods)
+        assert pandas_ta.downside_deviation(returns, benchmark_rate=rate) == pytest.approx(expected, rel=1e-9, abs=1e-12)
+
+    @given(_returns, st.integers(min_value=0, max_value=5), st.integers(min_value=0, max_value=5))
+    def test_leading_and_trailing_nan_are_not_counted(self, values, lead, trail):
+        padded = _daily(np.concatenate([np.full(lead, np.nan), values, np.full(trail, np.nan)]))
+        trimmed = padded.iloc[lead : lead + values.size]
+        assert pandas_ta.downside_deviation(padded) == pandas_ta.downside_deviation(trimmed)
+
+    @given(arrays(np.float64, st.integers(min_value=3, max_value=200), elements=st.floats(min_value=-0.2, max_value=0.2, width=64)), st.data())
+    def test_nan_inside_raises(self, values, data):
+        pos = data.draw(st.integers(min_value=1, max_value=values.size - 2))
+        values[pos] = np.nan
+        with pytest.raises(ValueError, match="returns has 1 missing value"):
+            pandas_ta.downside_deviation(_daily(values))
+
+
+# Every metric that turns a close into returns: their means and deviations skip
+# NaN, so a missing close silently dropped two returns (sharpe 0.3293 -> 0.3305).
+
+
+_METRICS_ON_CLOSE = {
+    "optimal_leverage": lambda s: pandas_ta.utils.optimal_leverage(s),
+    "pure_profit_score": lambda s: pandas_ta.utils.pure_profit_score(s),
+    "sharpe_ratio": lambda s: pandas_ta.utils.sharpe_ratio(s),
+    "sharpe_ratio(use_cagr)": lambda s: pandas_ta.utils.sharpe_ratio(s, use_cagr=True),
+    "sortino_ratio": lambda s: pandas_ta.utils.sortino_ratio(s),
+    "volatility": lambda s: pandas_ta.utils.volatility(s),
+    "volatility(log)": lambda s: pandas_ta.utils.volatility(s, log=True),
+}
+
+
+class TestMetricsOnCloseProperties(TestCase):
+    """Property tests for the metrics computed from a close's returns."""
+
+    @given(
+        arrays(np.float64, st.integers(min_value=5, max_value=200), elements=st.floats(min_value=1.0, max_value=1000.0, width=64)),
+        st.sampled_from(sorted(_METRICS_ON_CLOSE)),
+        st.data(),
+    )
+    def test_a_missing_close_anywhere_raises(self, values, name, data):
+        values[data.draw(st.integers(min_value=0, max_value=values.size - 1))] = np.nan
+        with pytest.raises(ValueError, match=rf"^{name.split('(')[0]}\(\) close has 1 missing value"):
+            _METRICS_ON_CLOSE[name](_daily(values))
+
+    @given(_returns, st.integers(min_value=0, max_value=5), st.integers(min_value=0, max_value=5))
+    def test_volatility_does_not_count_leading_and_trailing_nan(self, values, lead, trail):
+        # The periods per year counted the leading NaN of a percent return that
+        # the deviation skipped: the result depended on whether it was passed.
+        padded = _daily(np.concatenate([np.full(lead, np.nan), values, np.full(trail, np.nan)]))
+        trimmed = padded.iloc[lead : lead + values.size]
+        assert pandas_ta.utils.volatility(padded, returns=True) == pandas_ta.utils.volatility(trimmed, returns=True)
+
+    @given(arrays(np.float64, st.integers(min_value=3, max_value=200), elements=st.floats(min_value=1.0, max_value=1000.0, width=64)), st.booleans())
+    def test_volatility_of_a_close_equals_that_of_its_returns(self, values, log):
+        close = _daily(values)
+        returns = pandas_ta.log_return(close) if log else pandas_ta.percent_return(close)
+        assert pandas_ta.utils.volatility(close, log=log) == pytest.approx(pandas_ta.utils.volatility(returns, returns=True), rel=1e-12)
