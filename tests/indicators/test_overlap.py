@@ -423,3 +423,23 @@ class TestWilderSeeding:
         tr = pandas_ta.true_range(h, low, c)
         assert tr.iloc[:21].isna().all()
         assert np.isfinite(tr.iloc[21])
+
+
+class TestFrama:
+    @classmethod
+    def setup_class(cls):
+        cls.data = get_sample_data()
+
+    def test_an_odd_length_raises(self):
+        d = self.data
+        with pytest.raises(ValueError, match=r"^frama\(\) length must be an even integer, got 15$"):
+            pandas_ta.frama(d.high, d.low, 15)
+
+    def test_follows_a_flat_price_exactly(self):
+        flat = pd.Series(100.0, index=range(40))
+        assert (pandas_ta.frama(flat, flat).dropna() == 100.0).all()
+
+    def test_first_value_comes_after_one_full_window(self):
+        d = self.data
+        result = pandas_ta.frama(d.high, d.low, 16)
+        assert int(result.isna().sum()) == 16

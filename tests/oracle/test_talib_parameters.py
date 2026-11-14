@@ -134,15 +134,18 @@ def test_macdfix_keeps_its_signal_columns_on_the_talib_path():
     assert not ta.macdfix(close, talib=True).equals(ta.macdfix(close, talib=False))
 
 
-# Columns whose first value TA-Lib publishes later than the native path, by design of
-# TA-Lib: the reason is part of the table so a change on either side shows up here.
-_LATER_ON_TALIB = {
+# Columns whose first value TA-Lib publishes on another bar than the native path, by
+# design of TA-Lib: the reason is part of the table so a change on either side shows up here.
+_ANOTHER_BAR_ON_TALIB = {
+    "asi": ({"ASI"}, "TA-Lib's ASI reads 0 on bar 0, where native has no previous close and reads NaN"),
     "macd": ({"MACD_12_26_9"}, "TA-Lib holds the MACD line back until its signal line exists"),
     "macdext": ({"MACDEXT_12_26_9"}, "TA-Lib holds the MACD line back until its signal line exists"),
     "macdfix": ({"MACDFIX_9_9"}, "TA-Lib holds the MACD line back until its signal line exists"),
     "mavp": ({"MAVP_2_30"}, "TA-Lib waits for maxperiod on every bar, whatever that bar's period"),
     "stoch": ({"STOCHk_14_3_3"}, "TA-Lib holds %K back until %D exists"),
     "stochf": ({"STOCHFk_5_3"}, "TA-Lib holds %K back until %D exists"),
+    "stoch_mi": ({"STOCHMI_13_2_25_9"}, "TA-Lib holds the SMI line back until its signal line exists"),
+    "wavetrend": ({"WT_10_21_4"}, "TA-Lib holds WT back until its signal line exists"),
 }
 
 
@@ -158,7 +161,7 @@ def test_native_and_talib_publish_from_the_same_bar(name):
         talib = pd.DataFrame(func(**inputs(name, frame), talib=True))
     assert list(native.columns) == list(talib.columns)
     differ = {column for column in native if native[column].first_valid_index() != talib[column].first_valid_index()}
-    assert differ == _LATER_ON_TALIB.get(name, (set(), ""))[0], f"{name}: first value on another bar in {sorted(differ)}"
+    assert differ == _ANOTHER_BAR_ON_TALIB.get(name, (set(), ""))[0], f"{name}: first value on another bar in {sorted(differ)}"
 
 
 def test_accessor_options_keep_the_talib_path():

@@ -301,3 +301,19 @@ def test_cpr_interval_is_rejected():
         pandas_ta.cpr(d.open, d.high, d.low, d.close, timeframe="weekly", interval="1d")
     with pytest.raises(TypeError, match="interval"):
         d.copy().ta.cpr(timeframe="weekly", interval="1d")
+
+
+class TestChoptr:
+    @classmethod
+    def setup_class(cls):
+        cls.data = get_sample_data()
+
+    def test_a_window_without_any_true_range_reads_100(self):
+        flat = pd.Series(100.0, index=range(30))
+        assert (pandas_ta.choptr(flat, flat, flat).dropna() == 100.0).all()
+
+    def test_stays_within_0_and_100(self):
+        d = self.data
+        valid = pandas_ta.choptr(d.high, d.low, d.close).dropna()
+        assert not valid.empty
+        assert valid.between(0, 100).all()

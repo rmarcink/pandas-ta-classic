@@ -52,7 +52,7 @@ OHLCV_INDICATORS = sorted(set(INDICATORS) - NOT_OHLCV - NOT_TIME_SERIES)
 ELEMENTWISE = {"acos", "asin", "atan", "ceil", "cos", "cosh", "exp", "floor", "ln", "log10", "npabs", "npround"}
 ELEMENTWISE |= {"sin", "sinh", "sqrt", "tan", "tanh", "todeg", "torad", "trunc"}
 # Running totals: a bar's contribution stays in every later value.
-CUMULATIVE = {"ad", "aobv", "nvi", "obv", "pvi", "pvt", "wad"}
+CUMULATIVE = {"ad", "aobv", "asi", "nvi", "obv", "pvi", "pvt", "wad"}
 # A fit over the entire series: one changed bar moves every value.
 WHOLE_SERIES = {"tos_stdevall"}
 # Non-causal by design at their defaults (see test_lookahead.py): a bar depends on later bars.

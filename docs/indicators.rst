@@ -1,15 +1,15 @@
 Indicators Reference
 ====================
 
-**Pandas TA Classic** includes 232 indicators in the Category system plus 62 CDL patterns accessible via ``cdl_pattern()`` (292 unique total — ``cdl_doji`` and ``cdl_inside`` are counted in both) organized into the following categories:
+**Pandas TA Classic** includes 240 indicators in the Category system plus 62 CDL patterns accessible via ``cdl_pattern()`` (300 unique total — ``cdl_doji`` and ``cdl_inside`` are counted in both) organized into the following categories:
 
 * **Candles** (5 wrappers + 62 native CDL patterns) - Category count includes wrapper/accessor indicators (``cdl_pattern``, ``cdl_doji``, ``cdl_inside``, ``cdl_z``, ``ha``). The 62 pattern names are exposed through ``cdl_pattern()``.
 * **Cycles** (8) - Cycle-based and Hilbert Transform indicators  
-* **Momentum** (57) - Momentum and oscillator indicators
-* **Overlap** (46) - Moving averages and trend-following indicators
+* **Momentum** (63) - Momentum and oscillator indicators
+* **Overlap** (47) - Moving averages and trend-following indicators
 * **Performance** (3) - Performance and return metrics
 * **Statistics** (15) - Statistical analysis functions
-* **Trend** (26) - Trend identification and direction indicators
+* **Trend** (27) - Trend identification and direction indicators
 * **Volatility** (20) - Volatility and range-based indicators
 * **Volume** (21) - Volume analysis indicators
 * **Math** (31) - Element-wise math operators and transforms
@@ -253,7 +253,7 @@ Other candle indicators:
 * *Z Score*: **cdl_z** — ``df.ta.cdl_z()`` — Z-score normalisation of candle bodies, not a CDL pattern. ``full=True`` switches the rolling window for an anchored (expanding) one
 
 .. note::
-   **TA-Lib and core indicators**: For 79 non-candle indicators (``ema``, ``sma``, ``rsi``, ``macd``, ``obv``, ``atr``, and others), the native implementation is used **by default**. TA-Lib is opt-in. Pass ``talib=True`` to use TA-Lib's implementation:
+   **TA-Lib and core indicators**: For 87 non-candle indicators (``ema``, ``sma``, ``rsi``, ``macd``, ``obv``, ``atr``, and others), the native implementation is used **by default**. TA-Lib is opt-in. Pass ``talib=True`` to use TA-Lib's implementation:
 
    .. code-block:: python
 
@@ -263,18 +263,18 @@ Other candle indicators:
        # Use TA-Lib implementation if installed
        ema = df.ta.ema(length=20, talib=True)
 
-       # Indicators with TA-Lib passthrough (79):
-       # ac, ad, adosc, adr, adx, adxr, apo, aroon, atr, avgprice,
-       # bbands, bop, cci, cmo, crsi, dema, dm, dx, ema, hl2, hlc3,
-       # ht_dcperiod, ht_dcphase, ht_phasor, ht_sine, ht_trendline,
-       # ht_trendmode, ibs, imi, kama, linreg, linregangle,
+       # Indicators with TA-Lib passthrough (87):
+       # ac, ad, adosc, adr, adx, adxr, apo, aroon, asi, atr, avgprice,
+       # bbands, bop, cci, choptr, cmo, crsi, dema, dm, dosc, dx, ema,
+       # frama, hl2, hlc3, ht_dcperiod, ht_dcphase, ht_phasor, ht_sine,
+       # ht_trendline, ht_trendmode, ibs, imi, kama, linreg, linregangle,
        # linregintercept, linregslope, macd, macdext, macdfix, mama,
        # mavp, medprice, mfi, midpoint, midprice, minus_dm, mom, natr,
-       # obv, ohlc4, percentrank, plus_dm, ppo, roc, rocp, rocr, rocr100,
-       # rogerssatchell, rolling_max, rolling_min, rolling_sum, rsi,
-       # rvol, sarext, sma, stdev, stoch, stochf, stochrsi, t3, tema,
-       # trima, trix, true_range, tsf, typprice, uo, variance, wcp,
-       # willr, wma
+       # obv, ohlc4, percentrank, plus_dm, ppo, pso, roc, rocp, rocr,
+       # rocr100, rogerssatchell, rolling_max, rolling_min, rolling_sum,
+       # rsi, rvol, sarext, si, sma, stdev, stoch, stoch_mi, stochf,
+       # stochrsi, t3, tema, trima, trix, true_range, tsf, typprice, uo,
+       # variance, wavetrend, wcp, willr, wma
 
    ``talib=True`` calls TA-Lib only while every parameter TA-Lib cannot
    express is at its default (``scalar``, ``drift``, ``mamode``, ``ddof``,
@@ -388,13 +388,14 @@ Cycles (8)
 * *Hilbert Transform — Trend vs Cycle Mode*: **ht_trendmode**
 * *Mesa Sine Wave*: **msw** (returns MSW_SINE + MSW_LEAD; period-based DFT cycle detector)
 
-Momentum (57)
+Momentum (63)
 -------------
 
 Momentum and oscillator indicators for measuring the speed of price changes:
 
 * *Accelerator Oscillator*: **ac** (AO less its 5-bar SMA, as TA-Lib ``AC``)
 * *Awesome Oscillator*: **ao**
+* *Accumulative Swing Index*: **asi** (Wilder's running sum of ``si``, as TA-Lib ``ASI``)
 * *Absolute Price Oscillator*: **apo** 
 * *Bias*: **bias**
 * *Balance of Power*: **bop**
@@ -406,6 +407,7 @@ Momentum and oscillator indicators for measuring the speed of price changes:
 * *Coppock Curve*: **coppock**
 * *Connors RSI*: **crsi** (mean of RSI(3), the RSI(2) of the up/down streak and the percent rank of the one-bar change, as TA-Lib ``CRSI``)
 * *Correlation Trend Indicator*: **cti** (wrapper for ``ta.linreg(series, r=True)``)
+* *Derivative Oscillator*: **dosc** (Constance Brown's double-smoothed RSI less its SMA, as TA-Lib ``DOSC``)
 * *Directional Movement*: **dm** (Wilder-smoothed +DM/−DM as ``PLUS_DM_<length>``/``MINUS_DM_<length>``; equals TA-Lib ``PLUS_DM``/``MINUS_DM``)
 * *Efficiency Ratio*: **er**
 * *Elder Ray Index*: **eri**
@@ -425,6 +427,7 @@ Momentum and oscillator indicators for measuring the speed of price changes:
 * *Projection Oscillator*: **po**
 * *Percentage Price Oscillator*: **ppo**
 * *Psychological Line*: **psl**
+* *Premier Stochastic Oscillator*: **pso** (as TA-Lib ``PSO``)
 * *Percentage Volume Oscillator*: **pvo**
 * *Quantitative Qualitative Estimation*: **qqe** (returns QQE, QQEs, QQEl, QQEb_l, QQEb_s, QQEd)
 * *Rate of Change*: **roc**
@@ -435,6 +438,7 @@ Momentum and oscillator indicators for measuring the speed of price changes:
 * *Relative Strength Xtra*: **rsx**
 * *Relative Vigor Index*: **rvgi**
 * *Schaff Trend Cycle*: **stc**
+* *Swing Index*: **si** (Wilder's swing index with a limit move, as TA-Lib ``SI``)
 * *Slope*: **slope**
 * *Smart Money Concept Liquidity Sweep*: **smc_sweep** (returns +1 bullish sweep, -1 bearish sweep, 0 none; length=15, wick_mult=1.5)
 * *SMI Ergodic*: **smi**
@@ -442,6 +446,7 @@ Momentum and oscillator indicators for measuring the speed of price changes:
 * *Squeeze Pro*: **squeeze_pro** (``mamode`` and ``use_tr`` as for ``squeeze``)
 * *Stochastic Oscillator*: **stoch**
 * *Stochastic Fast*: **stochf**
+* *Stochastic Momentum Index*: **stoch_mi** (Blau's, TA-Lib's ``SMI``; ``smi`` is the SMI Ergodic)
 * *Stochastic RSI*: **stochrsi**
 * *TD Sequential*: **td_seq** (Excluded from ``df.ta.strategy()``)
 * *Trix*: **trix**
@@ -449,9 +454,10 @@ Momentum and oscillator indicators for measuring the speed of price changes:
 * *True strength index*: **tsi**
 * *Ultimate Oscillator*: **uo**
 * *Volume Weighted MACD*: **vwmacd**
+* *WaveTrend*: **wavetrend** (LazyBear's WT with an SMA signal, as TA-Lib ``WAVETREND``)
 * *Williams %R*: **willr**
 
-Overlap (46)
+Overlap (47)
 ------------
 
 Moving averages and trend-following indicators:
@@ -460,6 +466,7 @@ Moving averages and trend-following indicators:
 * *Average Price (OHLC/4)*: **avgprice** (arithmetic mean of open, high, low, close; equivalent to TA-Lib ``AVGPRICE`` and tulipy ``avgprice``)
 * *Double Exponential Moving Average*: **dema**
 * *Exponential Moving Average*: **ema**
+* *Fractal Adaptive Moving Average*: **frama** (Ehlers'; an even ``length``, from high and low, as TA-Lib ``FRAMA``)
 * *Fibonacci's Weighted Moving Average*: **fwma**
 * *Gann High-Low Activator*: **hilo**
 * *High-Low Average*: **hl2**
@@ -533,7 +540,7 @@ Statistical analysis functions:
 * *Variance*: **variance**
 * *Z Score*: **zscore**
 
-Trend (26)
+Trend (27)
 ----------
 
 Trend identification and direction indicators:
@@ -543,6 +550,7 @@ Trend identification and direction indicators:
 * *Archer Moving Averages Trends*: **amat**
 * *Aroon & Aroon Oscillator*: **aroon**
 * *Choppiness Index*: **chop**
+* *Choppiness Index, true range box*: **choptr** (the box spans the true ranges, as TA-Lib ``CHOPTR``)
 * *Chande Kroll Stop*: **cksp** (default is TradingView's ``p=10, x=1, q=9`` with a Wilder ATR; ``tvmode=False`` gives the book's ``10, 3, 20`` with an SMA ATR)
 * *Central Pivot Range*: **cpr** (pivot methods ``classic``, ``camarilla``, ``fibonacci``, ``woodie``; ``timeframe`` ``daily`` uses the previous bar, ``intraday``/``weekly``/``monthly`` the last completed calendar day, week or month)
 * *Decay*: **decay** (Formally: **linear_decay**)

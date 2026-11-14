@@ -468,6 +468,16 @@ ORACLE: dict[str, Case] = {
         lambda b: [ta.rogerssatchell(b.open, b.high, b.low, b.close, 10, 252)], lambda b: [T.ROGERSSATCHELL(b.open, b.high, b.low, b.close, 10, 252.0)]
     ),
     "rvol": Case(lambda b: [ta.rvol(b.volume, 20)], lambda b: [T.RVOL(b.volume, 20)]),
+    "asi": Case(lambda b: [ta.asi(b.open, b.high, b.low, b.close)], lambda b: [T.ASI(b.open, b.high, b.low, b.close, 3.0)]),
+    "si": Case(lambda b: [ta.si(b.open, b.high, b.low, b.close)], lambda b: [T.SI(b.open, b.high, b.low, b.close, 3.0)]),
+    "choptr": Case(lambda b: [ta.choptr(b.high, b.low, b.close, 14)], lambda b: [T.CHOPTR(b.high, b.low, b.close, 14)]),
+    "dosc": Case(lambda b: [ta.dosc(b.close, 14, 5, 3, 9)], lambda b: [T.DOSC(b.close, 14, 5, 3, 9)]),
+    "frama": Case(lambda b: [ta.frama(b.high, b.low, 16)], lambda b: [T.FRAMA(b.high, b.low, 16)]),
+    "pso": Case(lambda b: [ta.pso(b.high, b.low, b.close, 8, 5)], lambda b: [T.PSO(b.high, b.low, b.close, 8, 5)]),
+    "stoch_mi": Case(
+        lambda b: _cols(ta.stoch_mi(b.high, b.low, b.close, 13, 2, 25, 9), "STOCHMI_", "STOCHMIs_"), lambda b: list(T.SMI(b.high, b.low, b.close, 13, 2, 25, 9))
+    ),
+    "wavetrend": Case(lambda b: _cols(ta.wavetrend(b.high, b.low, b.close, 10, 21, 4), "WT_", "WTs_"), lambda b: list(T.WAVETREND(b.high, b.low, b.close, 10, 21, 4))),
 }
 
 # Elementwise math transforms map one to one onto a TA-Lib function of the same
@@ -644,6 +654,8 @@ TOLERANCE: dict[str, tuple[float, str]] = {
     "cti": (2000, "a correlation that cancels to -0.38 over the planted run: 6.8e-9 relative (planted, bar 118)"),
     "eri": (1000, "the bear power, low less an EMA at prices of 1e6: 5.8e-10 relative at 308 (x1e6, bar 376)"),
     "stc": (100, "its MACD's seed difference, amplified by two stochastic stages, still 1.8e-10 relative (nan_prefix, bar 359)"),
+    "wavetrend": (2000, "CI divides by a mean deviation that is near 0 after the flat block: 1.4e-9 relative at 7.41 (flat_block, bar 209)"),
+    "asi": (2, "a cumulative sum up to 3580: 4.2e-12 relative at 0.47 (spy_full, bar 3584)"),
 }
 
 KNOWN_DIFFERENCES: dict[tuple[str, str], str] = {
@@ -745,6 +757,9 @@ WARMUP_DIFFERENCES = {
     "mcgd": "TALIB: MCGD withholds its first 13 bars; native seeds with the first close and publishes from bar 0, with the same values after",
     "fisher": "OPEN: FISHER starts on the first full window; native's loop starts one bar later (range(length, m)) although "
     "the window's position is known there, and the two agree from bar 74 on",
+    "asi": "TALIB: ASI reads 0 on bar 0; native has no previous close there and reads NaN",
+    "stoch_mi": "TALIB: TA-Lib starts the SMI line where its signal starts, 8 bars after native starts it",
+    "wavetrend": "TALIB: TA-Lib starts WT where its signal starts, 3 bars after native starts it",
 }
 # Integer output with no NaN at all: both sides read 0 through the lookback, so a
 # NaN mask cannot show its start. test_native_matches_talib compares those zeros by value.
@@ -939,6 +954,18 @@ _PERIODS_FROM_TWO = {
     ("crsi", "rank"): (lambda b, n: ta.crsi(b.close, rank=n), lambda b, n: talib.CRSI(b.close, 3, 2, n)),
     ("imi", "length"): (lambda b, n: ta.imi(b.open, b.close, length=n), lambda b, n: talib.IMI(b.open, b.close, n)),
     ("percentrank", "length"): (lambda b, n: ta.percentrank(b.close, length=n), lambda b, n: talib.PERCENTRANK(b.close, n)),
+    ("dosc", "length"): (lambda b, n: ta.dosc(b.close, length=n), lambda b, n: talib.DOSC(b.close, n, 5, 3, 9)),
+    ("dosc", "first"): (lambda b, n: ta.dosc(b.close, first=n), lambda b, n: talib.DOSC(b.close, 14, n, 3, 9)),
+    ("dosc", "second"): (lambda b, n: ta.dosc(b.close, second=n), lambda b, n: talib.DOSC(b.close, 14, 5, n, 9)),
+    ("dosc", "signal"): (lambda b, n: ta.dosc(b.close, signal=n), lambda b, n: talib.DOSC(b.close, 14, 5, 3, n)),
+    ("stoch_mi", "length"): (lambda b, n: ta.stoch_mi(b.high, b.low, b.close, length=n), lambda b, n: talib.SMI(b.high, b.low, b.close, n, 2, 25, 9)),
+    ("stoch_mi", "fast"): (lambda b, n: ta.stoch_mi(b.high, b.low, b.close, fast=n), lambda b, n: talib.SMI(b.high, b.low, b.close, 13, n, 25, 9)),
+    ("stoch_mi", "slow"): (lambda b, n: ta.stoch_mi(b.high, b.low, b.close, slow=n), lambda b, n: talib.SMI(b.high, b.low, b.close, 13, 2, n, 9)),
+    ("stoch_mi", "signal"): (lambda b, n: ta.stoch_mi(b.high, b.low, b.close, signal=n), lambda b, n: talib.SMI(b.high, b.low, b.close, 13, 2, 25, n)),
+    ("wavetrend", "channel"): (
+        lambda b, n: ta.wavetrend(b.high, b.low, b.close, channel=n),
+        lambda b, n: talib.WAVETREND(b.high, b.low, b.close, n, 21, 4),
+    ),
 }
 
 
