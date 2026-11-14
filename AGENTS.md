@@ -214,9 +214,9 @@ Not greppable, so check in review: **dead code** your change orphaned, and the *
 |---|---|
 | `code-quality` | Black formatting check, `ruff check .` (blocking) + advisory ruff, mypy, core.pyi sync |
 | `generate-matrix` | Dynamically computes 5 supported Python versions (LATEST-4 through LATEST) |
-| `testing-core` | Runs non-oracle tests on all 5 Python versions (`pytest tests/` excluding oracle suites) |
-| `testing-numba` | Runs the same tests with numba installed on the second-newest Python, so the `@njit` path is tested; includes `test_numba_parity.py` (JIT vs `NUMBA_DISABLE_JIT=1`) |
-| `testing-oracle` | Runs `test_oracle_talib.py` + `test_oracle_tulipy.py` on all 5 Python versions |
+| `testing-core` | Runs non-oracle tests on all 5 Python versions (`pytest tests/` excluding `test_oracle_registry.py` and `test_oracle_tulipy.py`) |
+| `testing-numba` | Runs the same tests with numba installed on the second-newest Python, so the `@njit` path is tested; includes `test_numba_parity.py` (JIT vs `NUMBA_DISABLE_JIT=1`) and `test_oracle_registry.py` (the JIT path against TA-Lib) |
+| `testing-oracle` | Runs `test_oracle_registry.py` + `test_oracle_tulipy.py` on all 5 Python versions |
 | `documentation` | Builds Sphinx docs with `-W` (any warning fails) + advisory linkcheck, deploys to GitHub Pages (on push only, so it does not gate PRs) |
 | `pypi-publish` | Builds wheel, twine check, publishes to PyPI (on release published only) |
 
@@ -343,7 +343,7 @@ pip install -e ".[oracle]"
 pytest tests/ -v
 
 # Oracle tests only
-pytest tests/oracle/test_oracle_talib.py tests/oracle/test_oracle_tulipy.py -v
+pytest tests/oracle/test_oracle_registry.py tests/oracle/test_oracle_tulipy.py -v
 
 # Single test module (fastest feedback)
 pytest tests/indicators/test_momentum.py -v
