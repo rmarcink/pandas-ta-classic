@@ -106,6 +106,9 @@ EXPECTED_COLUMNS: list[tuple[str, dict, str, list[str] | None]] = [
     ('ht_sine', {}, 'HT_SINE', ['HT_SINE', 'HT_LEADSINE']),
     ('ht_trendmode', {}, 'HT_TRENDMODE', None),
     ('msw', {}, 'MSW_5', ['MSW_SINE_5', 'MSW_LEAD_5']),
+    ('swak_2php', {}, 'SWAK2PHP_20', None),
+    ('swak_bp', {}, 'SWAKBP_20_0.1', None),
+    ('swak_hp', {}, 'SWAKHP_20', None),
     # math
     ('acos', {}, 'ACOS', None),
     ('add', {}, 'ADD', None),
@@ -261,6 +264,8 @@ EXPECTED_COLUMNS: list[tuple[str, dict, str, list[str] | None]] = [
     ('supertrend', {'length': 10}, 'SUPERT_10_3.0', ['SUPERT_10_3.0', 'SUPERTd_10_3.0', 'SUPERTl_10_3.0', 'SUPERTs_10_3.0']),
     ('supertrend', {'multiplier': 2.0}, 'SUPERT_7_2.0', ['SUPERT_7_2.0', 'SUPERTd_7_2.0', 'SUPERTl_7_2.0', 'SUPERTs_7_2.0']),
     ('supertrend', {}, 'SUPERT_7_3.0', ['SUPERT_7_3.0', 'SUPERTd_7_3.0', 'SUPERTl_7_3.0', 'SUPERTs_7_3.0']),
+    ('swak_butter', {}, 'SWAKBUTTER_20', None),
+    ('swak_gauss', {}, 'SWAKGAUSS_20', None),
     ('swma', {}, 'SWMA_10', None),
     ('t3', {}, 'T3_10_0.7', None),
     ('tema', {}, 'TEMA_10', None),

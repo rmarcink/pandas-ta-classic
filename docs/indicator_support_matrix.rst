@@ -684,6 +684,16 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - yes
      - yes
      - no
+   * - swak_butter
+     - overlap
+     - yes
+     - yes
+     - no
+   * - swak_gauss
+     - overlap
+     - yes
+     - yes
+     - no
    * - swma
      - overlap
      - yes
@@ -799,6 +809,21 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - yes
      - no
      - yes
+   * - swak_2php
+     - cycles
+     - yes
+     - yes
+     - no
+   * - swak_bp
+     - cycles
+     - yes
+     - yes
+     - no
+   * - swak_hp
+     - cycles
+     - yes
+     - yes
+     - no
    * - adx
      - trend
      - yes

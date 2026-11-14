@@ -146,6 +146,9 @@ _ANOTHER_BAR_ON_TALIB = {
     "stochf": ({"STOCHFk_5_3"}, "TA-Lib holds %K back until %D exists"),
     "stoch_mi": ({"STOCHMI_13_2_25_9"}, "TA-Lib holds the SMI line back until its signal line exists"),
     "wavetrend": ({"WT_10_21_4"}, "TA-Lib holds WT back until its signal line exists"),
+    "swak_2php": ({"SWAK2PHP_20"}, "TA-Lib publishes the filter's seed, 0.0, on bar 0; native reads NaN there"),
+    "swak_bp": ({"SWAKBP_20_0.1"}, "TA-Lib publishes the filter's seed, 0.0, on bar 0; native reads NaN there"),
+    "swak_hp": ({"SWAKHP_20"}, "TA-Lib publishes the filter's seed, 0.0, on bar 0; native reads NaN there"),
 }
 
 

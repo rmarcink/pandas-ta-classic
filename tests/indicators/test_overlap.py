@@ -443,3 +443,17 @@ class TestFrama:
         d = self.data
         result = pandas_ta.frama(d.high, d.low, 16)
         assert int(result.isna().sum()) == 16
+
+
+class TestSwakLowPasses:
+    """Ehlers' Swiss Army Knife low passes follow TA-Lib 0.8's SWAK_*; the oracle compares the values."""
+
+    def test_the_low_passes_follow_a_constant(self):
+        flat = pd.Series(100.0, index=range(60))
+        for result in (pandas_ta.swak_gauss(flat), pandas_ta.swak_butter(flat)):
+            np.testing.assert_allclose(result, 100.0, rtol=1e-12, err_msg=result.name)
+
+    def test_names(self):
+        close = pd.Series(np.arange(100.0))
+        assert pandas_ta.swak_gauss(close, 10).name == "SWAKGAUSS_10"
+        assert pandas_ta.swak_butter(close, 10).name == "SWAKBUTTER_10"

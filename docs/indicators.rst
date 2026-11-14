@@ -1,12 +1,12 @@
 Indicators Reference
 ====================
 
-**Pandas TA Classic** includes 240 indicators in the Category system plus 62 CDL patterns accessible via ``cdl_pattern()`` (300 unique total — ``cdl_doji`` and ``cdl_inside`` are counted in both) organized into the following categories:
+**Pandas TA Classic** includes 245 indicators in the Category system plus 62 CDL patterns accessible via ``cdl_pattern()`` (305 unique total — ``cdl_doji`` and ``cdl_inside`` are counted in both) organized into the following categories:
 
 * **Candles** (5 wrappers + 62 native CDL patterns) - Category count includes wrapper/accessor indicators (``cdl_pattern``, ``cdl_doji``, ``cdl_inside``, ``cdl_z``, ``ha``). The 62 pattern names are exposed through ``cdl_pattern()``.
-* **Cycles** (8) - Cycle-based and Hilbert Transform indicators  
+* **Cycles** (11) - Cycle-based and Hilbert Transform indicators  
 * **Momentum** (63) - Momentum and oscillator indicators
-* **Overlap** (47) - Moving averages and trend-following indicators
+* **Overlap** (49) - Moving averages and trend-following indicators
 * **Performance** (3) - Performance and return metrics
 * **Statistics** (15) - Statistical analysis functions
 * **Trend** (27) - Trend identification and direction indicators
@@ -253,7 +253,7 @@ Other candle indicators:
 * *Z Score*: **cdl_z** — ``df.ta.cdl_z()`` — Z-score normalisation of candle bodies, not a CDL pattern. ``full=True`` switches the rolling window for an anchored (expanding) one
 
 .. note::
-   **TA-Lib and core indicators**: For 87 non-candle indicators (``ema``, ``sma``, ``rsi``, ``macd``, ``obv``, ``atr``, and others), the native implementation is used **by default**. TA-Lib is opt-in. Pass ``talib=True`` to use TA-Lib's implementation:
+   **TA-Lib and core indicators**: For 92 non-candle indicators (``ema``, ``sma``, ``rsi``, ``macd``, ``obv``, ``atr``, and others), the native implementation is used **by default**. TA-Lib is opt-in. Pass ``talib=True`` to use TA-Lib's implementation:
 
    .. code-block:: python
 
@@ -263,7 +263,7 @@ Other candle indicators:
        # Use TA-Lib implementation if installed
        ema = df.ta.ema(length=20, talib=True)
 
-       # Indicators with TA-Lib passthrough (87):
+       # Indicators with TA-Lib passthrough (92):
        # ac, ad, adosc, adr, adx, adxr, apo, aroon, asi, atr, avgprice,
        # bbands, bop, cci, choptr, cmo, crsi, dema, dm, dosc, dx, ema,
        # frama, hl2, hlc3, ht_dcperiod, ht_dcphase, ht_phasor, ht_sine,
@@ -273,8 +273,9 @@ Other candle indicators:
        # obv, ohlc4, percentrank, plus_dm, ppo, pso, roc, rocp, rocr,
        # rocr100, rogerssatchell, rolling_max, rolling_min, rolling_sum,
        # rsi, rvol, sarext, si, sma, stdev, stoch, stoch_mi, stochf,
-       # stochrsi, t3, tema, trima, trix, true_range, tsf, typprice, uo,
-       # variance, wavetrend, wcp, willr, wma
+       # stochrsi, swak_2php, swak_bp, swak_butter, swak_gauss, swak_hp,
+       # t3, tema, trima, trix, true_range, tsf, typprice, uo, variance,
+       # wavetrend, wcp, willr, wma
 
    ``talib=True`` calls TA-Lib only while every parameter TA-Lib cannot
    express is at its default (``scalar``, ``drift``, ``mamode``, ``ddof``,
@@ -376,8 +377,8 @@ The library does not raise here. If your feed can emit such bars, check them
 before passing them in.
 
 
-Cycles (8)
-----------
+Cycles (11)
+-----------
 
 * *Detrended Synthetic Price*: **dsp**
 * *Even Better Sinewave*: **ebsw**
@@ -387,6 +388,9 @@ Cycles (8)
 * *Hilbert Transform — SineWave*: **ht_sine** (returns Sine + LeadSine)
 * *Hilbert Transform — Trend vs Cycle Mode*: **ht_trendmode**
 * *Mesa Sine Wave*: **msw** (returns MSW_SINE + MSW_LEAD; period-based DFT cycle detector)
+* *Swiss Army Knife Two-Pole High-Pass*: **swak_2php** (Ehlers, as TA-Lib ``SWAK_2PHP``)
+* *Swiss Army Knife Band-Pass*: **swak_bp** (Ehlers; ``delta`` sets the band width, as TA-Lib ``SWAK_BP``)
+* *Swiss Army Knife High-Pass*: **swak_hp** (Ehlers' one-pole high-pass, as TA-Lib ``SWAK_HP``)
 
 Momentum (63)
 -------------
@@ -457,7 +461,7 @@ Momentum and oscillator indicators for measuring the speed of price changes:
 * *WaveTrend*: **wavetrend** (LazyBear's WT with an SMA signal, as TA-Lib ``WAVETREND``)
 * *Williams %R*: **willr**
 
-Overlap (47)
+Overlap (49)
 ------------
 
 Moving averages and trend-following indicators:
@@ -497,6 +501,8 @@ Moving averages and trend-following indicators:
 * *Simple Moving Average*: **sma**
 * *Ehlers' Super Smoother Filter*: **ssf**
 * *Supertrend*: **supertrend**
+* *Swiss Army Knife Butterworth*: **swak_butter** (Ehlers' two-pole low-pass, as TA-Lib ``SWAK_BUTTER``)
+* *Swiss Army Knife Gaussian*: **swak_gauss** (Ehlers' two-pole Gaussian low-pass, as TA-Lib ``SWAK_GAUSS``)
 * *Symmetric Weighted Moving Average*: **swma**
 * *T3 Moving Average*: **t3**
 * *Triple Exponential Moving Average*: **tema**

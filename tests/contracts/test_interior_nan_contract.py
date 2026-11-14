@@ -26,7 +26,7 @@ import numpy as np
 import pytest
 
 import pandas_ta_classic as ta
-from tests.contracts import COLUMNS, CUMULATIVE, LOOKAHEAD, OHLCV_INDICATORS as INDICATORS, WHOLE_SERIES, params, spy, values as _call
+from tests.contracts import COLUMNS, CUMULATIVE, LOOKAHEAD, OHLCV_INDICATORS as INDICATORS, SLOW_RECOVERY, WHOLE_SERIES, params, spy, values as _call
 
 GAP = 600
 TAIL = 200  # compared bars at the end, 700+ bars after the gap
@@ -49,7 +49,7 @@ def test_one_missing_bar(name, frames):
     np.testing.assert_array_equal(np.isnan(tail_gapped), np.isnan(tail_clean), err_msg=f"{name}: NaN after the gap has passed")
     if name in CUMULATIVE | WHOLE_SERIES:
         return
-    np.testing.assert_allclose(tail_gapped, tail_clean, rtol=1e-9, atol=0, equal_nan=True, err_msg=f"{name}: did not recover")
+    np.testing.assert_allclose(tail_gapped, tail_clean, rtol=1e-9 * SLOW_RECOVERY.get(name, (1, ""))[0], atol=0, equal_nan=True, err_msg=f"{name}: did not recover")
 
 
 # "Recovers" says the missing bar itself reads NaN (docs/indicators.rst, "Missing

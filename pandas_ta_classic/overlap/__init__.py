@@ -40,6 +40,8 @@ if TYPE_CHECKING:
     from .sma import sma as sma
     from .ssf import ssf as ssf
     from .supertrend import supertrend as supertrend
+    from .swak_butter import swak_butter as swak_butter
+    from .swak_gauss import swak_gauss as swak_gauss
     from .swma import swma as swma
     from .t3 import t3 as t3
     from .tema import tema as tema

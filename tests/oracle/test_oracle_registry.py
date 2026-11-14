@@ -478,6 +478,11 @@ ORACLE: dict[str, Case] = {
         lambda b: _cols(ta.stoch_mi(b.high, b.low, b.close, 13, 2, 25, 9), "STOCHMI_", "STOCHMIs_"), lambda b: list(T.SMI(b.high, b.low, b.close, 13, 2, 25, 9))
     ),
     "wavetrend": Case(lambda b: _cols(ta.wavetrend(b.high, b.low, b.close, 10, 21, 4), "WT_", "WTs_"), lambda b: list(T.WAVETREND(b.high, b.low, b.close, 10, 21, 4))),
+    "swak_2php": Case(lambda b: [ta.swak_2php(b.close, 20)], lambda b: [T.SWAK_2PHP(b.close, 20)]),
+    "swak_bp": Case(lambda b: [ta.swak_bp(b.close, 20, 0.1)], lambda b: [T.SWAK_BP(b.close, 20, 0.1)]),
+    "swak_butter": Case(lambda b: [ta.swak_butter(b.close, 20)], lambda b: [T.SWAK_BUTTER(b.close, 20)]),
+    "swak_gauss": Case(lambda b: [ta.swak_gauss(b.close, 20)], lambda b: [T.SWAK_GAUSS(b.close, 20)]),
+    "swak_hp": Case(lambda b: [ta.swak_hp(b.close, 20)], lambda b: [T.SWAK_HP(b.close, 20)]),
 }
 
 # Elementwise math transforms map one to one onto a TA-Lib function of the same
@@ -740,6 +745,7 @@ def test_native_matches_talib(name: str, frame: str, frames) -> None:
 # bar, except these, where TA-Lib's lookback is a convention of its own.
 _TALIB_ALIGNS_TO_SIGNAL = "TALIB: TA-Lib starts every MACD output where the signal line starts, 8 bars after native starts the MACD line"
 _TALIB_ALIGNS_K_TO_D = "TALIB: TA-Lib starts %K where %D starts, two bars later; native publishes %K as soon as it has a value"
+_TALIB_PUBLISHES_THE_SEED = "TALIB: TA-Lib publishes the filter's seed on bar 0, 0.0 whatever the data; native reads NaN there"
 WARMUP_DIFFERENCES = {
     "macd": _TALIB_ALIGNS_TO_SIGNAL,
     "macdext": _TALIB_ALIGNS_TO_SIGNAL,
@@ -758,6 +764,9 @@ WARMUP_DIFFERENCES = {
     "fisher": "OPEN: FISHER starts on the first full window; native's loop starts one bar later (range(length, m)) although "
     "the window's position is known there, and the two agree from bar 74 on",
     "asi": "TALIB: ASI reads 0 on bar 0; native has no previous close there and reads NaN",
+    "swak_2php": _TALIB_PUBLISHES_THE_SEED,
+    "swak_bp": _TALIB_PUBLISHES_THE_SEED,
+    "swak_hp": _TALIB_PUBLISHES_THE_SEED,
     "stoch_mi": "TALIB: TA-Lib starts the SMI line where its signal starts, 8 bars after native starts it",
     "wavetrend": "TALIB: TA-Lib starts WT where its signal starts, 3 bars after native starts it",
 }
@@ -910,6 +919,63 @@ def test_window_index_matches_talib_up_to_ties(frame: str, frames) -> None:
         assert np.isfinite(got[full]).all(), f"{func.__name__} reads NaN in a window of 30 real bars on {frame}"
         picked = values[start[full] + got[full].astype(int)]
         np.testing.assert_array_equal(picked, values[start[full] + expected[full].astype(int)], err_msg=f"{func.__name__} on {frame}")
+
+
+# ---------------------------------------------------------------------------
+# Parameters beyond the ORACLE defaults: the Swiss Army Knife filters.
+# ---------------------------------------------------------------------------
+
+# Each filter's parameters as (native, TA-Lib) calls on a close series. ORACLE checks
+# length 20 and delta 0.1; the coefficients depend on both, so other values get their own check.
+_SWAK = {
+    "swak_2php": (lambda c, n, d: ta.swak_2php(c, n), lambda c, n, d: talib.SWAK_2PHP(c, n)),
+    "swak_bp": (lambda c, n, d: ta.swak_bp(c, n, d), lambda c, n, d: talib.SWAK_BP(c, n, d)),
+    "swak_butter": (lambda c, n, d: ta.swak_butter(c, n), lambda c, n, d: talib.SWAK_BUTTER(c, n)),
+    "swak_gauss": (lambda c, n, d: ta.swak_gauss(c, n), lambda c, n, d: talib.SWAK_GAUSS(c, n)),
+    "swak_hp": (lambda c, n, d: ta.swak_hp(c, n), lambda c, n, d: talib.SWAK_HP(c, n)),
+}
+_SWAK_LENGTHS = (2, 3, 4, 5, 6, 10, 40, 100)
+_SWAK_DELTAS = (0.01, 0.04, 0.05, 0.1, 0.25, 0.5, 0.6, 1.0)
+
+
+def _accepts(func, *args) -> bool:
+    try:
+        func(*args)
+    except Exception:  # noqa: BLE001 -- TA-Lib raises a plain Exception for a bad parameter, native a ValueError
+        return False
+    return True
+
+
+@pytest.mark.parametrize("name", sorted(_SWAK))
+def test_swak_accepts_the_parameters_talib_accepts(name: str) -> None:
+    """swak_hp(length=4) turned into a running sum (cos(pi/2) = 0 cancels in its alpha); TA-Lib rejects it."""
+    native, oracle = _SWAK[name]
+    close = spy(300)["close"]
+    deltas = _SWAK_DELTAS if name == "swak_bp" else (0.1,)
+    decided = [(n, d, _accepts(native, close, n, d), _accepts(oracle, close.to_numpy(), n, d)) for n in _SWAK_LENGTHS for d in deltas]
+    differ = [(n, d, ours) for n, d, ours, theirs in decided if ours != theirs]
+    assert not differ, f"{name}: (length, delta, native accepts) where TA-Lib decides otherwise: {differ}"
+
+
+@pytest.mark.parametrize("name", sorted(_SWAK))
+def test_swak_matches_talib_bit_for_bit(name: str, frames) -> None:
+    """The filters compute as ta_SWAK_*.c does (fma in the recurrence, C's sin, cos and sqrt), so every bar is TA-Lib's bit pattern."""
+    native, oracle = _SWAK[name]
+    deltas = _SWAK_DELTAS if name == "swak_bp" else (0.1,)
+    found = []
+    for frame, b in frames.items():
+        for n in _SWAK_LENGTHS if frame == "spy" else (20,):
+            for d in deltas if frame == "spy" else (0.1,):
+                if not _accepts(oracle, b.close.to_numpy(), n, d):
+                    continue
+                # The seed's bar, the first with a close, is a WARMUP_DIFFERENCE.
+                seed = int(np.flatnonzero(np.isfinite(b.close.to_numpy()))[0]) + 1
+                mine, theirs = np.asarray(native(b.close, n, d), float)[seed:], oracle(b.close.to_numpy(), n, d)[seed:]
+                # NaN on the same bars (a NaN's payload is not compared), every other bar to the bit
+                same = (np.isnan(mine) & np.isnan(theirs)) | (mine.view(np.int64) == theirs.view(np.int64))
+                if not same.all():
+                    found.append(f"{frame} length={n} delta={d}: {int((~same).sum())} bars differ")
+    assert not found, f"{name}: {found}"
 
 
 # ---------------------------------------------------------------------------

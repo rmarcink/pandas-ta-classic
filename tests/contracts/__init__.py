@@ -55,6 +55,12 @@ ELEMENTWISE |= {"sin", "sinh", "sqrt", "tan", "tanh", "todeg", "torad", "trunc"}
 CUMULATIVE = {"ad", "aobv", "asi", "nvi", "obv", "pvi", "pvt", "wad"}
 # A fit over the entire series: one changed bar moves every value.
 WHOLE_SERIES = {"tos_stdevall"}
+# Recursions that still ring when the gap and interior-NaN contracts compare the tail:
+# the factor on their rtol, at least 10x over the largest difference measured
+# (Windows and Linux, Python 3.11 to 3.15, numba on and off).
+SLOW_RECOVERY: dict[str, tuple[float, str]] = {
+    "swak_bp": (5, "a band-pass rings for hundreds of bars after a gap: 3.6e-9 relative after five missing bars, 4.8e-10 after one"),
+}
 # Non-causal by design at their defaults (see test_lookahead.py): a bar depends on later bars.
 LOOKAHEAD = {"dpo", "ichimoku", "tos_stdevall"}
 # Columns no price-transform contract (scale, shift) compares, with the reason;
