@@ -7,6 +7,7 @@ from pandas import DataFrame, Series
 from pandas_ta_classic import Imports
 from pandas_ta_classic.utils import apply_fill, apply_offset, get_offset, verify_series
 from pandas_ta_classic.utils._core import _bool_param, _pos_int, nan_on_short_input, skip_leading_nan
+from pandas_ta_classic.utils._njit import njit
 
 
 @nan_on_short_input
@@ -76,23 +77,33 @@ def msw(
 
 
 def _msw_native(arr: np.ndarray, period: int, pi: float = np.pi):
-    """Pure numpy Mesa Sine Wave — Tulip Indicators' algorithm with an exact pi.
+    """Mesa Sine Wave — Tulip Indicators' algorithm with an exact pi.
 
     Passing ``pi=3.1415926`` (tulipy's constant) reproduces tulipy bit for bit.
+    """
+    tpi = 2.0 * pi
+    j_arr = np.arange(period, dtype=float)
+    return _msw_loop(arr, period, pi, np.cos(tpi * j_arr / period), np.sin(tpi * j_arr / period))
+
+
+@njit(cache=True)
+def _msw_loop(arr: np.ndarray, period: int, pi: float, cos_arr: np.ndarray, sin_arr: np.ndarray):
+    """The per-bar DFT and phase of :func:`_msw_native`.
+
+    The DFT sums run newest bar first, one term at a time, as Tulip's loop does;
+    ``np.dot`` handed the order of the additions to the BLAS kernel the CPU selects.
     """
     tpi = 2.0 * pi
     size = len(arr)
     sine = np.full(size, np.nan)
     lead = np.full(size, np.nan)
 
-    j_arr = np.arange(period, dtype=float)
-    cos_arr = np.cos(tpi * j_arr / period)
-    sin_arr = np.sin(tpi * j_arr / period)
-
     for i in range(period, size):
-        window = arr[i - period + 1 : i + 1][::-1]  # newest first → j=0 is arr[i]
-        rp = float(np.dot(window, cos_arr))
-        ip = float(np.dot(window, sin_arr))
+        rp = 0.0
+        ip = 0.0
+        for j in range(period):  # newest first: j=0 is arr[i]
+            rp += arr[i - j] * cos_arr[j]
+            ip += arr[i - j] * sin_arr[j]
 
         # Tulip's `abs(rp) > 0.001` test decided the phase in price units, so at
         # small prices it bound on most bars, and its fallback of +-pi is a
