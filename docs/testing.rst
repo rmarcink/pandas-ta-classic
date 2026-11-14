@@ -82,19 +82,21 @@ with itself. (``test_oracle_registry.py`` passes it once, for ``cmo``, together
 with a ``scalar`` TA-Lib cannot express, which keeps the call native.)
 
 ``test_oracle_registry.py`` compares every indicator and candle pattern with a
-TA-Lib counterpart from one table, on ``SPY_D`` and on frames that plant the
+TA-Lib counterpart from one table, on the last 400 bars of ``SPY_D``, on all
+5241 of them (where a recursion would drift), and on frames that plant the
 data problems met so far: a fully flat series, a flat block, ``high == low``
 with a moving close, scattered flat and bodiless bars, malformed OHLC,
 zero-volume sessions, prices scaled by ``1e-6`` and ``1e6``, a flash spike and
-crash, very large volume, and 25 missing bars at the start. It compares the NaN mask as well as the values, from the
-first bar both sides hold a value, so native giving up where TA-Lib answers is
-a failure rather than a bar dropped by ``dropna()``. An indicator listed with
-TA-Lib in ``indicator_support_matrix.rst`` must have a case in the table or a
-reason in ``NO_ORACLE``; known differences are strict xfails in
-``KNOWN_DIFFERENCES``. ``VARIANTS`` adds the other paths TA-Lib expresses
-too (``apo``/``ppo`` with ``mamode="ema"``, ``sarext``'s options), and the
-Wilder-smoothed and Hilbert-transform indicators must publish their first value
-on TA-Lib's bar.
+crash, very large volume, and 37 missing bars at the start. It compares the
+NaN mask as well as the values, from the first bar both sides hold a value, so
+native giving up where TA-Lib answers is a failure rather than a bar dropped by
+``dropna()``, and ``test_warmup_matches_talib`` requires the first value on
+TA-Lib's bar, with TA-Lib's own conventions listed in ``WARMUP_DIFFERENCES``.
+An indicator listed with TA-Lib in ``indicator_support_matrix.rst`` must have
+a case in the table or a reason in ``NO_ORACLE``; known differences are strict
+xfails in ``KNOWN_DIFFERENCES``. ``VARIANTS`` adds the other paths TA-Lib
+expresses too (``apo``/``ppo`` with ``mamode="ema"``, ``stochrsi``'s default
+``k=3``, ``sarext``'s options).
 
 For indicators neither library covers, ``test_reference_ports.py`` compares
 against independent ports of the cited definitions (see *Reference ports*

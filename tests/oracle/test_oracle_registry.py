@@ -18,9 +18,10 @@ the first bar on which both sides are valid. ``test_every_talib_indicator_has_an
 keeps the table complete against ``docs/indicator_support_matrix.rst``: an
 indicator the matrix lists with a TA-Lib counterpart must have a case here or a
 reason in ``NO_ORACLE``. ``VARIANTS`` adds the other paths of those
-indicators that TA-Lib expresses too (a moving-average choice, sarext's
-options), and ``test_warmup_matches_talib`` holds the indicators that seed like
-TA-Lib to its first bar.
+indicators that TA-Lib expresses too (a moving-average choice, a smoothing,
+sarext's options), and ``test_warmup_matches_talib`` requires every case to
+publish its first value on TA-Lib's bar, except TA-Lib's own conventions in
+``WARMUP_DIFFERENCES``.
 
 Every candle pattern is compared against its ``CDL*`` function the same way,
 and ``cdl_doji`` also with TA-Lib's candle settings changed.
@@ -168,12 +169,20 @@ def _frame_huge_volume() -> Bars:
 
 
 def _frame_nan_prefix() -> Bars:
-    """25 missing bars at the start, as the output of an indicator fed to another one."""
+    """37 missing bars at the start, as the output of an indicator fed to another one.
+
+    37 is where the Hilbert transform starts its recursion (``ht_start``)."""
     df = _spy()
     o, h, l, c, v = (df[k].to_numpy(copy=True) for k in ("open", "high", "low", "close", "volume"))
     for a in (o, h, l, c, v):
-        a[:25] = np.nan
+        a[:37] = np.nan
     return _bars(o, h, l, c, v, df.index)
+
+
+def _frame_spy_full() -> Bars:
+    """All of SPY_D (5241 bars): a recursion that drifts away from TA-Lib does so over the long run."""
+    df = spy().astype(float)
+    return _bars(df.open, df.high, df.low, df.close, df.volume, df.index)
 
 
 FRAMES: dict[str, Callable[[], Bars]] = {
@@ -189,6 +198,7 @@ FRAMES: dict[str, Callable[[], Bars]] = {
     "spike": _frame_spike,
     "huge_volume": _frame_huge_volume,
     "nan_prefix": _frame_nan_prefix,
+    "spy_full": _frame_spy_full,
 }
 
 
@@ -391,10 +401,14 @@ NO_ORACLE = {
 }
 
 # A second path of an indicator in ORACLE that TA-Lib can express too, keyed
-# "<indicator>-<option>-<value>"; compared on every frame like ORACLE.
+# "<indicator>-<option>[-<value>]"; compared on every frame like ORACLE.
 VARIANTS: dict[str, Case] = {
     "apo-mamode-ema": Case(lambda b: [ta.apo(b.close, 12, 26, mamode="ema")], lambda b: [T.APO(b.close, 12, 26, 1)]),
     "ppo-mamode-ema": Case(lambda b: _cols(ta.ppo(b.close, 12, 26, mamode="ema"), "PPO_"), lambda b: [T.PPO(b.close, 12, 26, 1)]),
+    # stochrsi's default k=3 smooths %K with an SMA of 3: TA-Lib's fast %D.
+    "stochrsi-k-3": Case(
+        lambda b: _cols(ta.stochrsi(b.close, length=14, rsi_length=14, k=3, d=3), "STOCHRSIk_"), lambda b: [T.STOCHRSI(b.close, 14, 14, 3, 0)[1]]
+    ),
 }
 
 # sarext's options, each family on its own (offsetonreverse, startvalue and the
@@ -503,6 +517,11 @@ if _TALIB_08:
         "does not clamp STOCH or STOCHF, so clamping willr would split it from stochf, and clamping all four "
         "would break STOCH/STOCHF parity"
     )
+    KNOWN_DIFFERENCES[("mfi", "spy_full")] = (
+        "TALIB: TA-Lib 0.8 (not 0.7) is off by up to 6.7 on 28 bars between 333 and 458 of SPY_D, starting where "
+        "two typical prices are equal in exact arithmetic but 1.4e-14 apart in floating point; native counts that "
+        "as an up move and matches a plain loop over the definition to 3e-14"
+    )
 else:
     KNOWN_DIFFERENCES[("stochrsi", "flat_block")] = _STOCHRSI_NOISE
     KNOWN_DIFFERENCES[("stochrsi", "planted")] = _STOCHRSI_NOISE
@@ -528,23 +547,51 @@ def test_native_matches_talib(name: str, frame: str, frames) -> None:
     assert not problems, f"{name} on {frame}: " + "; ".join(problems)
 
 
-# These seed like TA-Lib, so their first value sits on TA-Lib's first bar, also
-# after missing bars: the Wilder-smoothed family and the Hilbert transform (whose
-# lookback is 32 or 63 bars). _disagreement() starts at the first bar both sides
-# fill and would accept a warm-up one bar off. Bars whose input is missing are
-# left out: native reads NaN there, TA-Lib zero-fills ht_trendmode's integers.
-SAME_WARMUP = ("adx", "adxr", "atr", "dx", "minus_dm", "plus_dm", "rsi", "true_range")
-SAME_WARMUP += ("ht_dcperiod", "ht_dcphase", "ht_phasor", "ht_sine", "ht_trendline", "ht_trendmode")
+# _disagreement() starts at the first bar both sides fill, so a value one bar
+# early or late passes it. Every case also publishes its first value on TA-Lib's
+# bar, except these, where TA-Lib's lookback is a convention of its own.
+_TALIB_ALIGNS_TO_SIGNAL = "TALIB: TA-Lib starts every MACD output where the signal line starts (bar 33); native starts the MACD line at bar 25"
+_TALIB_ALIGNS_K_TO_D = "TALIB: TA-Lib starts %K where %D starts, two bars later; native publishes %K as soon as it has a value"
+WARMUP_DIFFERENCES = {
+    "macd": _TALIB_ALIGNS_TO_SIGNAL,
+    "macdext": _TALIB_ALIGNS_TO_SIGNAL,
+    "macdfix": _TALIB_ALIGNS_TO_SIGNAL,
+    "stoch": _TALIB_ALIGNS_K_TO_D,
+    "stochf": _TALIB_ALIGNS_K_TO_D,
+    "stochrsi": _TALIB_ALIGNS_K_TO_D,
+    "mavp": "TALIB: MAVP's lookback is its maximum period (30) whatever periods the bars ask for; native starts at the window a bar asks for",
+    "pvt": "TALIB: PVT reads 0 on bar 0; native has no previous close there and reads NaN",
+}
 
 
-@pytest.mark.parametrize("frame", ["spy", "nan_prefix"])
-@pytest.mark.parametrize("name", SAME_WARMUP)
+def _warmup_mismatch(native, oracle, real: np.ndarray) -> str | None:
+    """Where the NaN masks differ on the bars with input, or None. TA-Lib zero-fills ht_trendmode's
+    integers where the input is missing, and native reads NaN there, so those bars are left out."""
+    native_nan, oracle_nan = np.isnan(np.asarray(native, dtype=float)), np.isnan(np.asarray(oracle, dtype=float))
+    differ = np.flatnonzero((native_nan != oracle_nan) & real)
+    if not differ.size:
+        return None
+    first = lambda nan: int(np.flatnonzero(~nan & real)[0]) if (~nan & real).any() else None
+    return f"first value at bar {first(native_nan)}, TA-Lib at {first(oracle_nan)} ({differ.size} bars differ)"
+
+
+@pytest.mark.parametrize("frame", ["spy", "nan_prefix", "spy_full"])
+@pytest.mark.parametrize("name", params([(name,) for name in sorted(_CASES)], {(name,): reason for name, reason in WARMUP_DIFFERENCES.items()}))
 def test_warmup_matches_talib(name: str, frame: str, frames) -> None:
-    case, bars = ORACLE[name], frames[frame]
+    case, bars = _CASES[name], frames[frame]
     real = np.isfinite(bars.close.to_numpy())
-    for i, (native, oracle) in enumerate(zip(case.native(bars), case.oracle(bars))):
-        native_nan, oracle_nan = np.isnan(np.asarray(native, dtype=float))[real], np.isnan(np.asarray(oracle, dtype=float))[real]
-        assert np.array_equal(native_nan, oracle_nan), f"{name} column {i} on {frame}: first value at bar {np.argmin(native_nan)}, TA-Lib at {np.argmin(oracle_nan)}"
+    native, oracle = case.native(bars), case.oracle(bars)
+    assert len(native) == len(oracle), f"{len(native)} native columns vs {len(oracle)} TA-Lib outputs"
+    problems = [f"column {i}: {d}" for i, (n, o) in enumerate(zip(native, oracle)) if (d := _warmup_mismatch(n, o, real))]
+    assert not problems, f"{name} on {frame}: " + "; ".join(problems)
+
+
+def test_warmup_mismatch_rejects_a_shifted_start() -> None:
+    oracle = np.r_[np.full(5, np.nan), np.arange(10.0)]
+    real = np.ones(15, dtype=bool)
+    assert _warmup_mismatch(oracle, oracle, real) is None
+    assert _warmup_mismatch(np.r_[np.nan * np.ones(4), np.arange(11.0)], oracle, real) == "first value at bar 4, TA-Lib at 5 (1 bars differ)"
+    assert _warmup_mismatch(np.r_[np.nan * np.ones(6), np.arange(9.0)], oracle, real) == "first value at bar 6, TA-Lib at 5 (1 bars differ)"
 
 
 def test_disagreement_rejects_a_wrong_result() -> None:
@@ -630,15 +677,21 @@ def test_sarext_matches_talib_on_a_long_walk(kwargs: dict, seed: int) -> None:
 
 @pytest.mark.parametrize("frame", FRAMES)
 def test_window_index_matches_talib_up_to_ties(frame: str, frames) -> None:
-    """TA-Lib returns the absolute index: MAXINDEX = maxindex + i - length + 1, except where a tie picks another bar."""
+    """TA-Lib returns the absolute index: MAXINDEX = maxindex + i - length + 1, except where a tie picks another bar.
+
+    TA-Lib returns an integer even for a window with missing bars, so only the
+    windows of 30 real bars are compared, and native must have a value on each."""
     close = frames[frame].close
     values, bars = close.to_numpy(float), np.arange(close.size)
     start = bars[29:] - 29
+    full = (close.rolling(30).count() == 30).to_numpy()[29:]
+    assert full.any(), f"no full window on {frame}"
     for func, oracle in ((ta.maxindex, T.MAXINDEX), (ta.minindex, T.MININDEX)):
         got = func(close, length=30).to_numpy(float)[29:]
         expected = np.asarray(oracle(close, 30), float)[29:] - start
-        valid = np.isfinite(got) & np.isfinite(expected)
-        np.testing.assert_array_equal(values[start + np.nan_to_num(got).astype(int)][valid], values[start + np.nan_to_num(expected).astype(int)][valid])
+        assert np.isfinite(got[full]).all(), f"{func.__name__} reads NaN in a window of 30 real bars on {frame}"
+        picked = values[start[full] + got[full].astype(int)]
+        np.testing.assert_array_equal(picked, values[start[full] + expected[full].astype(int)], err_msg=f"{func.__name__} on {frame}")
 
 
 # ---------------------------------------------------------------------------

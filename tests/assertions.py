@@ -110,7 +110,7 @@ def assert_none_guard(test_case, func, args, none_arg_idx=0, **kwargs):
 # ---------------------------------------------------------------------------
 #
 # Used by tests/oracle/test_oracle_registry.py. Native and TA-Lib results agree
-# to rounding: measured over the 71 SPY_D comparisons that registry took over
+# to rounding: measured over the 71 assert_talib calls on SPY_D that preceded it
 # (TA-Lib 0.8.2 and 0.7.1), the worst column (`adosc`, whose values reach
 # 6e8) needs |actual - expected| <= 2e-10 * (1 + |expected|) with TA-Lib 0.8.2
 # (1.1e-10 with 0.7.1), 1.9% of TALIB_ATOL + TALIB_RTOL * |expected|.  That

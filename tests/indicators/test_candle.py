@@ -281,7 +281,7 @@ class TestCandlePatternsOnBarsThatTriggerThem(TestCase):
     """Fourteen patterns on bars built to satisfy their conditions, plus the six
     two-sided ones mirrored to fire the opposite sign.
 
-    Compared with TA-Lib over the last 2000 bars of SPY_D, 59 patterns
+    Compared with TA-Lib over the last 2000 bars of SPY_D, the patterns
     agree on every bar -- but eight of them
     return 0 for all 2000 rows, so that agreement said nothing about the branch
     that emits the signal, and six more fire between one and four times, resting
