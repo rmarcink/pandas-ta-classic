@@ -9,16 +9,8 @@ from tests.assertions import (
     IndicatorSpec,
     assert_all_nan,
     assert_indicator_standard,
-    assert_talib,
 )
 from tests.config import get_sample_data
-
-try:
-    import talib
-
-    HAS_TALIB = True
-except ImportError:
-    HAS_TALIB = False
 
 
 class TestStatistics(TestCase):
@@ -176,7 +168,7 @@ class TestStatistics(TestCase):
         )
 
     def test_stdev(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.stdev,
@@ -186,8 +178,6 @@ class TestStatistics(TestCase):
                 length_override=20,
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.STDDEV(self.close, 30))
 
     def test_tos_stdevall(self):
         assert_indicator_standard(
@@ -218,7 +208,7 @@ class TestStatistics(TestCase):
         assert_all_nan(self, pandas_ta.tos_stdevall(self.close.iloc[:5], length=30))
 
     def test_variance(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.variance,
@@ -228,8 +218,6 @@ class TestStatistics(TestCase):
                 length_override=20,
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.VAR(self.close, 30))
 
     def test_zscore(self):
         assert_indicator_standard(

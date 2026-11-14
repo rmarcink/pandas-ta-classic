@@ -109,8 +109,9 @@ def assert_none_guard(test_case, func, args, none_arg_idx=0, **kwargs):
 # TA-Lib comparison
 # ---------------------------------------------------------------------------
 #
-# Native and TA-Lib results agree to rounding: measured over all 71
-# assert_talib calls on SPY_D, the worst column (`adosc`, whose values reach
+# Used by tests/oracle/test_oracle_registry.py. Native and TA-Lib results agree
+# to rounding: measured over the 71 SPY_D comparisons that registry took over
+# (TA-Lib 0.8.2 and 0.7.1), the worst column (`adosc`, whose values reach
 # 6e8) needs |actual - expected| <= 2e-10 * (1 + |expected|) with TA-Lib 0.8.2
 # (1.1e-10 with 0.7.1), 1.9% of TALIB_ATOL + TALIB_RTOL * |expected|.  That
 # leaves ~50x margin for other TA-Lib releases and BLAS builds in the CI matrix.
@@ -125,20 +126,6 @@ def assert_none_guard(test_case, func, args, none_arg_idx=0, **kwargs):
 # whose default rtol of 1e-5 was three orders looser than TALIB_RTOL.
 TALIB_ATOL = 1e-9
 TALIB_RTOL = 1e-8
-
-
-def assert_talib(test_case, result, expected):
-    """*result* equals TA-Lib's *expected* within TALIB_ATOL + TALIB_RTOL * |expected|.
-
-    Columns are compared by position (TA-Lib's names differ), and NaN must sit
-    exactly where TA-Lib has NaN, so a different warm-up length fails too.
-    """
-    actual = result.to_numpy(dtype=float)
-    wanted = np.asarray(expected, dtype=float)
-    test_case.assertEqual(actual.shape, wanted.shape, "result and TA-Lib output differ in shape")
-    if isinstance(expected, (Series, DataFrame)):
-        test_case.assertTrue(result.index.equals(expected.index), "result and TA-Lib output differ in index")
-    np.testing.assert_allclose(actual, wanted, rtol=TALIB_RTOL, atol=TALIB_ATOL, equal_nan=True)
 
 
 def assert_indicator_standard(test_case, spec: IndicatorSpec):

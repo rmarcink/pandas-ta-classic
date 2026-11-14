@@ -7,16 +7,8 @@ import pandas_ta_classic as pandas_ta
 from tests.assertions import (
     IndicatorSpec,
     assert_indicator_standard,
-    assert_talib,
 )
 from tests.config import get_sample_data
-
-try:
-    import talib
-
-    HAS_TALIB = True
-except ImportError:
-    HAS_TALIB = False
 
 
 class TestMath(TestCase):
@@ -39,7 +31,7 @@ class TestMath(TestCase):
     # -----------------------------------------------------------------------
 
     def test_add(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.add,
@@ -47,11 +39,9 @@ class TestMath(TestCase):
                 expected_name="ADD",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.ADD(self.close, self.open))
 
     def test_sub(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.sub,
@@ -59,11 +49,9 @@ class TestMath(TestCase):
                 expected_name="SUB",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.SUB(self.close, self.open))
 
     def test_div(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.div,
@@ -71,11 +59,9 @@ class TestMath(TestCase):
                 expected_name="DIV",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.DIV(self.close, self.open))
 
     def test_mult(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.mult,
@@ -83,15 +69,13 @@ class TestMath(TestCase):
                 expected_name="MULT",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.MULT(self.close, self.open))
 
     # -----------------------------------------------------------------------
     # Rolling operators
     # -----------------------------------------------------------------------
 
     def test_rolling_max(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.rolling_max,
@@ -100,11 +84,9 @@ class TestMath(TestCase):
                 length_override=20,
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.MAX(self.close, 30))
 
     def test_rolling_min(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.rolling_min,
@@ -113,11 +95,9 @@ class TestMath(TestCase):
                 length_override=20,
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.MIN(self.close, 30))
 
     def test_rolling_sum(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.rolling_sum,
@@ -126,8 +106,6 @@ class TestMath(TestCase):
                 length_override=20,
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.SUM(self.close, 30))
 
     def test_rolling_max_length_invalid_raises(self):
         with self.assertRaises(ValueError):
@@ -164,16 +142,6 @@ class TestMath(TestCase):
         for func in (pandas_ta.maxindex, pandas_ta.minindex):
             self.assertEqual(np.isnan(func(s, length=3).to_numpy()).tolist(), [True] * 5 + [False] * 2)
 
-    def test_window_index_matches_talib_up_to_ties(self):
-        # TA-Lib returns the absolute index: talib = result + i - length + 1, except where a tie picks another bar
-        if not HAS_TALIB:
-            self.skipTest("TA-Lib not installed")
-        close = self.close.to_numpy(float)
-        bars = np.arange(close.size)
-        for func, oracle in ((pandas_ta.maxindex, talib.MAXINDEX), (pandas_ta.minindex, talib.MININDEX)):
-            got = func(self.close, length=30).to_numpy(float)[29:]
-            expected = np.asarray(oracle(self.close, 30), float)[29:] - (bars[29:] - 29)
-            np.testing.assert_array_equal(close[bars[29:] - 29 + got.astype(int)], close[bars[29:] - 29 + expected.astype(int)])
 
     def test_maxindex(self):
         assert_indicator_standard(
@@ -250,7 +218,7 @@ class TestMath(TestCase):
         )
 
     def test_atan(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.atan,
@@ -258,11 +226,9 @@ class TestMath(TestCase):
                 expected_name="ATAN",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.ATAN(self.close))
 
     def test_ceil(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.ceil,
@@ -270,11 +236,9 @@ class TestMath(TestCase):
                 expected_name="CEIL",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.CEIL(self.close))
 
     def test_cos(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.cos,
@@ -282,8 +246,6 @@ class TestMath(TestCase):
                 expected_name="COS",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.COS(self.close))
 
     def test_cosh(self):
         assert_indicator_standard(
@@ -296,7 +258,7 @@ class TestMath(TestCase):
         )
 
     def test_exp(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.exp,
@@ -304,11 +266,9 @@ class TestMath(TestCase):
                 expected_name="EXP",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.EXP(self.close))
 
     def test_floor(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.floor,
@@ -316,11 +276,9 @@ class TestMath(TestCase):
                 expected_name="FLOOR",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.FLOOR(self.close))
 
     def test_ln(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.ln,
@@ -328,11 +286,9 @@ class TestMath(TestCase):
                 expected_name="LN",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.LN(self.close))
 
     def test_log10(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.log10,
@@ -340,11 +296,9 @@ class TestMath(TestCase):
                 expected_name="LOG10",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.LOG10(self.close))
 
     def test_sin(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.sin,
@@ -352,8 +306,6 @@ class TestMath(TestCase):
                 expected_name="SIN",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.SIN(self.close))
 
     def test_sinh(self):
         assert_indicator_standard(
@@ -366,7 +318,7 @@ class TestMath(TestCase):
         )
 
     def test_sqrt(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.sqrt,
@@ -374,11 +326,9 @@ class TestMath(TestCase):
                 expected_name="SQRT",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.SQRT(self.close))
 
     def test_tan(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.tan,
@@ -386,11 +336,9 @@ class TestMath(TestCase):
                 expected_name="TAN",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.TAN(self.close))
 
     def test_tanh(self):
-        result = assert_indicator_standard(
+        assert_indicator_standard(
             self,
             IndicatorSpec(
                 func=pandas_ta.tanh,
@@ -398,8 +346,6 @@ class TestMath(TestCase):
                 expected_name="TANH",
             ),
         )
-        if HAS_TALIB:
-            assert_talib(self, result, talib.TANH(self.close))
 
     # -----------------------------------------------------------------------
     # tulipy extras

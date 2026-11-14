@@ -7,16 +7,9 @@ from pandas import DataFrame, Series
 
 import pandas_ta_classic as pandas_ta
 from pandas_ta_classic.utils._cpr import get_previous_period_ohlcv
-from tests.assertions import IndicatorSpec, assert_all_nan, assert_indicator_standard, assert_talib
+from tests.assertions import IndicatorSpec, assert_all_nan, assert_indicator_standard
 from tests.config import get_sample_data
 from tests.contracts import spy as _spy
-
-try:
-    import talib
-
-    HAS_TALIB = True
-except ImportError:
-    HAS_TALIB = False
 
 
 class TestTrend(TestCase):
@@ -48,9 +41,6 @@ class TestTrend(TestCase):
         pass
 
     def test_adx(self):
-        result = pandas_ta.adx(self.high, self.low, self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result.iloc[:, 0], talib.ADX(self.high, self.low, self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -88,11 +78,6 @@ class TestTrend(TestCase):
         )
 
     def test_aroon(self):
-        result = pandas_ta.aroon(self.high, self.low, talib=False)
-        if HAS_TALIB:
-            aroond, aroonu = talib.AROON(self.high, self.low)
-            expecteddf = DataFrame({"AROOND_14": aroond, "AROONU_14": aroonu})
-            assert_talib(self, result.iloc[:, :2], expecteddf)  # TA-Lib's AROON has no oscillator column
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -103,11 +88,6 @@ class TestTrend(TestCase):
                 expected_columns=["AROOND_14", "AROONU_14", "AROONOSC_14"],
             ),
         )
-
-    def test_aroon_osc(self):
-        result = pandas_ta.aroon(self.high, self.low)
-        if HAS_TALIB:
-            assert_talib(self, result.iloc[:, 2], talib.AROONOSC(self.high, self.low))
 
     def test_chop(self):
         result = pandas_ta.chop(self.high, self.low, self.close, ln=True)
@@ -552,9 +532,6 @@ class TestTrend(TestCase):
             pandas_ta.long_run(self.close, None)
 
     def test_dx(self):
-        result = pandas_ta.dx(self.high, self.low, self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.DX(self.high, self.low, self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -565,9 +542,6 @@ class TestTrend(TestCase):
         )
 
     def test_minus_dm(self):
-        result = pandas_ta.minus_dm(self.high, self.low, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.MINUS_DM(self.high, self.low))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -578,9 +552,6 @@ class TestTrend(TestCase):
         )
 
     def test_plus_dm(self):
-        result = pandas_ta.plus_dm(self.high, self.low, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.PLUS_DM(self.high, self.low))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -599,12 +570,6 @@ class TestTrend(TestCase):
                 pandas_ta.psar(self.high, self.low, self.close, talib=value)
 
     def test_psar(self):
-        result = pandas_ta.psar(self.high, self.low)
-        if HAS_TALIB:
-            # TA-Lib's SAR is one line; native splits it into long and short. combine_first,
-            # unlike the old fillna(0) sum, keeps the first bar NaN where both are.
-            psar_combined = result.iloc[:, 0].combine_first(result.iloc[:, 1])
-            assert_talib(self, psar_combined, talib.SAR(self.high, self.low))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -922,45 +887,6 @@ def test_cpr_weekly_pivot_on_spy():
     expected = (prev.high + prev.low + prev.close) / 3
     got = pandas_ta.cpr(d.open, d.high, d.low, d.close, timeframe="weekly")["CPR_PIVOT"]
     pd.testing.assert_series_equal(got, expected, check_names=False)
-
-
-# ---------------------------------------------------------------------------
-# sarext native vs TA-Lib, every parameter, not only the defaults
-# (offsetonreverse, startvalue and the long acceleration factors diverged).
-# ---------------------------------------------------------------------------
-
-needs_talib = pytest.mark.skipif(not pandas_ta.Imports["talib"], reason="TA-Lib not installed")
-
-_SAREXT_CASES = {
-    "defaults": {},
-    "offsetonreverse": {"offsetonreverse": 0.01},
-    "startvalue-long": {"startvalue": 100.0},
-    "startvalue-short": {"startvalue": -150.0},
-    "long-acceleration": {"accelerationinitlong": 0.01, "accelerationlong": 0.03, "accelerationmaxlong": 0.25},
-    "short-acceleration": {"accelerationinitshort": 0.04, "accelerationshort": 0.01, "accelerationmaxshort": 0.1},
-    "init-above-max": {"accelerationinitlong": 0.5, "accelerationmaxlong": 0.2, "accelerationshort": 0.5, "accelerationmaxshort": 0.3},
-}
-
-
-def _random_walk_hl(seed: int, n: int = 5000) -> pd.DataFrame:
-    rng = np.random.default_rng(seed)
-    # From 200, not 100: seed 0's walk fell to -11.85, and sarext reads NaN, with a
-    # warning, where high or low is at or below zero (#345). A shift changes no SAR step.
-    c = 200 + np.cumsum(rng.normal(0, 1, n))
-    o = np.r_[c[0], c[:-1]]
-    return pd.DataFrame({"high": np.maximum(o, c) + rng.random(n), "low": np.minimum(o, c) - rng.random(n)})
-
-
-@needs_talib
-@pytest.mark.parametrize("kwargs", list(_SAREXT_CASES.values()), ids=list(_SAREXT_CASES))
-@pytest.mark.parametrize("data", ["spy", "walk0", "walk3"])
-def test_sarext_native_matches_talib(kwargs, data):
-    import talib
-
-    d = _spy() if data == "spy" else _random_walk_hl(int(data[-1]))
-    got = pandas_ta.sarext(d.high, d.low, talib=False, **kwargs).to_numpy(float)
-    expected = talib.SAREXT(d.high.to_numpy(float), d.low.to_numpy(float), **kwargs)
-    np.testing.assert_allclose(got, expected, rtol=0, atol=1e-10, equal_nan=True)
 
 
 # ---------------------------------------------------------------------------
