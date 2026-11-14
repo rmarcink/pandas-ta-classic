@@ -197,6 +197,8 @@ class TestStatistics(TestCase):
                 ],
             ),
         )
+        # length defaults to None (the whole series), which test_parameter_name_contract.py does not sweep
+        self.assertEqual(pandas_ta.tos_stdevall(self.close, length=30).name, "TOS_STDEVALL_30")
         # stds unsorted → auto-reversed and still computes
         self.assertIsNotNone(pandas_ta.tos_stdevall(self.close, stds=[3, 2, 1]))
         # stds contains non-positive value → return None

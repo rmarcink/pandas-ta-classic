@@ -22,7 +22,7 @@ Two tables pin the two outcomes on a 3-row OHLCV frame:
     returned as columns.
 
 A required Series passed as ``None`` is no input rather than short input: a
-price Series gives ``None``, an input in ``_NONE_RAISES`` raises ``ValueError``.
+Series gives ``None``, an input in ``_NONE_RAISES`` raises ``ValueError``.
 """
 
 from __future__ import annotations
@@ -424,7 +424,7 @@ _NONE_RAISES = {
 
 @pytest.mark.parametrize(("name", "param"), _required_series(), ids=lambda value: value)
 def test_a_missing_required_series_returns_none(name: str, param: str) -> None:
-    """``None`` for a required price Series is no input at all: the result is ``None``, not an exception."""
+    """``None`` for a required Series is no input at all: the result is ``None``; an input in ``_NONE_RAISES`` raises, naming it."""
     kwargs = inputs(name, spy(60))
     kwargs[param] = None
     if (name, param) in _NONE_RAISES:

@@ -31,7 +31,7 @@ Unit Tests
 Uses ``IndicatorSpec``-based assertions (``assert_indicator_standard``:
 type, name and columns of a call) against real market data from
 ``SPY_D.csv``. ``offset``, ``fillna``, a missing input and the name of a
-changed parameter are checked for every indicator by the contracts below.
+changed parameter are checked registry-wide by the contracts below.
 
 **Run:** ``python -m unittest tests.indicators.test_momentum -v``
 
@@ -161,7 +161,7 @@ Edge-Case Tests
   shorter than its window returns an all-NaN result indexed like the input
   and shaped like a normal one (it returned ``None`` before 0.9.0); an
   indicator with no window, or a window the input fits, returns values. A
-  required price Series passed as ``None`` returns ``None``; an input no
+  required Series passed as ``None`` returns ``None``; an input no
   OHLCV column stands for (``fast``/``slow``, ``trend``, ``signal``,
   ``periods``) raises ``ValueError`` naming it.
 - ``test_leading_nan_contract.py`` — for every registered indicator, a
