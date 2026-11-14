@@ -203,3 +203,8 @@ class TestExtVolumeDeeper(AccessorValueCase):
         self.assertTrue(len(vwm_cols) >= 1, "No VWMACD columns appended")
         for col in vwm_cols:
             self._check_appended(df, col)
+
+    def test_rvol_ext(self):
+        df = self.fresh()
+        df.ta.rvol(append=True)
+        self._check_appended(df, "RVOL_20")

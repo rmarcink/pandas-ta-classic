@@ -481,3 +481,19 @@ class TestMfiWarmup(TestCase):
         expected = 100 * up / (up + down)
         result = pandas_ta.mfi(d.high, d.low, d.close, d.volume)
         np.testing.assert_allclose(result.iloc[14:], expected.iloc[14:], rtol=1e-12)
+
+
+class TestRvol(TestCase):
+    def test_the_bar_is_not_part_of_its_own_average(self):
+        volume = pd.Series([10.0, 10.0, 10.0, 40.0])
+        np.testing.assert_array_equal(pandas_ta.rvol(volume, 3).to_numpy(), [np.nan, np.nan, np.nan, 4.0])
+
+    def test_constant_volume_reads_one(self):
+        volume = pd.Series(500.0, index=range(30))
+        self.assertTrue((pandas_ta.rvol(volume, 20).dropna() == 1.0).all())
+
+    def test_volume_after_a_window_without_any_is_inf_and_none_over_none_is_nan(self):
+        volume = pd.Series([0.0, 0.0, 0.0, 0.0, 7.0])
+        result = pandas_ta.rvol(volume, 3)
+        self.assertTrue(np.isnan(result.iloc[3]))
+        self.assertTrue(np.isinf(result.iloc[4]))

@@ -356,3 +356,20 @@ def test_stdev_forwards_min_periods():
     got = pandas_ta.stdev(x, 5, min_periods=3)
     np.testing.assert_allclose(got, x.rolling(5, min_periods=3).std(ddof=0), equal_nan=True)
     assert np.isfinite(got.iloc[2])
+
+
+class TestPercentrank(TestCase):
+    def test_counts_the_earlier_values_strictly_below(self):
+        x = pd.Series([1.0, 2.0, 2.0, 3.0, 0.0])
+        # bar 3: 1, 2, 2 are below 3 -> 100; bar 4: none of 2, 2, 3 is below 0 -> 0
+        np.testing.assert_array_equal(pandas_ta.percentrank(x, 3).to_numpy(), [np.nan, np.nan, np.nan, 100.0, 0.0])
+
+    def test_a_tie_is_not_below(self):
+        x = pd.Series([5.0, 5.0, 5.0])
+        self.assertEqual(pandas_ta.percentrank(x, 2).iloc[-1], 0.0)
+
+    def test_a_missing_bar_in_the_window_has_no_rank(self):
+        x = pd.Series([1.0, np.nan, 2.0, 3.0, 4.0, 5.0])
+        result = pandas_ta.percentrank(x, 2)
+        self.assertTrue(result.iloc[:4].isna().all())
+        self.assertEqual(result.iloc[4], 100.0)

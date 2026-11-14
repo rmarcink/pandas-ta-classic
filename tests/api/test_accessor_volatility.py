@@ -201,3 +201,13 @@ class TestExtVolatilityDeeper(AccessorValueCase):
         self._check_appended(df, "UI_14")
         valid = df["UI_14"].dropna()
         self.assertTrue((valid >= 0).all(), "UI has negative values")
+
+    def test_adr_ext(self):
+        df = self.fresh()
+        df.ta.adr(append=True)
+        self._check_appended(df, "ADR_14")
+
+    def test_rogerssatchell_ext(self):
+        df = self.fresh()
+        df.ta.rogerssatchell(append=True)
+        self._check_appended(df, "RS_10")

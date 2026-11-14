@@ -95,6 +95,7 @@ LEVEL_IS_THE_ANSWER: dict[str, str] = {
     "cg": "divides by the window's price sum, which is zero somewhere when the series crosses zero",
     "entropy": "treats price / sum(price) as a probability; negative prices are not a distribution",
     "beta": "regresses percent returns of close on benchmark: " + _PERCENT,
+    "crsi": "ranks the one-bar roc of close: " + _PERCENT,
     # price times volume
     "mfi": "money flow is typical price * volume; a negative price turns inflow into outflow",
     "pvol": "price * volume: a level, not a difference",
@@ -107,6 +108,7 @@ LEVEL_IS_THE_ANSWER: dict[str, str] = {
     "log_return": _LOG,
     "hvol": "annualised stdev of log returns: " + _LOG,
     "avolume": "uses log returns: " + _LOG,
+    "rogerssatchell": "logs of high, low over open, close: " + _LOG,
 }
 LEVEL_COLUMNS: dict[str, str] = {
     "BBB_": "bandwidth: 100 * (upper - lower) / mid, " + _PERCENT,

@@ -626,6 +626,8 @@ _ZERO_VOLUME_WINDOW_NAN = "KEPT: a window with no volume is 0/0 and reads NaN; 0
 _NO_VOLUME_NO_PRICE = "KEPT: a volume-weighted price over a window with no volume is undefined, so it reads NaN; 0.0 would be a price"
 _KNOWN_EXCEPTIONS: dict[tuple[str, str, str], str] = {
     ("inf", "emv", "zero_volume"): _X_OVER_ZERO_VOLUME,
+    ("inf", "rvol", "zero_volume"): "TALIB: the first volume after a window with none is a real division by zero and reads inf, as TA-Lib's RVOL does",
+    ("bleed", "rvol", "zero_volume"): "TALIB: no volume over a window with none is 0/0 and reads NaN, as TA-Lib's RVOL does; 0.0 would report a volume far below its average",
     ("inf", "marketfi", "zero_volume"): "KEPT: a bar with a range and no volume reads inf, on purpose (marketfi entry in CHANGELOG.md)",
     ("bleed", "eom", "zero_volume"): _X_OVER_ZERO_VOLUME
     + "; sma() turns the inf into NaN for the 146 bars whose window holds one, and no others",

@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+import numpy as np
+import pandas as pd
 from pandas import DataFrame, Series
 
 import pandas_ta_classic as pandas_ta
@@ -295,3 +297,30 @@ class TestVolatility(TestCase):
                 expected_columns=["HWM", "HWU", "HWL"],
             ),
         )
+
+
+class TestTalib08Volatility(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.data = get_sample_data()
+
+    def test_adr_is_the_sma_of_the_bar_range(self):
+        d = self.data
+        np.testing.assert_allclose(pandas_ta.adr(d.high, d.low, 14), (d.high - d.low).rolling(14).mean(), rtol=1e-12, equal_nan=True)
+
+    def test_rogerssatchell_does_not_depend_on_the_price_unit(self):
+        d = self.data
+        base = pandas_ta.rogerssatchell(d.open, d.high, d.low, d.close)
+        scaled = pandas_ta.rogerssatchell(d.open * 1e-4, d.high * 1e-4, d.low * 1e-4, d.close * 1e-4)
+        np.testing.assert_allclose(scaled, base, rtol=1e-9, equal_nan=True)
+
+    def test_rogerssatchell_is_zero_on_bars_that_never_move(self):
+        flat = pd.Series(100.0, index=range(30))
+        self.assertTrue((pandas_ta.rogerssatchell(flat, flat, flat, flat).dropna() == 0.0).all())
+
+    def test_rogerssatchell_annualization_scales_by_its_root(self):
+        d = self.data
+        daily = pandas_ta.rogerssatchell(d.open, d.high, d.low, d.close, annualization=1)
+        yearly = pandas_ta.rogerssatchell(d.open, d.high, d.low, d.close)
+        np.testing.assert_allclose(yearly, daily * np.sqrt(252), rtol=1e-12, equal_nan=True)
+        self.assertEqual(daily.name, "RS_10_annualization1")

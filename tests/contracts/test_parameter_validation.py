@@ -607,8 +607,8 @@ _FAST_SLOW_SERIES = {"long_run", "short_run"}
 FAST_SLOW = [n for n in INDICATORS if {"fast", "slow"} <= set(inspect.signature(getattr(ta, n)).parameters) and n not in _FAST_SLOW_SERIES]
 
 
-def test_the_fast_slow_set_is_the_nineteen_of_374():
-    assert len(FAST_SLOW) == 19, FAST_SLOW
+def test_the_fast_slow_set_is_the_nineteen_of_374_and_ac():
+    assert len(FAST_SLOW) == 20, FAST_SLOW
 
 
 @pytest.mark.parametrize("name", FAST_SLOW)

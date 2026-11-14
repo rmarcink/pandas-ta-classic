@@ -5,6 +5,7 @@ from pandas_ta_classic._lazy_subpackage import install_lazy_subpackage
 install_lazy_subpackage(__name__)
 
 if TYPE_CHECKING:
+    from .ac import ac as ac
     from .ao import ao as ao
     from .apo import apo as apo
     from .bias import bias as bias
@@ -15,12 +16,15 @@ if TYPE_CHECKING:
     from .cg import cg as cg
     from .cmo import cmo as cmo
     from .coppock import coppock as coppock
+    from .crsi import crsi as crsi
     from .cti import cti as cti
     from .dm import dm as dm
     from .er import er as er
     from .eri import eri as eri
     from .fisher import fisher as fisher
     from .fosc import fosc as fosc
+    from .ibs import ibs as ibs
+    from .imi import imi as imi
     from .inertia import inertia as inertia
     from .kdj import kdj as kdj
     from .kst import kst as kst

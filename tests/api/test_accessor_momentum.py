@@ -472,3 +472,25 @@ class TestExtMomentumDeeper(AccessorValueCase):
         col = [c for c in df.columns if c.startswith("WILLR")]
         self.assertTrue(len(col) >= 1, "No WILLR column appended")
         self._check_appended(df, col[0])
+
+    def test_ac_ext(self):
+        df = self.fresh()
+        df.ta.ac(append=True)
+        self._check_appended(df, "AC_5_34_5")
+
+    def test_crsi_ext(self):
+        df = self.fresh()
+        df.ta.crsi(append=True)
+        self._check_appended(df, "CRSI_3_2_100")
+
+    def test_ibs_ext(self):
+        df = self.fresh()
+        df.ta.ibs(append=True)
+        self._check_appended(df, "IBS")
+        valid = df["IBS"].dropna()
+        self.assertTrue(valid.between(0, 1).all(), "IBS out of [0, 1]")
+
+    def test_imi_ext(self):
+        df = self.fresh()
+        df.ta.imi(append=True)
+        self._check_appended(df, "IMI_14")

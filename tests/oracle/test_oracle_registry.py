@@ -373,6 +373,17 @@ ORACLE: dict[str, Case] = {
     "rolling_max": Case(lambda b: [ta.rolling_max(b.close, 10)], lambda b: [T.MAX(b.close, 10)]),
     "rolling_min": Case(lambda b: [ta.rolling_min(b.close, 10)], lambda b: [T.MIN(b.close, 10)]),
     "rolling_sum": Case(lambda b: [ta.rolling_sum(b.close, 10)], lambda b: [T.SUM(b.close, 10)]),
+    # Indicators added after TA-Lib 0.8, built to its definitions.
+    "ac": Case(lambda b: [ta.ac(b.high, b.low, 5, 34, 5)], lambda b: [T.AC(b.high, b.low, 5, 34, 5)]),
+    "adr": Case(lambda b: [ta.adr(b.high, b.low, 14)], lambda b: [T.ADR(b.high, b.low, 14)]),
+    "crsi": Case(lambda b: [ta.crsi(b.close, 3, 2, 100)], lambda b: [T.CRSI(b.close, 3, 2, 100)]),
+    "ibs": Case(lambda b: [ta.ibs(b.high, b.low, b.close)], lambda b: [T.IBS(b.high, b.low, b.close)]),
+    "imi": Case(lambda b: [ta.imi(b.open, b.close, 14)], lambda b: [T.IMI(b.open, b.close, 14)]),
+    "percentrank": Case(lambda b: [ta.percentrank(b.close, 100)], lambda b: [T.PERCENTRANK(b.close, 100)]),
+    "rogerssatchell": Case(
+        lambda b: [ta.rogerssatchell(b.open, b.high, b.low, b.close, 10, 252)], lambda b: [T.ROGERSSATCHELL(b.open, b.high, b.low, b.close, 10, 252.0)]
+    ),
+    "rvol": Case(lambda b: [ta.rvol(b.volume, 20)], lambda b: [T.RVOL(b.volume, 20)]),
 }
 
 # Elementwise math transforms map one to one onto a TA-Lib function of the same

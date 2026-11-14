@@ -138,3 +138,8 @@ class TestExtStatisticsDeeper(AccessorValueCase):
         df = self.fresh()
         df.ta.zscore(append=True)
         self._check_last_col(df)
+
+    def test_percentrank_ext(self):
+        df = self.fresh()
+        df.ta.percentrank(append=True)
+        self._check_appended(df, "PERCENTRANK_100")
