@@ -3,6 +3,7 @@ from unittest import TestCase
 from pandas import DataFrame
 
 import pandas_ta_classic  # noqa: F401  (registers the df.ta accessor)
+from tests.assertions import AccessorValueCase
 from tests.config import get_sample_data
 
 
@@ -60,3 +61,11 @@ class TestCylesExtension(TestCase):
         self.data.ta.ht_trendmode(append=True)
         self.assertIsInstance(self.data, DataFrame)
         self.assertEqual(self.data.columns[-1], "HT_TRENDMODE")
+
+
+class TestExtCyclesDeeper(AccessorValueCase):
+
+    def test_ebsw_ext(self):
+        df = self.fresh()
+        df.ta.ebsw(append=True)
+        self._check_last_col(df)

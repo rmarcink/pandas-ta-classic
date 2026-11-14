@@ -28,9 +28,9 @@ Read costs scale with context size. Only read directories relevant to the task �
 | Overlap / moving average | `pandas_ta_classic/overlap/` + `tests/indicators/test_overlap.py` |
 | Strategy system | `pandas_ta_classic/core.py` + `pandas_ta_classic/custom.py` + `tests/api/test_strategy.py` |
 | DataFrame accessor / API | `pandas_ta_classic/core.py` + `tests/api/test_accessor_api.py` + `tests/api/test_accessor_conformance.py` |
-| Utilities / helpers | `pandas_ta_classic/utils/` + `tests/utils/test_utils.py` |
+| Utilities / helpers | `pandas_ta_classic/utils/` + `tests/utils/test_utils_<module>.py` |
 | Math operators | `pandas_ta_classic/math/` + `tests/indicators/test_math.py` |
-| Testing infrastructure | `tests/config.py`, `tests/fixtures/`, `tests/assertions.py`, `tests/contracts/__init__.py` (shared harness of the registry-wide contracts) |
+| Testing infrastructure | `tests/config.py`, `tests/fixtures/`, `tests/assertions.py`, `tests/strategies.py` (shared Hypothesis strategies), `tests/contracts/__init__.py` (shared harness of the registry-wide contracts) |
 | CI / workflow | `.github/workflows/` only; add `AGENTS.md` if pipeline order changes |
 | Formatting / linting | `pyproject.toml` + the specific file under review |
 | Docs update | `docs/` + the specific doc file; `README.md`; `AGENTS.md` only if structure changes |
@@ -351,8 +351,9 @@ pytest tests/indicators/test_momentum.py -v
 # Specific test
 pytest tests/indicators/test_momentum.py::TestMomentum::test_rsi -v
 
-# Hypothesis property-based tests
+# Hypothesis property-based tests (indicators, then the utilities)
 pytest tests/indicators/test_property_based.py -v
+pytest tests/utils -v -k Properties
 
 # Docs build
 cd docs && make html SPHINXOPTS="-W"   # as CI; plain `make html` ignores warnings
@@ -414,6 +415,7 @@ python -m build
 ├── tests/                            # Test suite
 │   ├── config.py
 │   ├── assertions.py
+│   ├── strategies.py                 # Hypothesis strategies shared by the property tests
 │   ├── fixtures/                     # expected_values.json, regression_snapshots.json, tulipy_oracle.json, exact_reference.py, reference_ports.py
 │   ├── indicators/                   # test_<category>.py: what each indicator computes; edge cases, properties, numba parity
 │   ├── contracts/                    # registry-wide contracts; __init__.py is their shared harness

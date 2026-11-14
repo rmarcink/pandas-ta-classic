@@ -1,8 +1,10 @@
+import math
 from unittest import TestCase
 
 from pandas import DataFrame
 
 import pandas_ta_classic  # noqa: F401  (registers the df.ta accessor)
+from tests.assertions import AccessorValueCase
 from tests.config import get_sample_data
 
 
@@ -196,3 +198,51 @@ class TestTrendExtension(TestCase):
         self.data.ta.vhf(append=True)
         self.assertIsInstance(self.data, DataFrame)
         self.assertEqual(self.data.columns[-1], "VHF_28")
+
+
+class TestExtTrendDeeper(AccessorValueCase):
+
+    def test_adx_ext(self):
+        df = self.fresh()
+        df.ta.adx(append=True)
+        self._check_appended(df, "ADX_14")
+        valid = df["ADX_14"].dropna()
+        self.assertTrue((valid >= 0).all() and (valid <= 100).all(), "ADX out of [0,100]")
+
+    def test_aroon_ext(self):
+        df = self.fresh()
+        df.ta.aroon(append=True)
+        aroon_cols = [c for c in df.columns if c.startswith("AROON")]
+        self.assertTrue(len(aroon_cols) >= 2, "Expected at least 2 Aroon columns")
+        for col in aroon_cols:
+            self._check_appended(df, col)
+
+    def test_decay_ext(self):
+        df = self.fresh()
+        df.ta.decay(append=True)
+        self._check_last_col(df)
+
+    def test_psar_ext(self):
+        df = self.fresh()
+        df.ta.psar(append=True)
+        psar_cols = [c for c in df.columns if c.startswith("PSAR")]
+        self.assertTrue(len(psar_cols) >= 1, "No PSAR columns appended")
+        for col in psar_cols:
+            # PSARr column is binary (0/1); PSARl/PSARs are price levels or NaN
+            valid = df[col].dropna()
+            if not valid.empty:
+                self.assertTrue(
+                    all(math.isfinite(v) for v in valid),
+                    f"PSAR column {col!r} contains non-finite values",
+                )
+
+    def test_supertrend_ext(self):
+        df = self.fresh()
+        df.ta.supertrend(append=True)
+        self._check_appended(df, "SUPERT_7_3.0")
+
+    def test_vortex_ext(self):
+        df = self.fresh()
+        df.ta.vortex(append=True)
+        self._check_appended(df, "VTXP_14")
+        self._check_appended(df, "VTXM_14")

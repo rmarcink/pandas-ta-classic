@@ -1,21 +1,18 @@
 """
-Property-based tests for pandas-ta-classic indicator functions and core utilities.
+Property-based tests for pandas-ta-classic indicator functions.
 
 Uses Hypothesis to generate diverse inputs and verify invariants that hold
 across the entire input space — catching edge cases deterministic tests miss.
 
 Test categories
 ---------------
-1. **Core utility properties** — verify_series, apply_offset, apply_fill, etc.
-2. **Indicator output invariants** — type, length, name conventions.
-3. **Mathematical invariants** — bounding, monotonicity, relationships.
-4. **Edge-case robustness** — None guards, NaN propagation, constant inputs.
+1. **Indicator output invariants** — type, length, name conventions.
+2. **Mathematical invariants** — bounding, monotonicity, relationships.
+3. **Edge-case robustness** — None guards, NaN propagation, constant inputs.
 
-Strategy design
----------------
-We use ``hypothesis.extra.numpy`` and ``hypothesis.extra.pandas`` to generate
-realistic price series while also injecting pathological values (NaN, ±Inf,
-zero, negative) at controlled rates to probe boundary behaviour.
+The properties of the utilities live with their other tests in
+``tests/utils/test_utils_<module>.py``; the strategies are in
+``tests/strategies.py``.
 
 Running
 -------
@@ -27,151 +24,19 @@ Running
 import math
 import warnings
 from datetime import UTC, datetime
-from fractions import Fraction
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
 import pytest
 from hypothesis import HealthCheck, assume, example, given, settings, strategies as st
-from hypothesis.extra.numpy import arrays
 
 import pandas_ta_classic as ta
-from pandas_ta_classic.utils import (
-    apply_fill,
-    apply_offset,
-    df_error_analysis,
-    get_drift,
-    get_offset,
-    verify_series,
-)
+from pandas_ta_classic.utils import df_error_analysis
 from tests.config import get_sample_data
+from tests.strategies import ohlcv_dataframe, price_series
 
-# ---------------------------------------------------------------------------
-# Custom Hypothesis strategies
-# ---------------------------------------------------------------------------
-
-
-@st.composite
-def price_series(
-    draw,
-    min_size: int = 2,
-    max_size: int = 200,
-    allow_nan: bool = False,
-    nan_prob: float = 0.0,
-) -> pd.Series:
-    """Generate a realistic price-like Series.
-
-    Parameters
-    ----------
-    min_size, max_size : int
-        Length bounds.
-    allow_nan : bool
-        If True, each value is NaN with probability *nan_prob*.
-    nan_prob : float
-        Probability of a value being NaN, in (0, 1). Required with
-        *allow_nan*; a value above 0 without it is rejected.
-    """
-    if allow_nan != (nan_prob > 0) or not 0 <= nan_prob < 1:
-        raise ValueError(f"price_series() needs allow_nan=True with 0 < nan_prob < 1, or neither; got allow_nan={allow_nan}, nan_prob={nan_prob}")
-    n = draw(st.integers(min_value=min_size, max_value=max_size))
-    raw = draw(arrays(dtype=np.float64, shape=n, elements=st.floats(min_value=1.0, max_value=1000.0, width=64)))
-    if allow_nan:
-        # ``floats`` cannot combine allow_nan with min/max, so draw finite
-        # prices and replace each with NaN with probability nan_prob. The mask
-        # comes from a drawn seed: element-wise Hypothesis floats shrink towards
-        # 0.0 and would turn the whole series NaN.
-        rng = np.random.default_rng(draw(st.integers(min_value=0, max_value=2**32 - 1)))
-        raw[rng.random(n) < nan_prob] = np.nan
-    return pd.Series(raw, name="close")
-
-
-@st.composite
-def ohlcv_dataframe(draw, min_size: int = 20, max_size: int = 200):
-    """Generate a realistic OHLCV DataFrame compatible with ``df.ta`` accessor."""
-    n = draw(st.integers(min_value=min_size, max_value=max_size))
-
-    # Generate a base price and derive OHLC from it
-    base = (
-        np.cumsum(
-            draw(
-                arrays(
-                    dtype=np.float64,
-                    shape=n,
-                    elements=st.floats(min_value=-2.0, max_value=2.0, width=64, allow_nan=False),
-                )
-            )
-        )
-        + 100.0
-    )
-
-    df = pd.DataFrame(index=pd.RangeIndex(n))
-    df["open"] = base + draw(
-        arrays(
-            dtype=np.float64,
-            shape=n,
-            elements=st.floats(min_value=-1.0, max_value=1.0, width=64),
-        )
-    )
-    df["high"] = df["open"] + np.abs(
-        draw(
-            arrays(
-                dtype=np.float64,
-                shape=n,
-                elements=st.floats(min_value=0.1, max_value=3.0, width=64),
-            )
-        )
-    )
-    df["low"] = df["open"] - np.abs(
-        draw(
-            arrays(
-                dtype=np.float64,
-                shape=n,
-                elements=st.floats(min_value=0.1, max_value=3.0, width=64),
-            )
-        )
-    )
-    df["close"] = draw(
-        arrays(
-            dtype=np.float64,
-            shape=n,
-            elements=st.floats(min_value=df["low"].min(), max_value=df["high"].max(), width=64),
-        )
-    )
-    df["volume"] = np.abs(
-        draw(
-            arrays(
-                dtype=np.float64,
-                shape=n,
-                elements=st.floats(min_value=0.0, max_value=1e7, width=64),
-            )
-        )
-    )
-
-    # Ensure high >= low and close in range
-    df["high"] = np.maximum(df["high"], df[["open", "close"]].max(axis=1))
-    df["low"] = np.minimum(df["low"], df[["open", "close"]].min(axis=1))
-    # Real prices are positive, and a walk of 200 steps of -2 from 100 reaches -300.
-    # Lift the frame so its lowest price is 1: a shift keeps every bar-to-bar
-    # difference, and a level-dependent indicator reads NaN and warns at or below
-    # zero (#345), which is not what these tests are about.
-    prices = ["open", "high", "low", "close"]
-    df[prices] += max(0.0, 1.0 - float(df[prices].min().min()))
-    return df
-
-
-@st.composite
-def constant_price_series(draw, min_size: int = 20, max_size: int = 200):
-    """Generate a constant-valued Series — tests degenerate arithmetic."""
-    n = draw(st.integers(min_value=min_size, max_value=max_size))
-    value = draw(st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, width=64))
-    return pd.Series([value] * n, dtype=np.float64)
-
-
-# Shorthand strategies
-_positive_int = st.integers(min_value=1, max_value=100)
 _small_positive_int = st.integers(min_value=2, max_value=50)
-_offset_int = st.integers(min_value=0, max_value=20)
 
 
 class TestPriceSeriesStrategy(TestCase):
@@ -203,407 +68,7 @@ class TestPriceSeriesStrategy(TestCase):
 
 
 # ======================================================================
-# 1. Core utility properties
-# ======================================================================
-
-
-class TestVerifySeries(TestCase):
-    """Property tests for ``verify_series``."""
-
-    @given(price_series(min_size=2, max_size=200, allow_nan=False))
-    def test_verify_series_returns_series(self, s):
-        result = verify_series(s, min_length=1)
-        assert isinstance(result, pd.Series)
-
-    @given(price_series(min_size=10, max_size=200, allow_nan=False))
-    def test_verify_series_preserves_name(self, s):
-        s.name = "test_col"
-        result = verify_series(s, min_length=5)
-        assert result.name == "test_col"
-
-    @given(
-        price_series(min_size=1, max_size=50, allow_nan=False),
-        _positive_int,
-    )
-    def test_verify_series_short_returns_none(self, s, min_len):
-        assume(len(s) < min_len)
-        result = verify_series(s, min_length=min_len)
-        assert result is None
-
-    @given(
-        price_series(min_size=5, max_size=50, allow_nan=False),
-        _positive_int,
-    )
-    def test_verify_series_long_enough_not_none(self, s, min_len):
-        assume(len(s) >= min_len)
-        result = verify_series(s, min_length=min_len)
-        assert result is not None
-        assert len(result) == len(s)
-
-    @given(price_series(min_size=1, max_size=100, allow_nan=False))
-    def test_verify_series_none_input_returns_none(self, s):
-        """Passing None directly must return None."""
-        assert verify_series(None, min_length=1) is None
-
-    @given(price_series(min_size=1, max_size=100, allow_nan=True, nan_prob=0.2), st.sampled_from(["Float64", "Float32", "Int64"]))
-    def test_verify_series_turns_nullable_numeric_into_float64(self, s, dtype):
-        """A nullable Series comes back as float64, ``pd.NA`` as NaN, index and name kept, input untouched."""
-        if dtype == "Int64":
-            s = s.round()
-        s.name = "close"
-        nullable = s.astype(dtype)
-        before = nullable.copy()
-        result = verify_series(nullable, min_length=1)
-        assert result.dtype == np.float64
-        pd.testing.assert_series_equal(result, nullable.astype(float))
-        assert result.index is nullable.index
-        pd.testing.assert_series_equal(nullable, before)
-
-
-class TestApplyOffset(TestCase):
-    """Property tests for ``apply_offset``."""
-
-    @given(price_series(min_size=10, max_size=100, allow_nan=False), _offset_int)
-    def test_apply_offset_preserves_length(self, s, offset):
-        result = apply_offset(s, offset)
-        assert len(result) == len(s)
-
-    @given(price_series(min_size=10, max_size=100, allow_nan=False))
-    def test_apply_offset_zero_is_identity(self, s):
-        result = apply_offset(s, 0)
-        pd.testing.assert_series_equal(result, s)
-
-    @given(price_series(min_size=10, max_size=100, allow_nan=False), _offset_int)
-    def test_apply_offset_shift_direction(self, s, offset):
-        assume(offset >= 2 and len(s) > offset + 1)
-        result = apply_offset(s, offset)
-        # First `offset` rows should be NaN after shift
-        assert result.iloc[:offset].isna().all()
-
-
-class TestApplyFill(TestCase):
-    """Property tests for ``apply_fill``."""
-
-    @given(price_series(min_size=10, max_size=100, allow_nan=True, nan_prob=0.3))
-    def test_apply_fill_fillna_replaces_nan(self, s):
-        filled = apply_fill(s.copy(), fillna=0.0)
-        assert not filled.isna().any()
-
-    @given(price_series(min_size=10, max_size=100, allow_nan=True, nan_prob=0.3))
-    def test_apply_fill_ffill_no_gaps(self, s):
-        assume(s.iloc[0] is not None and not np.isnan(s.iloc[0]))
-        filled = apply_fill(s.copy(), fill_method="ffill")
-        # After ffill, only a leading-NaN gap can remain
-        first_valid = filled.first_valid_index()
-        if first_valid is not None and first_valid > 0:
-            assert filled.iloc[:first_valid].isna().all()
-        assert not filled.iloc[first_valid:].isna().any() if first_valid is not None else True
-
-
-class TestMiscUtils(TestCase):
-    """Property tests for small utility functions."""
-
-    @given(st.floats(allow_nan=True, allow_infinity=True).filter(lambda v: not (math.isfinite(v) and v.is_integer())))
-    def test_get_offset_non_integral_raises(self, x):
-        """Fractional, NaN and infinite offsets raise instead of becoming 0."""
-        with pytest.raises(ValueError, match="offset must be an integer"):
-            get_offset(x)
-
-    @given(st.integers(min_value=-100, max_value=100))
-    def test_get_offset_int_identity(self, x):
-        result = get_offset(x)
-        assert isinstance(result, int)
-        assert result == x
-
-    @given(st.integers(min_value=1, max_value=100))
-    def test_get_drift_positive_identity(self, x):
-        assert get_drift(x) == x
-        assert get_drift(float(x)) == x
-
-    @given(st.integers(min_value=-100, max_value=0))
-    def test_get_drift_non_positive_raises(self, x):
-        """Zero and negative drifts raise instead of becoming 1."""
-        with pytest.raises(ValueError, match="drift must be an integer > 0"):
-            get_drift(x)
-
-    @given(st.integers(min_value=2, max_value=60), st.data())
-    def test_total_time_rejects_any_unsorted_index(self, n, data):
-        """A descending index gave a negative span; any reordering now raises."""
-        index = pd.date_range("2021-01-04", periods=n, freq="D")
-        order = data.draw(st.permutations(range(n)))
-        assume(list(order) != list(range(n)))
-        with pytest.raises(ValueError, match="sorted in ascending order"):
-            ta.utils.total_time(pd.Series(range(n), index=index[list(order)]))
-        assert ta.utils.total_time(pd.Series(range(n), index=index), "days") == n - 1
-
-    @given(
-        st.integers(min_value=3, max_value=30),
-        st.datetimes(min_value=pd.Timestamp("1990-01-01").to_pydatetime(), max_value=pd.Timestamp("2040-01-01").to_pydatetime()),
-        st.sampled_from(["cagr", "downside_deviation", "volatility"]),
-    )
-    def test_metrics_reject_a_zero_span(self, n, stamp, name):
-        """Rows sharing one timestamp span 0; dividing by it raised a bare ZeroDivisionError."""
-        series = pd.Series(np.linspace(100.0, 101.0, n), index=pd.DatetimeIndex([stamp] * n))
-        calls = {
-            "cagr": lambda: ta.cagr(series),
-            "downside_deviation": lambda: ta.downside_deviation(series.pct_change()),
-            "volatility": lambda: ta.utils.volatility(series),
-        }
-        with pytest.raises(ValueError, match=rf"^{name}\(\) needs at least two distinct timestamps"):
-            calls[name]()
-
-
-def _exact_slope(xs: np.ndarray, ys: np.ndarray) -> float:
-    """Least-squares slope in exact rational arithmetic: a reference without rounding."""
-    fx, fy = [Fraction(float(v)) for v in xs], [Fraction(float(v)) for v in ys]
-    x_mean, y_mean = sum(fx) / len(fx), sum(fy) / len(fy)
-    sxy = sum((a - x_mean) * (b - y_mean) for a, b in zip(fx, fy))
-    sxx = sum((a - x_mean) ** 2 for a in fx)
-    return float(sxy / sxx)
-
-
-class TestLinearRegression(TestCase):
-    """Property tests for ``linear_regression``.
-
-    The slope used the one-pass ``m * sum(x * y) - sum(x) * sum(y)``, which
-    cancels when x sits far from 0 with a small spread (99% off at 1e6, the
-    wrong sign at 1e8). Constancy was tested through ``std() != 0``, which
-    rounding defeats: a constant x, or one mixing two adjacent floats, fitted a
-    made-up slope, and a constant y gave r = NaN or +-1e-16 and made
-    ``np.corrcoef`` warn.
-    """
-
-    @given(
-        st.integers(min_value=3, max_value=40),
-        st.floats(min_value=-12.0, max_value=9.0),
-        st.sampled_from([1.0, -1.0]),
-        st.integers(min_value=1, max_value=9),
-        st.data(),
-    )
-    def test_slope_matches_the_exact_fit_at_any_level(self, n, exponent, sign, digits, data):
-        # x = level + a spread `digits` decimal digits below the level.
-        level = sign * 10.0**exponent
-        unit = abs(level) * 10.0**-digits
-        offsets = data.draw(arrays(np.float64, n, elements=st.floats(min_value=-1.0, max_value=1.0, width=64)))
-        xs = level + offsets * unit
-        assume(np.std(xs) > 1e-10 * abs(level))
-        ys = data.draw(arrays(np.float64, n, elements=st.floats(min_value=-1000.0, max_value=1000.0, width=64)))
-        expected = _exact_slope(xs, ys)
-        # The slope's natural scale is spread(y) / spread(x); measure the error against it.
-        scale = abs(expected) + (np.std(ys) + 1.0) / np.std(xs)
-        assert abs(ta.linear_regression(pd.Series(xs), pd.Series(ys))["b"] - expected) <= 1e-9 * scale
-
-    @given(st.integers(min_value=3, max_value=60), st.floats(min_value=-12.0, max_value=9.0), st.sampled_from([1.0, -1.0]), st.data())
-    def test_x_of_two_adjacent_floats_has_no_fit(self, n, exponent, sign, data):
-        # One ULP apart, x.std() is a rounding residue (8e-11 at 1e6), not a spread.
-        level = sign * 10.0**exponent
-        upper = data.draw(arrays(np.bool_, n))
-        assume(upper.any() and not upper.all())
-        x = pd.Series(np.where(upper, np.nextafter(level, np.inf), level))
-        y = pd.Series(np.arange(n, dtype=float))
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")
-            result = ta.linear_regression(x, y)
-        assert all(np.isnan(result[key]) for key in ("a", "b", "r", "t"))
-
-    @given(constant_price_series(min_size=3, max_size=100))
-    def test_constant_x_has_no_fit(self, x):
-        y = pd.Series(np.arange(x.size, dtype=float))
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")
-            result = ta.linear_regression(x, y)
-        assert all(np.isnan(result[key]) for key in ("a", "b", "r", "t", "line"))
-
-    @given(constant_price_series(min_size=3, max_size=100))
-    def test_constant_y_is_quiet(self, y):
-        x = pd.Series(np.arange(y.size, dtype=float))
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")
-            result = ta.linear_regression(x, y)
-        value = y.iloc[0]
-        assert abs(result["b"]) <= 1e-9 * value
-        assert result["a"] == pytest.approx(value, rel=1e-9)
-        assert np.isnan(result["r"]) and np.isnan(result["t"])
-
-    # The sums skipped NaN while the point count did not, and x * y aligned on the
-    # index while np.corrcoef is positional: both gave a wrong slope without an error.
-    @given(price_series(min_size=3, max_size=100, allow_nan=False), st.sampled_from(["x", "y"]), st.data())
-    def test_nan_anywhere_raises(self, y, side, data):
-        x = pd.Series(np.arange(y.size, dtype=float))
-        pos = data.draw(st.integers(min_value=0, max_value=y.size - 1))
-        args = {"x": x, "y": y.copy()}
-        args[side].iloc[pos] = np.nan
-        with pytest.raises(ValueError, match=f"{side} has 1 missing value"):
-            ta.linear_regression(args["x"], args["y"])
-
-    @given(price_series(min_size=3, max_size=100, allow_nan=False), st.sampled_from(["x", "y"]), st.sampled_from([np.inf, -np.inf]), st.data())
-    def test_infinity_anywhere_raises(self, y, side, value, data):
-        # An infinite value made every result NaN, with numpy warnings and no error.
-        x = pd.Series(np.arange(y.size, dtype=float))
-        pos = data.draw(st.integers(min_value=0, max_value=y.size - 1))
-        args = {"x": x, "y": y.copy()}
-        args[side].iloc[pos] = value
-        with pytest.raises(ValueError, match=f"{side} has 1 infinite value"):
-            ta.linear_regression(args["x"], args["y"])
-
-    @given(price_series(min_size=3, max_size=100, allow_nan=False), st.data())
-    def test_reordered_index_raises(self, y, data):
-        order = data.draw(st.permutations(range(y.size)))
-        assume(list(order) != list(range(y.size)))
-        x = pd.Series(np.arange(y.size, dtype=float))
-        with pytest.raises(ValueError, match="must share the same index"):
-            ta.linear_regression(x, y.set_axis(y.index[list(order)]))
-
-    @given(price_series(min_size=3, max_size=100, allow_nan=False), st.integers(min_value=1, max_value=1000))
-    def test_shifted_index_raises(self, y, shift):
-        x = pd.Series(np.arange(y.size, dtype=float))
-        with pytest.raises(ValueError, match="must share the same index"):
-            ta.linear_regression(x, y.set_axis(y.index + shift))
-
-    @given(price_series(min_size=3, max_size=100, allow_nan=False), st.integers(min_value=-1000, max_value=1000))
-    def test_result_ignores_a_shared_relabelling(self, y, shift):
-        x = pd.Series(np.arange(y.size, dtype=float))
-        before = ta.linear_regression(x, y)
-        after = ta.linear_regression(x.set_axis(x.index + shift), y.set_axis(y.index + shift))
-        for key in ("a", "b", "r", "t"):
-            np.testing.assert_equal(after[key], before[key])
-        np.testing.assert_array_equal(after["line"].to_numpy(), before["line"].to_numpy())
-
-
-_returns = arrays(np.float64, st.integers(min_value=2, max_value=200), elements=st.floats(min_value=-0.2, max_value=0.2, width=64))
-
-
-def _daily(values: np.ndarray) -> pd.Series:
-    return pd.Series(values, index=pd.bdate_range("2021-01-04", periods=len(values)))
-
-
-class TestDownsideDeviation(TestCase):
-    """Property tests for ``downside_deviation``.
-
-    Its sum of squares skipped NaN while the divisor counted it, so the result
-    depended on whether the leading NaN of a percent return was still there,
-    and a gap inside the series gave a smaller value without an error.
-    """
-
-    @given(_returns, st.floats(min_value=-0.1, max_value=0.2, width=64))
-    def test_matches_the_definition(self, values, rate):
-        returns = _daily(values)
-        years = (returns.index[-1] - returns.index[0]).total_seconds() / (365.25 * 86400)
-        periods = values.size / years
-        target = (1 + rate) ** (1 / periods) - 1
-        expected = math.sqrt(np.sum(np.minimum(values - target, 0.0) ** 2) / values.size) * math.sqrt(periods)
-        assert ta.downside_deviation(returns, benchmark_rate=rate) == pytest.approx(expected, rel=1e-9, abs=1e-12)
-
-    @given(_returns, st.integers(min_value=0, max_value=5), st.integers(min_value=0, max_value=5))
-    def test_leading_and_trailing_nan_are_not_counted(self, values, lead, trail):
-        padded = _daily(np.concatenate([np.full(lead, np.nan), values, np.full(trail, np.nan)]))
-        trimmed = padded.iloc[lead : lead + values.size]
-        assert ta.downside_deviation(padded) == ta.downside_deviation(trimmed)
-
-    @given(arrays(np.float64, st.integers(min_value=3, max_value=200), elements=st.floats(min_value=-0.2, max_value=0.2, width=64)), st.data())
-    def test_nan_inside_raises(self, values, data):
-        pos = data.draw(st.integers(min_value=1, max_value=values.size - 2))
-        values[pos] = np.nan
-        with pytest.raises(ValueError, match="returns has 1 missing value"):
-            ta.downside_deviation(_daily(values))
-
-
-# Every metric that turns a close into returns: their means and deviations skip
-# NaN, so a missing close silently dropped two returns (sharpe 0.3293 -> 0.3305).
-_METRICS_ON_CLOSE = {
-    "optimal_leverage": lambda s: ta.utils.optimal_leverage(s),
-    "pure_profit_score": lambda s: ta.utils.pure_profit_score(s),
-    "sharpe_ratio": lambda s: ta.utils.sharpe_ratio(s),
-    "sharpe_ratio(use_cagr)": lambda s: ta.utils.sharpe_ratio(s, use_cagr=True),
-    "sortino_ratio": lambda s: ta.utils.sortino_ratio(s),
-    "volatility": lambda s: ta.utils.volatility(s),
-    "volatility(log)": lambda s: ta.utils.volatility(s, log=True),
-}
-
-
-class TestMetricsOnClose(TestCase):
-    """Property tests for the metrics computed from a close's returns."""
-
-    @given(
-        arrays(np.float64, st.integers(min_value=5, max_value=200), elements=st.floats(min_value=1.0, max_value=1000.0, width=64)),
-        st.sampled_from(sorted(_METRICS_ON_CLOSE)),
-        st.data(),
-    )
-    def test_a_missing_close_anywhere_raises(self, values, name, data):
-        values[data.draw(st.integers(min_value=0, max_value=values.size - 1))] = np.nan
-        with pytest.raises(ValueError, match=rf"^{name.split('(')[0]}\(\) close has 1 missing value"):
-            _METRICS_ON_CLOSE[name](_daily(values))
-
-    @given(_returns, st.integers(min_value=0, max_value=5), st.integers(min_value=0, max_value=5))
-    def test_volatility_does_not_count_leading_and_trailing_nan(self, values, lead, trail):
-        # The periods per year counted the leading NaN of a percent return that
-        # the deviation skipped: the result depended on whether it was passed.
-        padded = _daily(np.concatenate([np.full(lead, np.nan), values, np.full(trail, np.nan)]))
-        trimmed = padded.iloc[lead : lead + values.size]
-        assert ta.utils.volatility(padded, returns=True) == ta.utils.volatility(trimmed, returns=True)
-
-    @given(arrays(np.float64, st.integers(min_value=3, max_value=200), elements=st.floats(min_value=1.0, max_value=1000.0, width=64)), st.booleans())
-    def test_volatility_of_a_close_equals_that_of_its_returns(self, values, log):
-        close = _daily(values)
-        returns = ta.log_return(close) if log else ta.percent_return(close)
-        assert ta.utils.volatility(close, log=log) == pytest.approx(ta.utils.volatility(returns, returns=True), rel=1e-12)
-
-
-def _with_gaps(values: list, gaps: list, repeated: bool) -> pd.Series:
-    """values with NaN at the drawn positions, on 0..n-1 or on an index with repeated labels."""
-    index = [i // 2 for i in range(len(values))] if repeated else list(range(len(values)))
-    series = pd.Series(values, index=index, dtype=float)
-    series.iloc[[g % len(values) for g in gaps]] = np.nan
-    return series
-
-
-class TestSignalGaps(TestCase):
-    """A missing trend or signal value makes no trade of its own.
-
-    tsignals filled a missing trend with 0, so a gap inside an uptrend gave an
-    exit and a re-entry; xsignals compared the missing bar with the thresholds,
-    so a crossing that fell on the gap was lost with its whole trade. On the
-    observed bars both must equal the result for the series without the gaps,
-    and a gap bar carries no trade. Compared by position, so a repeated index
-    label is covered too.
-    """
-
-    @staticmethod
-    def _check(result: pd.DataFrame, without_gaps: pd.DataFrame, is_observed: np.ndarray) -> None:
-        np.testing.assert_array_equal(result.to_numpy()[is_observed], without_gaps.to_numpy())
-        # TS_Trades, by position: a non-default above/long adds its token to the name (#343)
-        assert (result.iloc[:, 1].to_numpy()[~is_observed] == 0).all()
-
-    # Gaps after the first bar: a leading NaN run means "no position yet" and,
-    # unchanged, gives an entry on the first known uptrend bar.
-    @given(
-        st.lists(st.sampled_from([0, 1]), min_size=2, max_size=60),
-        st.lists(st.integers(min_value=1, max_value=59), max_size=10),
-        st.booleans(),
-    )
-    def test_tsignals_gaps_change_nothing_on_observed_bars(self, values, gaps, repeated):
-        trend = _with_gaps(values, [max(g % len(values), 1) for g in gaps], repeated)
-        is_observed = trend.notna().to_numpy()
-        assume(is_observed.sum() >= 2)
-        self._check(ta.tsignals(trend), ta.tsignals(trend[is_observed]), is_observed)
-
-    @given(
-        st.lists(st.floats(min_value=0.0, max_value=100.0, width=64), min_size=2, max_size=60),
-        st.lists(st.integers(min_value=0, max_value=59), max_size=10),
-        st.booleans(),
-        st.booleans(),
-        st.booleans(),
-    )
-    def test_xsignals_gaps_change_nothing_on_observed_bars(self, values, gaps, above, long, repeated):
-        signal = _with_gaps(values, gaps, repeated)
-        is_observed = signal.notna().to_numpy()
-        assume(is_observed.sum() >= 2)
-        kwargs = {"above": above, "long": long}
-        self._check(ta.xsignals(signal, 30, 70, **kwargs), ta.xsignals(signal[is_observed], 30, 70, **kwargs), is_observed)
-
-
-# ======================================================================
-# 2. Indicator output invariants
+# 1. Indicator output invariants
 # ======================================================================
 
 
@@ -819,7 +284,7 @@ class TestNoDirectionOnBarZero(TestCase):
 
 
 # ======================================================================
-# 3. Mathematical invariants
+# 2. Mathematical invariants
 # ======================================================================
 
 
@@ -924,7 +389,7 @@ class TestMathematicalInvariants(TestCase):
 
 
 # ======================================================================
-# 4. None-guard / null-safety
+# 3. None-guard / null-safety
 # ======================================================================
 
 
@@ -961,7 +426,7 @@ class TestNoneGuards(TestCase):
 
 
 # ======================================================================
-# 5. Edge-case robustness
+# 4. Edge-case robustness
 # ======================================================================
 
 
@@ -1052,7 +517,7 @@ class TestPropertyBasedEdgeCases(TestCase):
 
 
 # ======================================================================
-# 6. Category-wide indicator discovery tests
+# 5. Category-wide indicator discovery tests
 # ======================================================================
 
 
@@ -1082,7 +547,7 @@ class TestCategoryDiscovery(TestCase):
 
 
 # ======================================================================
-# 7. pytest-style Hypothesis tests (alternative to unittest)
+# 6. pytest-style Hypothesis tests (alternative to unittest)
 # ======================================================================
 
 
