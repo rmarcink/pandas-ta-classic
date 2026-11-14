@@ -76,7 +76,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.ao,
                 args=[self.high, self.low],
                 expected_name="AO_5_34",
-                none_arg_idx=0,
             ),
         )
 
@@ -92,7 +91,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.apo,
                 args=[self.close],
                 expected_name="APO_12_26",
-                none_arg_idx=0,
             ),
         )
 
@@ -103,7 +101,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.bias,
                 args=[self.close],
                 expected_name="BIAS_SMA_26",
-                none_arg_idx=0,
             ),
         )
 
@@ -117,7 +114,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.bop,
                 args=[self.open, self.high, self.low, self.close],
                 expected_name="BOP",
-                none_arg_idx=0,
             ),
         )
 
@@ -130,7 +126,6 @@ class TestMomentum(TestCase):
                 expected_name="BRAR_26",
                 expected_type=DataFrame,
                 expected_columns=["AR_26", "BR_26"],
-                none_arg_idx=0,
             ),
         )
 
@@ -144,7 +139,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.cci,
                 args=[self.high, self.low, self.close],
                 expected_name="CCI_14_0.015",
-                none_arg_idx=0,
             ),
         )
 
@@ -155,7 +149,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.cfo,
                 args=[self.close],
                 expected_name="CFO_9",
-                none_arg_idx=0,
             ),
         )
 
@@ -166,7 +159,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.cg,
                 args=[self.close],
                 expected_name="CG_10",
-                none_arg_idx=0,
             ),
         )
 
@@ -184,7 +176,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.cmo,
                 args=[self.close],
                 expected_name="CMO_14",
-                none_arg_idx=0,
             ),
         )
 
@@ -195,7 +186,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.coppock,
                 args=[self.close],
                 expected_name="COPC_11_14_10",
-                none_arg_idx=0,
             ),
         )
 
@@ -206,7 +196,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.cti,
                 args=[self.close],
                 expected_name="CTI_12",
-                none_arg_idx=0,
             ),
         )
 
@@ -217,7 +206,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.er,
                 args=[self.close],
                 expected_name="ER_10",
-                none_arg_idx=0,
             ),
         )
 
@@ -239,7 +227,6 @@ class TestMomentum(TestCase):
                 expected_name="DM_14",
                 expected_type=DataFrame,
                 expected_columns=["PLUS_DM_14", "MINUS_DM_14"],
-                none_arg_idx=0,
             ),
         )
 
@@ -252,7 +239,6 @@ class TestMomentum(TestCase):
                 expected_name="ERI_13",
                 expected_type=DataFrame,
                 expected_columns=["BULLP_13", "BEARP_13"],
-                none_arg_idx=0,
             ),
         )
 
@@ -265,7 +251,6 @@ class TestMomentum(TestCase):
                 expected_name="FISHERT_9_1",
                 expected_type=DataFrame,
                 expected_columns=["FISHERT_9_1", "FISHERTs_9_1"],
-                none_arg_idx=0,
             ),
         )
 
@@ -276,7 +261,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.fosc,
                 args=[self.close],
                 expected_name="FOSC_14",
-                none_arg_idx=0,
             ),
         )
 
@@ -307,7 +291,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.inertia,
                 args=[self.close],
                 expected_name="INERTIA_20_14",
-                none_arg_idx=0,
             ),
         )
 
@@ -320,7 +303,6 @@ class TestMomentum(TestCase):
                 expected_name="KDJ_9_3",
                 expected_type=DataFrame,
                 expected_columns=["K_9_3", "D_9_3", "J_9_3"],
-                none_arg_idx=0,
             ),
         )
 
@@ -333,7 +315,6 @@ class TestMomentum(TestCase):
                 expected_name="KST_10_15_20_30_10_10_10_15_9",
                 expected_type=DataFrame,
                 expected_columns=["KST_10_15_20_30_10_10_10_15", "KSTs_9"],
-                none_arg_idx=0,
             ),
         )
 
@@ -360,7 +341,6 @@ class TestMomentum(TestCase):
                 expected_name="MACD_12_26_9",
                 expected_type=DataFrame,
                 expected_columns=["MACD_12_26_9", "MACDh_12_26_9", "MACDs_12_26_9"],
-                none_arg_idx=0,
             ),
         )
 
@@ -377,7 +357,6 @@ class TestMomentum(TestCase):
                     "MACDASh_12_26_9",
                     "MACDASs_12_26_9",
                 ],
-                none_arg_idx=0,
                 kwargs={"asmode": True},
             ),
         )
@@ -410,7 +389,6 @@ class TestMomentum(TestCase):
                     "MACDEXTs_12_26_9",
                     "MACDEXTh_12_26_9",
                 ],
-                none_arg_idx=0,
             ),
         )
 
@@ -431,7 +409,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.mom,
                 args=[self.close],
                 expected_name="MOM_10",
-                none_arg_idx=0,
             ),
         )
 
@@ -442,7 +419,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.pgo,
                 args=[self.high, self.low, self.close],
                 expected_name="PGO_14",
-                none_arg_idx=0,
             ),
         )
 
@@ -462,7 +438,6 @@ class TestMomentum(TestCase):
                 expected_name="PPO_12_26_9",
                 expected_type=DataFrame,
                 expected_columns=["PPO_12_26_9", "PPOh_12_26_9", "PPOs_12_26_9"],
-                none_arg_idx=0,
             ),
         )
 
@@ -473,7 +448,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.psl,
                 args=[self.close],
                 expected_name="PSL_12",
-                none_arg_idx=0,
             ),
         )
 
@@ -486,7 +460,6 @@ class TestMomentum(TestCase):
                 expected_name="PVO_12_26_9",
                 expected_type=DataFrame,
                 expected_columns=["PVO_12_26_9", "PVOh_12_26_9", "PVOs_12_26_9"],
-                none_arg_idx=None,
             ),
         )
 
@@ -507,7 +480,6 @@ class TestMomentum(TestCase):
                     "QQEb_s_14_5_4.236",
                     "QQEd_14_5_4.236",
                 ],
-                none_arg_idx=None,
             ),
         )
 
@@ -521,7 +493,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.roc,
                 args=[self.close],
                 expected_name="ROC_10",
-                none_arg_idx=0,
             ),
         )
 
@@ -535,7 +506,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.rocp,
                 args=[self.close],
                 expected_name="ROCP_10",
-                none_arg_idx=0,
             ),
         )
 
@@ -549,7 +519,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.rocr,
                 args=[self.close],
                 expected_name="ROCR_10",
-                none_arg_idx=0,
             ),
         )
 
@@ -563,7 +532,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.rocr100,
                 args=[self.close],
                 expected_name="ROCR100_10",
-                none_arg_idx=0,
             ),
         )
 
@@ -577,7 +545,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.rsi,
                 args=[self.close],
                 expected_name="RSI_14",
-                none_arg_idx=0,
             ),
         )
 
@@ -588,7 +555,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.rsx,
                 args=[self.close],
                 expected_name="RSX_14",
-                none_arg_idx=None,
             ),
         )
 
@@ -601,7 +567,6 @@ class TestMomentum(TestCase):
                 expected_name="RVGI_14_4",
                 expected_type=DataFrame,
                 expected_columns=["RVGIh_14_4", "RVGI_14_4", "RVGIs_14_4"],
-                none_arg_idx=0,
             ),
         )
 
@@ -612,7 +577,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.slope,
                 args=[self.close],
                 expected_name="SLOPE_1",
-                none_arg_idx=0,
             ),
         )
 
@@ -623,7 +587,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.slope,
                 args=[self.close],
                 expected_name="ANGLEr_1",
-                none_arg_idx=0,
                 kwargs={"as_angle": True},
             ),
         )
@@ -635,7 +598,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.slope,
                 args=[self.close],
                 expected_name="ANGLEd_1",
-                none_arg_idx=0,
                 kwargs={"as_angle": True, "to_degrees": True},
             ),
         )
@@ -647,7 +609,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.smc_sweep,
                 args=[self.open, self.high, self.low, self.close],
                 expected_name="SMC_SWEEP_15_1.5",
-                none_arg_idx=0,
             ),
         )
 
@@ -660,7 +621,6 @@ class TestMomentum(TestCase):
                 expected_name="SMI_5_20_5",
                 expected_type=DataFrame,
                 expected_columns=["SMI_5_20_5", "SMIs_5_20_5", "SMIo_5_20_5"],
-                none_arg_idx=0,
             ),
         )
 
@@ -677,7 +637,6 @@ class TestMomentum(TestCase):
                     "SMIs_5_20_5_10",
                     "SMIo_5_20_5_10",
                 ],
-                none_arg_idx=0,
                 kwargs={"scalar": 10},
             ),
         )
@@ -708,7 +667,6 @@ class TestMomentum(TestCase):
                     "SQZ_OFF",
                     "SQZ_NO",
                 ],
-                none_arg_idx=0,
             ),
         )
 
@@ -778,7 +736,6 @@ class TestMomentum(TestCase):
                     "SQZPRO_OFF",
                     "SQZPRO_NO",
                 ],
-                none_arg_idx=0,
             ),
         )
 
@@ -795,7 +752,6 @@ class TestMomentum(TestCase):
                     "STCmacd_10_12_26_0.5",
                     "STCstoch_10_12_26_0.5",
                 ],
-                none_arg_idx=0,
             ),
         )
 
@@ -864,7 +820,6 @@ class TestMomentum(TestCase):
                 expected_name="STOCH_14_3_3",
                 expected_type=DataFrame,
                 expected_columns=["STOCHk_14_3_3", "STOCHd_14_3_3"],
-                none_arg_idx=0,
             ),
         )
 
@@ -883,7 +838,6 @@ class TestMomentum(TestCase):
                 expected_name="STOCHF_5_3",
                 expected_type=DataFrame,
                 expected_columns=["STOCHFk_5_3", "STOCHFd_5_3"],
-                none_arg_idx=0,
             ),
         )
 
@@ -901,7 +855,6 @@ class TestMomentum(TestCase):
                 expected_name="STOCHRSI_14_14_3_3",
                 expected_type=DataFrame,
                 expected_columns=["STOCHRSIk_14_14_3_3", "STOCHRSId_14_14_3_3"],
-                none_arg_idx=0,
             ),
         )
 
@@ -915,7 +868,6 @@ class TestMomentum(TestCase):
                 expected_name="TD_SEQ",
                 expected_type=DataFrame,
                 expected_columns=["TD_SEQ_UPa", "TD_SEQ_DNa"],
-                none_arg_idx=None,
             ),
         )
 
@@ -928,7 +880,6 @@ class TestMomentum(TestCase):
                 expected_name="TRIX_30_9",
                 expected_type=DataFrame,
                 expected_columns=["TRIX_30_9", "TRIXs_30_9"],
-                none_arg_idx=0,
             ),
         )
 
@@ -941,7 +892,6 @@ class TestMomentum(TestCase):
                 expected_name="TSI_13_25_13",
                 expected_type=DataFrame,
                 expected_columns=["TSI_13_25_13", "TSIs_13_25_13"],
-                none_arg_idx=0,
             ),
         )
 
@@ -955,7 +905,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.uo,
                 args=[self.high, self.low, self.close],
                 expected_name="UO_7_14_28",
-                none_arg_idx=0,
             ),
         )
 
@@ -969,7 +918,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.willr,
                 args=[self.high, self.low, self.close],
                 expected_name="WILLR_14",
-                none_arg_idx=0,
             ),
         )
 
@@ -1023,7 +971,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.lrsi,
                 args=[self.close],
                 expected_name="LRSI_14",
-                none_arg_idx=None,
             ),
         )
 
@@ -1034,7 +981,6 @@ class TestMomentum(TestCase):
                 func=pandas_ta.po,
                 args=[self.close],
                 expected_name="PO_14",
-                none_arg_idx=0,
             ),
         )
 
@@ -1047,7 +993,6 @@ class TestMomentum(TestCase):
                 expected_name="TRIXH_18_9",
                 expected_type=DataFrame,
                 expected_columns=["TRIX_18_9", "TRIXs_18_9", "TRIXh_18_9"],
-                none_arg_idx=0,
             ),
         )
 
@@ -1064,7 +1009,6 @@ class TestMomentum(TestCase):
                     "VWMACDh_12_26_9",
                     "VWMACDs_12_26_9",
                 ],
-                none_arg_idx=0,
             ),
         )
 

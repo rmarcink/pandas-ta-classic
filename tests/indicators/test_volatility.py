@@ -56,7 +56,6 @@ class TestVolatility(TestCase):
                     "ABER_XG_5_15",
                     "ABER_ATR_5_15",
                 ],
-                none_arg_idx=None,
             ),
         )
 
@@ -90,7 +89,6 @@ class TestVolatility(TestCase):
                 expected_name="ACCBANDS_20",
                 expected_type=DataFrame,
                 expected_columns=["ACCBL_20", "ACCBM_20", "ACCBU_20"],
-                none_arg_idx=None,
             ),
         )
 
@@ -104,7 +102,6 @@ class TestVolatility(TestCase):
                 func=pandas_ta.atr,
                 args=[self.high, self.low, self.close],
                 expected_name="ATRr_14",
-                none_arg_idx=None,
             ),
         )
 
@@ -150,7 +147,6 @@ class TestVolatility(TestCase):
                 expected_name="CE_22_3.0",
                 expected_type=DataFrame,
                 expected_columns=["CE_L_22_3.0", "CE_S_22_3.0"],
-                none_arg_idx=None,
             ),
         )
 
@@ -196,7 +192,6 @@ class TestVolatility(TestCase):
                 func=pandas_ta.massi,
                 args=[self.high, self.low],
                 expected_name="MASSI_9_25",
-                none_arg_idx=None,
             ),
         )
 
@@ -214,7 +209,6 @@ class TestVolatility(TestCase):
                 func=pandas_ta.natr,
                 args=[self.high, self.low, self.close],
                 expected_name="NATR_14",
-                none_arg_idx=None,
             ),
         )
 
@@ -225,7 +219,6 @@ class TestVolatility(TestCase):
                 func=pandas_ta.pdist,
                 args=[self.open, self.high, self.low, self.close],
                 expected_name="PDIST",
-                none_arg_idx=None,
             ),
         )
 
@@ -244,7 +237,6 @@ class TestVolatility(TestCase):
                 func=pandas_ta.rvi,
                 args=[self.close],
                 expected_name="RVI_14",
-                none_arg_idx=None,
             ),
         )
 
@@ -294,7 +286,6 @@ class TestVolatility(TestCase):
                 func=pandas_ta.true_range,
                 args=[self.high, self.low, self.close],
                 expected_name="TRUERANGE_1",
-                none_arg_idx=None,
             ),
         )
 
@@ -309,7 +300,6 @@ class TestVolatility(TestCase):
                 func=pandas_ta.ui,
                 args=[self.close],
                 expected_name="UI_14",
-                none_arg_idx=None,
             ),
         )
 

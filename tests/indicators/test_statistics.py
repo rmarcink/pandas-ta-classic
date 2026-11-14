@@ -44,7 +44,6 @@ class TestStatistics(TestCase):
                 args=[self.close],
                 expected_name="BETA_30",
                 kwargs={"benchmark": self.high},
-                length_override=20,
             ),
         )
 
@@ -56,7 +55,6 @@ class TestStatistics(TestCase):
                 args=[self.close],
                 expected_name="CORREL_30",
                 kwargs={"benchmark": self.high},
-                length_override=20,
             ),
         )
 
@@ -85,7 +83,6 @@ class TestStatistics(TestCase):
                 func=pandas_ta.entropy,
                 args=[self.close],
                 expected_name="ENTP_10",
-                length_override=20,
             ),
         )
 
@@ -96,7 +93,6 @@ class TestStatistics(TestCase):
                 func=pandas_ta.kurtosis,
                 args=[self.close],
                 expected_name="KURT_30",
-                length_override=20,
             ),
         )
 
@@ -107,7 +103,6 @@ class TestStatistics(TestCase):
                 func=pandas_ta.mad,
                 args=[self.close],
                 expected_name="MAD_30",
-                length_override=20,
             ),
         )
 
@@ -127,7 +122,6 @@ class TestStatistics(TestCase):
                 func=pandas_ta.md,
                 args=[self.close],
                 expected_name="MD_30",
-                length_override=20,
             ),
         )
 
@@ -138,7 +132,6 @@ class TestStatistics(TestCase):
                 func=pandas_ta.median,
                 args=[self.close],
                 expected_name="MEDIAN_30",
-                length_override=20,
             ),
         )
 
@@ -149,7 +142,6 @@ class TestStatistics(TestCase):
                 func=pandas_ta.quantile,
                 args=[self.close],
                 expected_name="QTL_30_0.5",
-                length_override=20,
             ),
         )
 
@@ -160,7 +152,6 @@ class TestStatistics(TestCase):
                 func=pandas_ta.skew,
                 args=[self.close],
                 expected_name="SKEW_30",
-                length_override=20,
             ),
         )
 
@@ -171,7 +162,6 @@ class TestStatistics(TestCase):
                 func=pandas_ta.stderr,
                 args=[self.close],
                 expected_name="STDERR_14",
-                length_override=20,
             ),
         )
 
@@ -183,7 +173,6 @@ class TestStatistics(TestCase):
                 args=[self.close],
                 expected_name="STDEV_30",
                 kwargs={"talib": False},
-                length_override=20,
             ),
         )
         if HAS_TALIB:
@@ -206,7 +195,6 @@ class TestStatistics(TestCase):
                     "TOS_STDEVALL_L_3",
                     "TOS_STDEVALL_U_3",
                 ],
-                length_override=30,
             ),
         )
         # stds unsorted → auto-reversed and still computes
@@ -225,7 +213,6 @@ class TestStatistics(TestCase):
                 args=[self.close],
                 expected_name="VAR_30",
                 kwargs={"talib": False},
-                length_override=20,
             ),
         )
         if HAS_TALIB:
@@ -238,7 +225,6 @@ class TestStatistics(TestCase):
                 func=pandas_ta.zscore,
                 args=[self.close],
                 expected_name="ZS_30",
-                length_override=20,
             ),
         )
 

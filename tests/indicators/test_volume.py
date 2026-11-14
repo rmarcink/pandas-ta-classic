@@ -54,7 +54,6 @@ class TestVolume(TestCase):
                 func=pandas_ta.ad,
                 args=[self.high, self.low, self.close, self.volume_],
                 expected_name="AD",
-                none_arg_idx=None,
             ),
         )
 
@@ -65,7 +64,6 @@ class TestVolume(TestCase):
                 func=pandas_ta.ad,
                 args=[self.high, self.low, self.close, self.volume_, self.open],
                 expected_name="ADo",
-                none_arg_idx=None,
             ),
         )
 
@@ -99,7 +97,6 @@ class TestVolume(TestCase):
                     "AOBV_LR_2",
                     "AOBV_SR_2",
                 ],
-                none_arg_idx=None,
             ),
         )
 
@@ -208,7 +205,6 @@ class TestVolume(TestCase):
                 func=pandas_ta.obv,
                 args=[self.close, self.volume_],
                 expected_name="OBV",
-                none_arg_idx=None,
             ),
         )
 
@@ -229,7 +225,6 @@ class TestVolume(TestCase):
                 func=pandas_ta.pvol,
                 args=[self.close, self.volume_],
                 expected_name="PVOL",
-                none_arg_idx=None,
             ),
         )
 
@@ -240,7 +235,6 @@ class TestVolume(TestCase):
                 func=pandas_ta.pvr,
                 args=[self.close, self.volume_],
                 expected_name="PVR",
-                none_arg_idx=None,
             ),
         )
         # sample indicator values from SPY
@@ -257,7 +251,6 @@ class TestVolume(TestCase):
                 func=pandas_ta.pvt,
                 args=[self.close, self.volume_],
                 expected_name="PVT",
-                none_arg_idx=None,
             ),
         )
 
@@ -277,9 +270,15 @@ class TestVolume(TestCase):
                     "neg_volume",
                     "total_volume",
                 ],
-                none_arg_idx=None,
             ),
         )
+
+    def test_vp_fill(self):
+        # vp's rows are price bins, so contracts/test_index_contract.py leaves it out
+        base = pandas_ta.vp(self.close, self.volume_)
+        pd.testing.assert_frame_equal(pandas_ta.vp(self.close, self.volume_, fillna=0), base.fillna(0))
+        pd.testing.assert_frame_equal(pandas_ta.vp(self.close, self.volume_, fill_method="ffill"), base.ffill())
+        pd.testing.assert_frame_equal(pandas_ta.vp(self.close, self.volume_, fill_method="bfill"), base.bfill())
 
     def test_vp_sort_close(self):
         chronological = pandas_ta.vp(self.close, self.volume_)

@@ -97,7 +97,6 @@ class TestMath(TestCase):
                 func=pandas_ta.rolling_max,
                 args=[self.close],
                 expected_name="MAX_30",
-                length_override=20,
             ),
         )
         if HAS_TALIB:
@@ -110,7 +109,6 @@ class TestMath(TestCase):
                 func=pandas_ta.rolling_min,
                 args=[self.close],
                 expected_name="MIN_30",
-                length_override=20,
             ),
         )
         if HAS_TALIB:
@@ -123,7 +121,6 @@ class TestMath(TestCase):
                 func=pandas_ta.rolling_sum,
                 args=[self.close],
                 expected_name="SUM_30",
-                length_override=20,
             ),
         )
         if HAS_TALIB:
@@ -182,7 +179,6 @@ class TestMath(TestCase):
                 func=pandas_ta.maxindex,
                 args=[self.close],
                 expected_name="MAXINDEX_30",
-                length_override=20,
             ),
         )
 
@@ -193,7 +189,6 @@ class TestMath(TestCase):
                 func=pandas_ta.minindex,
                 args=[self.close],
                 expected_name="MININDEX_30",
-                length_override=20,
             ),
         )
 
@@ -206,7 +201,6 @@ class TestMath(TestCase):
                 expected_name="MINMAX_30",
                 expected_type=DataFrame,
                 expected_columns=["MIN_30", "MAX_30"],
-                length_override=20,
             ),
         )
 
@@ -219,7 +213,6 @@ class TestMath(TestCase):
                 expected_name="MINMAXINDEX_30",
                 expected_type=DataFrame,
                 expected_columns=["MINIDX_30", "MAXIDX_30"],
-                length_override=20,
             ),
         )
 

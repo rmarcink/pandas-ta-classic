@@ -25,7 +25,6 @@ class TestPerformace(TestCase):
                 func=pandas_ta.log_return,
                 args=[self.close],
                 expected_name="LOGRET_1",
-                length_override=20,
             ),
         )
 
@@ -37,7 +36,6 @@ class TestPerformace(TestCase):
                 args=[self.close],
                 expected_name="CUMLOGRET_1",
                 kwargs={"cumulative": True},
-                length_override=20,
             ),
         )
 
@@ -48,7 +46,6 @@ class TestPerformace(TestCase):
                 func=pandas_ta.percent_return,
                 args=[self.close],
                 expected_name="PCTRET_1",
-                length_override=20,
             ),
         )
 
@@ -60,7 +57,6 @@ class TestPerformace(TestCase):
                 args=[self.close],
                 expected_name="CUMPCTRET_1",
                 kwargs={"cumulative": True},
-                length_override=20,
             ),
         )
 
