@@ -550,7 +550,7 @@ def test_native_matches_talib(name: str, frame: str, frames) -> None:
 # _disagreement() starts at the first bar both sides fill, so a value one bar
 # early or late passes it. Every case also publishes its first value on TA-Lib's
 # bar, except these, where TA-Lib's lookback is a convention of its own.
-_TALIB_ALIGNS_TO_SIGNAL = "TALIB: TA-Lib starts every MACD output where the signal line starts (bar 33); native starts the MACD line at bar 25"
+_TALIB_ALIGNS_TO_SIGNAL = "TALIB: TA-Lib starts every MACD output where the signal line starts, 8 bars after native starts the MACD line"
 _TALIB_ALIGNS_K_TO_D = "TALIB: TA-Lib starts %K where %D starts, two bars later; native publishes %K as soon as it has a value"
 WARMUP_DIFFERENCES = {
     "macd": _TALIB_ALIGNS_TO_SIGNAL,
@@ -562,11 +562,14 @@ WARMUP_DIFFERENCES = {
     "mavp": "TALIB: MAVP's lookback is its maximum period (30) whatever periods the bars ask for; native starts at the window a bar asks for",
     "pvt": "TALIB: PVT reads 0 on bar 0; native has no previous close there and reads NaN",
 }
+# Integer output with no NaN at all: both sides read 0 through the lookback, so a
+# NaN mask cannot show its start. test_native_matches_talib compares those zeros by value.
+_WARMUP_BY_VALUE = {"ht_trendmode"}
 
 
 def _warmup_mismatch(native, oracle, real: np.ndarray) -> str | None:
-    """Where the NaN masks differ on the bars with input, or None. TA-Lib zero-fills ht_trendmode's
-    integers where the input is missing, and native reads NaN there, so those bars are left out."""
+    """Where the NaN masks differ on the bars with input (*real*), or None. Bars with missing
+    input are left out: native reads NaN there, TA-Lib returns 0 for ht_trendmode's integers."""
     native_nan, oracle_nan = np.isnan(np.asarray(native, dtype=float)), np.isnan(np.asarray(oracle, dtype=float))
     differ = np.flatnonzero((native_nan != oracle_nan) & real)
     if not differ.size:
@@ -576,7 +579,9 @@ def _warmup_mismatch(native, oracle, real: np.ndarray) -> str | None:
 
 
 @pytest.mark.parametrize("frame", ["spy", "nan_prefix", "spy_full"])
-@pytest.mark.parametrize("name", params([(name,) for name in sorted(_CASES)], {(name,): reason for name, reason in WARMUP_DIFFERENCES.items()}))
+@pytest.mark.parametrize(
+    "name", params([(name,) for name in sorted(_CASES) if name not in _WARMUP_BY_VALUE], {(name,): reason for name, reason in WARMUP_DIFFERENCES.items()})
+)
 def test_warmup_matches_talib(name: str, frame: str, frames) -> None:
     case, bars = _CASES[name], frames[frame]
     real = np.isfinite(bars.close.to_numpy())

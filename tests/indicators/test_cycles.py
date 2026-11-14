@@ -277,7 +277,9 @@ class TestHilbertLookbackAndUndefinedBars(TestCase):
     20-26 values inside TA-Lib's lookback (32 or 63 bars). After a mid-series
     NaN, ht_trendmode converted the NaN it could not compute into 0 -- a
     valid-looking "cycle mode" for every remaining bar. The lookback against
-    TA-Lib is checked in tests/oracle/test_oracle_registry.py (test_warmup_matches_talib).
+    TA-Lib is checked in tests/oracle/test_oracle_registry.py: by NaN mask in
+    test_warmup_matches_talib, and for ht_trendmode, whose lookback reads 0, by
+    value in test_native_matches_talib.
     """
 
     @classmethod
