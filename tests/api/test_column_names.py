@@ -5,7 +5,7 @@ rename breaks callers and is a **BREAKING** change. ``EXPECTED_COLUMNS`` writes
 the names out instead of deriving them from the code, so a change shows up here
 as a decision. Each row is ``(indicator, keyword arguments, name, columns)``:
 ``columns`` is ``None`` for a Series result, otherwise the DataFrame's columns in
-order, and ``name`` is the result's ``.name`` (``None`` for ichimoku, which sets none).
+order, and ``name`` is the result's ``.name``.
 
 Every row is checked twice: the function called on SPY_D, and ``df.ta`` with
 ``append=True``, which must append exactly those columns. The inputs come from
@@ -26,7 +26,7 @@ from tests.contracts import INDICATORS, inputs, spy
 # The open column, for the indicators that take an optional one (ad gives ADo).
 OPEN = "open"
 
-EXPECTED_COLUMNS: list[tuple[str, dict, str | None, list[str] | None]] = [
+EXPECTED_COLUMNS: list[tuple[str, dict, str, list[str] | None]] = [
     # candles
     ('cdl_doji', {}, 'CDL_DOJI_10_0.1', None),
     ('cdl_inside', {}, 'CDL_INSIDE', None),
@@ -211,7 +211,7 @@ EXPECTED_COLUMNS: list[tuple[str, dict, str | None, list[str] | None]] = [
     ('hma', {}, 'HMA_10', None),
     ('ht_trendline', {}, 'HT_TRENDLINE', None),
     ('hwma', {}, 'HWMA_0.2_0.1_0.1', None),
-    ('ichimoku', {}, None, ['ISA_9', 'ISB_26', 'ITS_9', 'IKS_26', 'ICS_26']),
+    ('ichimoku', {}, 'ICHIMOKU_9_26_52', ['ISA_9', 'ISB_26', 'ITS_9', 'IKS_26', 'ICS_26']),
     ('jma', {}, 'JMA_7_0', None),
     ('kama', {}, 'KAMA_10_2_30', None),
     ('linreg', {'angle': True}, 'LRa_14', None),
@@ -387,15 +387,13 @@ def _accessor_kwargs(indicator: str, kwargs: dict, df: pd.DataFrame) -> dict:
     return {**extra, **options}
 
 
-def _check(result, name: str | None, columns: list[str] | None, where: str) -> None:
+def _check(result, name: str, columns: list[str] | None, where: str) -> None:
     if columns is None:
         assert isinstance(result, pd.Series), f"{where}: expected a Series, got {type(result).__name__}"
-        assert result.name == name, f"{where}: name {result.name!r} != {name!r}"
     else:
         assert isinstance(result, pd.DataFrame), f"{where}: expected a DataFrame, got {type(result).__name__}"
         assert list(result.columns) == columns, f"{where}: columns {list(result.columns)} != {columns}"
-        if name is not None:
-            assert result.name == name, f"{where}: name {result.name!r} != {name!r}"
+    assert result.name == name, f"{where}: name {result.name!r} != {name!r}"
 
 
 @pytest.mark.parametrize(("indicator", "kwargs", "name", "columns"), _rows())
