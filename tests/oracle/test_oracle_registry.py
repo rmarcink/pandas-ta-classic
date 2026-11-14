@@ -243,6 +243,27 @@ def _psar_stop(b) -> Columns:
     return [long_.combine_first(short)]
 
 
+_KIJUN = 26
+
+
+def _ichimoku_unshifted(b) -> Columns:
+    """ichimoku's lines with both spans moved back to the bar they are computed on.
+
+    Native publishes the spans ``kijun`` bars forward, where a chart draws them;
+    TA-Lib returns them on the bar of their inputs.
+    """
+    tenkan, kijun, span_a, span_b = _cols(ta.ichimoku(b.high, b.low, b.close, 9, _KIJUN, 52), "ITS_", "IKS_", "ISA_", "ISB_")
+    return [tenkan, kijun, span_a.shift(-_KIJUN), span_b.shift(-_KIJUN)]
+
+
+def _ichimoku_talib(b) -> Columns:
+    """TA-Lib's ICHIMOKU without the spans of the last ``kijun`` bars, which native has not published yet."""
+    tenkan, kijun, span_a, span_b = T.ICHIMOKU(b.high, b.low, 9, _KIJUN, 52)
+    for span in (span_a, span_b):
+        span[-_KIJUN:] = np.nan
+    return [tenkan, kijun, span_a, span_b]
+
+
 T = talib
 ORACLE: dict[str, Case] = {
     # overlap
@@ -373,6 +394,73 @@ ORACLE: dict[str, Case] = {
     "rolling_max": Case(lambda b: [ta.rolling_max(b.close, 10)], lambda b: [T.MAX(b.close, 10)]),
     "rolling_min": Case(lambda b: [ta.rolling_min(b.close, 10)], lambda b: [T.MIN(b.close, 10)]),
     "rolling_sum": Case(lambda b: [ta.rolling_sum(b.close, 10)], lambda b: [T.SUM(b.close, 10)]),
+    "minmax": Case(lambda b: _cols(ta.minmax(b.close, 30), "MIN_", "MAX_"), lambda b: list(T.MINMAX(b.close, 30))),
+    # Counterparts TA-Lib added in 0.8 (the floor is ta-lib>=0.8.3).
+    # overlap
+    "hma": Case(lambda b: [ta.hma(b.close, 20)], lambda b: [T.HMA(b.close, 20)]),
+    "rma": Case(lambda b: [ta.rma(b.close, 30)], lambda b: [T.RMA(b.close, 30)]),
+    "vwma": Case(lambda b: [ta.vwma(b.close, b.volume, 30)], lambda b: [T.VWMA(b.close, b.volume, 30)]),
+    "zlma": Case(lambda b: [ta.zlma(b.close, 30)], lambda b: [T.ZLEMA(b.close, 30)]),
+    "mcgd": Case(lambda b: [ta.mcgd(b.close, 14)], lambda b: [T.MCGD(b.close, 14)]),
+    "ichimoku": Case(_ichimoku_unshifted, _ichimoku_talib),
+    # momentum
+    "ao": Case(lambda b: [ta.ao(b.high, b.low, 5, 34)], lambda b: [T.AO(b.high, b.low, 5, 34)]),
+    "cg": Case(lambda b: [ta.cg(b.close, 10)], lambda b: [T.CG(b.close, 10)]),
+    "coppock": Case(lambda b: [ta.coppock(b.close, 10, 11, 14)], lambda b: [T.COPPOCK(b.close, 10, 11, 14)]),
+    "cti": Case(lambda b: [ta.cti(b.close, 20)], lambda b: [T.CTI(b.close, 20)]),
+    "cvi": Case(lambda b: [ta.cvi(b.high, b.low, 10)], lambda b: [T.CVI(b.high, b.low, 10, 10)]),
+    "er": Case(lambda b: [ta.er(b.close, 10)], lambda b: [T.ER(b.close, 10)]),
+    "eri": Case(lambda b: _cols(ta.eri(b.high, b.low, b.close, 13), "BULLP_", "BEARP_"), lambda b: list(T.ERI(b.high, b.low, b.close, 13))),
+    # The two seed the first value differently and converge.
+    "fisher": Case(
+        lambda b: _cols(ta.fisher(b.high, b.low, 10, 1), "FISHERT_", "FISHERTs_"), lambda b: list(T.FISHER(b.high, b.low, 10)), settle=200
+    ),
+    # KDJ's matype 13 is the 1/n smoothing of the original KDJ.
+    "kdj": Case(
+        lambda b: _cols(ta.kdj(b.high, b.low, b.close, 9, 3), "K_", "D_", "J_"), lambda b: list(T.KDJ(b.high, b.low, b.close, 9, 3, 13, 3, 13))
+    ),
+    "kst": Case(lambda b: _cols(ta.kst(b.close), "KST_", "KSTs_"), lambda b: list(T.KST(b.close))),
+    "qstick": Case(lambda b: [ta.qstick(b.open, b.close, 10)], lambda b: [T.QSTICK(b.open, b.close, 10)]),
+    # STC's two stochastic stages amplify the seed difference of its MACD: 1e-3 apart
+    # at bar 220 of nan_prefix (37 bars later start), 1e-6 at bar 238 of flat_block.
+    # settle=240 lets both converge; it also passes over the spike at bar 200.
+    "stc": Case(lambda b: _cols(ta.stc(b.close, 10, 23, 50), "STC_"), lambda b: [T.STC(b.close, 23, 50, 10)], settle=240, rtol=1e-6),
+    "tsi": Case(lambda b: _cols(ta.tsi(b.close, 13, 25), "TSI_"), lambda b: [T.TSI(b.close, 25, 13)]),
+    # trend
+    "chop": Case(lambda b: [ta.chop(b.high, b.low, b.close, 14)], lambda b: [T.CHOP(b.high, b.low, b.close, 14)]),
+    "cksp": Case(
+        lambda b: _cols(ta.cksp(b.high, b.low, b.close, 10, 1.0, 9), "CKSPl_", "CKSPs_"), lambda b: list(T.CKSP(b.high, b.low, b.close, 10, 1.0, 9))
+    ),
+    "supertrend": Case(
+        lambda b: _cols(ta.supertrend(b.high, b.low, b.close, 10, 3.0), "SUPERT_", "SUPERTd_"),
+        lambda b: list(T.SUPERTREND(b.high, b.low, b.close, 10, 3.0)),
+    ),
+    "vhf": Case(lambda b: [ta.vhf(b.close, 28)], lambda b: [T.VHF(b.close, 28)]),
+    "vortex": Case(lambda b: _cols(ta.vortex(b.high, b.low, b.close, 14), "VTXP_", "VTXM_"), lambda b: list(T.VORTEX(b.high, b.low, b.close, 14))),
+    # volatility
+    "accbands": Case(
+        lambda b: _cols(ta.accbands(b.high, b.low, b.close, 20), "ACCBU_", "ACCBM_", "ACCBL_"), lambda b: list(T.ACCBANDS(b.high, b.low, b.close, 20))
+    ),
+    "donchian": Case(lambda b: _cols(ta.donchian(b.high, b.low, 20, 20), "DCU_", "DCM_", "DCL_"), lambda b: list(T.DONCHIAN(b.high, b.low, 20))),
+    "massi": Case(lambda b: [ta.massi(b.high, b.low, 9, 25)], lambda b: [T.MASSI(b.high, b.low, 9, 25)]),
+    # statistics
+    "kurtosis": Case(lambda b: [ta.kurtosis(b.close, 30)], lambda b: [T.KURTOSIS(b.close, 30)]),
+    "mad": Case(lambda b: [ta.mad(b.close, 14)], lambda b: [T.AVGDEV(b.close, 14)]),
+    "median": Case(lambda b: [ta.median(b.close, 30)], lambda b: [T.MEDIAN(b.close, 30)]),
+    # volume
+    "cmf": Case(lambda b: [ta.cmf(b.high, b.low, b.close, b.volume, None, 20)], lambda b: [T.CMF(b.high, b.low, b.close, b.volume, 20)]),
+    "efi": Case(lambda b: [ta.efi(b.close, b.volume, 13)], lambda b: [T.EFI(b.close, b.volume, 13)]),
+    # emv is the one-bar ease of movement, EMV before its smoothing; eom smooths it (EMV's own default).
+    "emv": Case(lambda b: [ta.emv(b.high, b.low, b.volume)], lambda b: [T.EMV(b.high, b.low, b.volume, 1, 10000.0)]),
+    "eom": Case(lambda b: [ta.eom(b.high, b.low, b.close, b.volume, 14, divisor=10000)], lambda b: [T.EMV(b.high, b.low, b.volume, 14, 10000.0)]),
+    "marketfi": Case(lambda b: [ta.marketfi(b.high, b.low, b.volume)], lambda b: [T.MARKETFI(b.high, b.low, b.volume)]),
+    "pvo": Case(lambda b: _cols(ta.pvo(b.volume, 12, 26), "PVO_"), lambda b: [T.PVO(b.volume, 12, 26, 1)]),
+    "wad": Case(lambda b: [ta.wad(b.high, b.low, b.close)], lambda b: [T.WAD(b.high, b.low, b.close)]),
+    # candles
+    "ha": Case(
+        lambda b: _cols(ta.ha(b.open, b.high, b.low, b.close), "HA_open", "HA_high", "HA_low", "HA_close"),
+        lambda b: list(T.HA(b.open, b.high, b.low, b.close)),
+    ),
 }
 
 # Elementwise math transforms map one to one onto a TA-Lib function of the same
@@ -398,6 +486,13 @@ for _name, _fn in _TRANSFORMS.items():
 # the same function, so a value comparison would test the wrong thing.
 NO_ORACLE = {
     "ma": "a dispatcher; every MA it reaches has its own case",
+    "alma": "ALMA weighs the newest bars with offset 0.85 and floors its centre to a bar; native weighs the oldest",
+    "kc": "KC is EMA(typical price, 20) +- 2 * ATR(10); native uses one length for the basis of close and the band of the true range",
+    "kvo": "KVO's volume force uses Klinger's trend and cumulative measurement; native signs the volume by the change of hlc3",
+    "rvi": "RVI takes the deviation (10) and its smoothing (14) over two windows; native uses one length for both",
+    "smi": "a different indicator: TA-Lib's SMI is Blau's Stochastic Momentum Index, native smi is the SMI Ergodic of the TSI",
+    "vidya": "VIDYA takes its CMO over a separate period; with the same period it is still 0.2 % off",
+    "vwap": "VWAP is cumulative from the first bar; native anchors to a calendar period and needs a DatetimeIndex",
 }
 
 # A second path of an indicator in ORACLE that TA-Lib can express too, keyed
@@ -489,6 +584,11 @@ _HILBERT_ON_A_CONSTANT = (
     "KEPT: the Hilbert transform of a constant input has no dominant cycle; both sides amplify "
     "rounding (equal to 1e-8, then up to 19 apart), so neither value means anything"
 )
+_ZERO_MARKER = "KEPT: native reads the 0.0 marker on {what} (degenerate-window convention, test_degenerate_input.py); TA-Lib reads {talib}"
+_CHOP_DIVISION = (
+    "KEPT: where the highs outlive the lows of a flat block, the true range sums to a value over a zero range, a real "
+    "division by zero that reads inf (test_degenerate_input.py _REAL_DIVISION_BY_ZERO); TA-Lib reads 100"
+)
 # TA-Lib changed between 0.7 and 0.8 (measured with 0.7.1 and 0.8.2, the
 # version CI installs): 0.8 fixed the CCI residue, CORREL's zero test and
 # STOCHRSI's flat-block noise (as native stochrsi does), and
@@ -508,6 +608,34 @@ KNOWN_DIFFERENCES: dict[tuple[str, str], str] = {
     ("ht_trendmode", "flat_block"): _HILBERT_ON_A_CONSTANT,
     ("mama", "flat_block"): _HILBERT_ON_A_CONSTANT,
     ("mama", "planted"): _HILBERT_ON_A_CONSTANT,
+    ("chop", "flat"): _ZERO_MARKER.format(what="a window with no true range and no range", talib="100"),
+    ("chop", "flat_block"): _CHOP_DIVISION,
+    ("chop", "planted"): _CHOP_DIVISION,
+    ("chop", "malformed"): _CHOP_DIVISION,
+    ("er", "flat"): _ZERO_MARKER.format(what="a window with no movement", talib="1.0"),
+    ("er", "flat_block"): _ZERO_MARKER.format(what="a window with no movement", talib="1.0"),
+    ("er", "planted"): _ZERO_MARKER.format(what="a window with no movement", talib="1.0"),
+    ("massi", "flat"): _ZERO_MARKER.format(what="a bar with no range (its EMA ratio is 0/0)", talib="25, a ratio of 1 on each of 25 bars"),
+    ("massi", "no_range"): _ZERO_MARKER.format(what="a bar with no range (its EMA ratio is 0/0)", talib="25, a ratio of 1 on each of 25 bars"),
+    ("kurtosis", "flat"): _ZERO_MARKER.format(what="a window with no variance", talib="NaN"),
+    ("kurtosis", "flat_block"): _ZERO_MARKER.format(what="a window with no variance", talib="NaN"),
+    ("cmf", "zero_volume"): (
+        "KEPT: a window with no volume has no money flow to weigh, so native reads NaN (test_degenerate_input.py); TA-Lib reads 0.0"
+    ),
+    ("marketfi", "zero_volume"): (
+        "KEPT: a range on no volume is a real division by zero and native reads inf (test_degenerate_input.py); TA-Lib reads 0.0"
+    ),
+    ("emv", "zero_volume"): (
+        "KEPT: a range on no volume is a real division by zero and native reads inf (test_degenerate_input.py); TA-Lib reads 0.0"
+    ),
+    ("eom", "zero_volume"): (
+        "KEPT: a bar on no volume whose midpoint did not move is 0/0 and reads NaN (test_degenerate_input.py), "
+        "and the NaN stays in the 14-bar average; TA-Lib reads a value"
+    ),
+    ("mcgd", "spike"): (
+        "TALIB: MCGD divides by (close / previous MCGD) ** 4, which a flash crash to 0.1x drives towards zero: TA-Lib "
+        "swings to -1.9e5 and then 1e64, native follows the price"
+    ),
 }
 if _TALIB_08:
     KNOWN_DIFFERENCES[("willr", "malformed")] = (
@@ -561,6 +689,13 @@ WARMUP_DIFFERENCES = {
     "stochrsi": _TALIB_ALIGNS_K_TO_D,
     "mavp": "TALIB: MAVP's lookback is its maximum period (30) whatever periods the bars ask for; native starts at the window a bar asks for",
     "pvt": "TALIB: PVT reads 0 on bar 0; native has no previous close there and reads NaN",
+    "wad": "TALIB: WAD reads 0 on bar 0; native has no previous close there and reads NaN",
+    "kdj": _TALIB_ALIGNS_K_TO_D,
+    "kst": "TALIB: TA-Lib starts KST where its signal line starts, 8 bars after native starts the KST line",
+    "ichimoku": "TALIB: TA-Lib starts every ICHIMOKU line where span B starts (bar 51); native publishes tenkan and kijun as soon as each has a window",
+    "supertrend": "TALIB: SUPERTREND reads trend 0 during its warm-up; native reads NaN until the first band exists",
+    "mcgd": "TALIB: MCGD withholds its first 13 bars; native seeds with the first close and publishes from bar 0, with the same values after",
+    "fisher": "TALIB: FISHER starts on the first full window; native starts one bar later, and the two agree from bar 64 on",
 }
 # Integer output with no NaN at all: both sides read 0 through the lookback, so a
 # NaN mask cannot show its start. test_native_matches_talib compares those zeros by value.

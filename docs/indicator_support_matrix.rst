@@ -16,7 +16,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - ao
      - momentum
      - yes
-     - no
+     - yes
      - yes
    * - apo
      - momentum
@@ -51,7 +51,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - cg
      - momentum
      - yes
-     - no
+     - yes
      - no
    * - cmo
      - momentum
@@ -61,12 +61,12 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - coppock
      - momentum
      - yes
-     - no
+     - yes
      - no
    * - cti
      - momentum
      - yes
-     - no
+     - yes
      - no
    * - dm
      - momentum
@@ -76,17 +76,17 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - er
      - momentum
      - yes
-     - no
+     - yes
      - no
    * - eri
      - momentum
      - yes
-     - no
+     - yes
      - no
    * - fisher
      - momentum
      - yes
-     - no
+     - yes
      - yes
    * - fosc
      - momentum
@@ -101,12 +101,12 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - kdj
      - momentum
      - yes
-     - no
+     - yes
      - no
    * - kst
      - momentum
      - yes
-     - no
+     - yes
      - no
    * - lrsi
      - momentum
@@ -156,7 +156,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - pvo
      - momentum
      - yes
-     - no
+     - yes
      - no
    * - qqe
      - momentum
@@ -211,7 +211,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - smi
      - momentum
      - yes
-     - no
+     - yes
      - no
    * - squeeze
      - momentum
@@ -226,7 +226,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - stc
      - momentum
      - yes
-     - no
+     - yes
      - no
    * - stoch
      - momentum
@@ -261,7 +261,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - tsi
      - momentum
      - yes
-     - no
+     - yes
      - no
    * - uo
      - momentum
@@ -286,7 +286,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - accbands
      - volatility
      - yes
-     - no
+     - yes
      - no
    * - atr
      - volatility
@@ -311,12 +311,12 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - cvi
      - volatility
      - yes
-     - no
+     - yes
      - yes
    * - donchian
      - volatility
      - yes
-     - no
+     - yes
      - no
    * - hvol
      - volatility
@@ -331,12 +331,12 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - kc
      - volatility
      - yes
-     - no
+     - yes
      - no
    * - massi
      - volatility
      - yes
-     - no
+     - yes
      - yes
    * - natr
      - volatility
@@ -351,7 +351,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - rvi
      - volatility
      - yes
-     - no
+     - yes
      - no
    * - thermo
      - volatility
@@ -386,12 +386,12 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - kurtosis
      - statistics
      - yes
-     - no
+     - yes
      - no
    * - mad
      - statistics
      - yes
-     - no
+     - yes
      - no
    * - md
      - statistics
@@ -401,7 +401,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - median
      - statistics
      - yes
-     - no
+     - yes
      - no
    * - quantile
      - statistics
@@ -441,7 +441,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - alma
      - overlap
      - yes
-     - no
+     - yes
      - no
    * - avgprice
      - overlap
@@ -481,7 +481,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - hma
      - overlap
      - yes
-     - no
+     - yes
      - yes
    * - ht_trendline
      - overlap
@@ -496,7 +496,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - ichimoku
      - overlap
      - yes
-     - no
+     - yes
      - no
    * - jma
      - overlap
@@ -546,7 +546,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - mcgd
      - overlap
      - yes
-     - no
+     - yes
      - no
    * - medprice
      - overlap
@@ -586,7 +586,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - rma
      - overlap
      - yes
-     - no
+     - yes
      - yes
    * - sinwma
      - overlap
@@ -606,7 +606,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - supertrend
      - overlap
      - yes
-     - no
+     - yes
      - no
    * - swma
      - overlap
@@ -641,17 +641,17 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - vidya
      - overlap
      - yes
-     - no
+     - yes
      - yes
    * - vwap
      - overlap
      - yes
-     - no
+     - yes
      - no
    * - vwma
      - overlap
      - yes
-     - no
+     - yes
      - yes
    * - wcp
      - overlap
@@ -666,7 +666,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - zlma
      - overlap
      - yes
-     - no
+     - yes
      - yes
    * - drawdown
      - performance
@@ -746,12 +746,12 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - chop
      - trend
      - yes
-     - no
+     - yes
      - no
    * - cksp
      - trend
      - yes
-     - no
+     - yes
      - no
    * - cpr
      - trend
@@ -816,7 +816,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - qstick
      - trend
      - yes
-     - no
+     - yes
      - yes
    * - sarext
      - trend
@@ -841,12 +841,12 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - vhf
      - trend
      - yes
-     - no
+     - yes
      - yes
    * - vortex
      - trend
      - yes
-     - no
+     - yes
      - no
    * - xsignals
      - trend
@@ -876,7 +876,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - ha
      - candles
      - yes
-     - no
+     - yes
      - no
    * - ad
      - volume
@@ -896,32 +896,32 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - cmf
      - volume
      - yes
-     - no
+     - yes
      - no
    * - efi
      - volume
      - yes
-     - no
+     - yes
      - no
    * - emv
      - volume
      - yes
-     - no
+     - yes
      - yes
    * - eom
      - volume
      - yes
-     - no
+     - yes
      - no
    * - kvo
      - volume
      - yes
-     - no
+     - yes
      - yes
    * - marketfi
      - volume
      - yes
-     - no
+     - yes
      - yes
    * - mfi
      - volume
@@ -976,7 +976,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - wad
      - volume
      - yes
-     - no
+     - yes
      - yes
    * - acos
      - math
@@ -1051,7 +1051,7 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
    * - minmax
      - math
      - yes
-     - no
+     - yes
      - no
    * - minmaxindex
      - math
