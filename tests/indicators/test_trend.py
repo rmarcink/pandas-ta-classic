@@ -83,7 +83,6 @@ class TestTrend(TestCase):
                 expected_name="AMATe_8_21_2",
                 expected_type=DataFrame,
                 expected_columns=["AMATe_LR_8_21_2", "AMATe_SR_8_21_2"],
-                none_arg_idx=None,
             ),
         )
 
@@ -518,7 +517,6 @@ class TestTrend(TestCase):
                 func=pandas_ta.dpo,
                 args=[self.close],
                 expected_name="DPO_20",
-                none_arg_idx=None,
             ),
         )
 
@@ -543,7 +541,6 @@ class TestTrend(TestCase):
                 func=pandas_ta.long_run,
                 args=[self.close, self.open],
                 expected_name="LR_2",
-                none_arg_idx=None,
             ),
         )
         with self.assertRaisesRegex(ValueError, "long_run\\(\\) requires 'fast' and 'slow' Series"):
@@ -618,7 +615,6 @@ class TestTrend(TestCase):
                     "PSARaf_0.02_0.2",
                     "PSARr_0.02_0.2",
                 ],
-                none_arg_idx=None,
             ),
         )
 
@@ -649,7 +645,6 @@ class TestTrend(TestCase):
                 func=pandas_ta.short_run,
                 args=[self.close, self.open],
                 expected_name="SR_2",
-                none_arg_idx=None,
             ),
         )
         with self.assertRaisesRegex(ValueError, "short_run\\(\\) requires 'fast' and 'slow' Series"):
@@ -723,7 +718,6 @@ class TestTrend(TestCase):
                 expected_name="TS",
                 expected_type=DataFrame,
                 expected_columns=["TS_Trends", "TS_Trades", "TS_Entries", "TS_Exits"],
-                none_arg_idx=None,
             ),
         )
         with self.assertRaisesRegex(ValueError, "tsignals\\(\\) requires a 'trend' Series"):
@@ -739,7 +733,6 @@ class TestTrend(TestCase):
                 expected_name="XS",
                 expected_type=DataFrame,
                 expected_columns=["TS_Trends", "TS_Trades", "TS_Entries", "TS_Exits"],
-                none_arg_idx=None,
                 kwargs={"xa": 70, "xb": 30},
             ),
         )

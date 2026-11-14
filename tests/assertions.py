@@ -1,4 +1,3 @@
-import inspect
 import math
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -8,7 +7,6 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 from pandas import DataFrame, Series
-from pandas.testing import assert_frame_equal, assert_series_equal
 
 from tests.config import get_sample_data
 
@@ -50,41 +48,7 @@ class IndicatorSpec:
     expected_name: str
     expected_type: type = Series
     expected_columns: list[str] | None = None
-    none_arg_idx: int | None = 0
     kwargs: dict = field(default_factory=dict)
-    length_override: int | None = None
-
-
-def _assert_same_result(test_case, actual, expected, msg):
-    test_case.assertIsInstance(actual, type(expected), msg)
-    try:
-        if isinstance(expected, DataFrame):
-            assert_frame_equal(actual, expected)
-        else:
-            assert_series_equal(actual, expected)
-    except AssertionError as ex:
-        raise test_case.failureException(f"{msg}\n{ex}") from None
-
-
-def assert_offset(test_case, func, args, **kwargs):
-    """``offset=1`` returns the default result shifted forward by one bar."""
-    expected = func(*args, **kwargs).shift(1)
-    _assert_same_result(test_case, func(*args, offset=1, **kwargs), expected, f"{func.__name__}: offset=1 must shift the result by one bar")
-
-
-def assert_fill(test_case, func, args, **kwargs):
-    """``fillna`` and ``fill_method`` match the pandas operation on the default result."""
-    base = func(*args, **kwargs)
-    name = func.__name__
-    _assert_same_result(test_case, func(*args, fillna=0, **kwargs), base.fillna(0), f"{name}: fillna=0 must equal result.fillna(0)")
-    _assert_same_result(test_case, func(*args, fill_method="ffill", **kwargs), base.ffill(), f"{name}: fill_method='ffill' must equal result.ffill()")
-    _assert_same_result(test_case, func(*args, fill_method="bfill", **kwargs), base.bfill(), f"{name}: fill_method='bfill' must equal result.bfill()")
-
-
-def assert_length_in_name(test_case, func, args, length, **kwargs):
-    result = func(*args, length=length, **kwargs)
-    test_case.assertIsNotNone(result)
-    test_case.assertIn(str(length), result.name)
 
 
 def assert_all_nan(test_case, result, index=None):
@@ -97,12 +61,6 @@ def assert_all_nan(test_case, result, index=None):
         test_case.assertTrue(result.index.equals(index), "all-NaN result must keep the input index")
     values = result.to_numpy(dtype=float)
     test_case.assertTrue(values.size == 0 or bool(np.isnan(values).all()), "short-input result must be all NaN")
-
-
-def assert_none_guard(test_case, func, args, none_arg_idx=0, **kwargs):
-    none_args = list(args)
-    none_args[none_arg_idx] = None
-    test_case.assertIsNone(func(*none_args, **kwargs))
 
 
 # ---------------------------------------------------------------------------
@@ -142,8 +100,10 @@ def assert_talib(test_case, result, expected):
 
 
 def assert_indicator_standard(test_case, spec: IndicatorSpec):
-    raw = spec.func(*spec.args, **spec.kwargs)
-    result = raw
+    """Type, name and columns of one call. Offset, fill, a missing input and the
+    name of a changed parameter are registry-wide contracts (contracts/test_index_contract.py,
+    test_short_input_contract.py, test_parameter_name_contract.py)."""
+    result = spec.func(*spec.args, **spec.kwargs)
     test_case.assertIsInstance(result, spec.expected_type)
     test_case.assertEqual(result.name, spec.expected_name)
     if spec.expected_type is DataFrame:
@@ -154,21 +114,6 @@ def assert_indicator_standard(test_case, spec: IndicatorSpec):
         test_case.assertListEqual(list(result.columns), spec.expected_columns)
     elif spec.expected_columns is not None:
         test_case.assertListEqual(list(result.columns), spec.expected_columns)
-    # vp has no offset: its rows are price bins, not bars
-    if "offset" in inspect.signature(spec.func).parameters:
-        assert_offset(test_case, spec.func, spec.args, **spec.kwargs)
-    assert_fill(test_case, spec.func, spec.args, **spec.kwargs)
-    if spec.none_arg_idx is not None:
-        assert_none_guard(test_case, spec.func, spec.args, spec.none_arg_idx, **spec.kwargs)
-    if spec.length_override is not None:
-        base_kwargs = {k: v for k, v in spec.kwargs.items() if k != "length"}
-        assert_length_in_name(
-            test_case,
-            spec.func,
-            spec.args,
-            spec.length_override,
-            **base_kwargs,
-        )
     return result
 
 

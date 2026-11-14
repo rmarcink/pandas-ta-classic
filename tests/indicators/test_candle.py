@@ -66,7 +66,6 @@ class TestCandle(TestCase):
                 expected_name="Heikin-Ashi",
                 expected_type=DataFrame,
                 expected_columns=["HA_open", "HA_high", "HA_low", "HA_close"],
-                none_arg_idx=0,
             ),
         )
 
@@ -114,7 +113,6 @@ class TestCandle(TestCase):
                 args=[self.open, self.high, self.low, self.close],
                 expected_name="CDL_DOJI_10_0.1",
                 expected_type=Series,
-                none_arg_idx=0,
             ),
         )
 
@@ -126,7 +124,6 @@ class TestCandle(TestCase):
                 args=[self.open, self.high, self.low, self.close],
                 expected_name="CDL_INSIDE",
                 expected_type=Series,
-                none_arg_idx=0,
             ),
         )
 
@@ -148,7 +145,6 @@ class TestCandle(TestCase):
                     "low_Z_30_1",
                     "close_Z_30_1",
                 ],
-                none_arg_idx=0,
             ),
         )
 

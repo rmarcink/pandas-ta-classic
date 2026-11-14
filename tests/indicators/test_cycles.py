@@ -36,7 +36,6 @@ class TestCycles(TestCase):
                 func=pandas_ta.dsp,
                 args=[self.close],
                 expected_name="DSP_14",
-                length_override=20,
             ),
         )
 
@@ -47,7 +46,6 @@ class TestCycles(TestCase):
                 func=pandas_ta.ebsw,
                 args=[self.close],
                 expected_name="EBSW_40_10",
-                length_override=50,
             ),
         )
 

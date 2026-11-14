@@ -28,8 +28,10 @@ Unit Tests
 ``test_trend.py``, ``test_volatility.py``,
 ``test_volume.py``, ``test_math.py``.
 
-Uses ``IndicatorSpec``-based assertions (``assert_indicator_standard``)
-against real market data from ``SPY_D.csv``.
+Uses ``IndicatorSpec``-based assertions (``assert_indicator_standard``:
+type, name and columns of a call) against real market data from
+``SPY_D.csv``. ``offset``, ``fillna``, a missing input and the name of a
+changed parameter are checked registry-wide by the contracts below.
 
 **Run:** ``python -m unittest tests.indicators.test_momentum -v``
 
@@ -158,7 +160,10 @@ Edge-Case Tests
 - ``test_short_input_contract.py`` — for every registered indicator, input
   shorter than its window returns an all-NaN result indexed like the input
   and shaped like a normal one (it returned ``None`` before 0.9.0); an
-  indicator with no window, or a window the input fits, returns values.
+  indicator with no window, or a window the input fits, returns values. A
+  required Series passed as ``None`` returns ``None``; an input no
+  OHLCV column stands for (``fast``/``slow``, ``trend``, ``signal``,
+  ``periods``) raises ``ValueError`` naming it.
 - ``test_leading_nan_contract.py`` — for every registered indicator, a
   leading NaN run (chained input) leaves the result on the real bars
   unchanged, the padded bars themselves read NaN, and an all-NaN input reads
@@ -203,7 +208,8 @@ Edge-Case Tests
   same values as a unique index (with and without a leading NaN run), and
   ``result.category`` names the category the indicator is registered under.
   The ``offset`` and ``fillna`` checks run on every option path: each
-  ``mamode``, ``talib=True`` and each boolean option.
+  choice of a string option (each ``mamode``), ``talib=True`` and each
+  boolean option.
 - ``test_int_parameter_contract.py`` — for every registered indicator, each
   whole-number parameter set to 2, 3 and 5 leaves values in every column the
   default call fills.
@@ -339,7 +345,6 @@ a utility live with its other tests in ``utils/test_utils_<module>.py``
   non-negativity, MOM/ROC relationship.
 * **Core utilities** — ``verify_series``, ``apply_offset``, ``apply_fill``
   (in ``utils/test_utils_core.py``).
-* **None-guard safety** — Indicators return ``None`` for ``None`` input.
 * **NaN propagation** — All-NaN input → all-NaN output, no crash.
 * **Idempotence** — Same args twice → identical result.
 * **Category discovery** — Dynamic discovery stays consistent.

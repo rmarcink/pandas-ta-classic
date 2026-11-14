@@ -113,7 +113,6 @@ class TestOverlap(TestCase):
                 func=pandas_ta.hl2,
                 args=[self.high, self.low],
                 expected_name="HL2",
-                none_arg_idx=None,
             ),
         )
 
@@ -127,7 +126,6 @@ class TestOverlap(TestCase):
                 func=pandas_ta.hlc3,
                 args=[self.high, self.low, self.close],
                 expected_name="HLC3",
-                none_arg_idx=None,
             ),
         )
 
@@ -148,7 +146,6 @@ class TestOverlap(TestCase):
                 func=pandas_ta.ht_trendline,
                 args=[self.close],
                 expected_name="HT_TRENDLINE",
-                none_arg_idx=0,
             ),
         )
 
@@ -159,7 +156,6 @@ class TestOverlap(TestCase):
                 func=pandas_ta.hwma,
                 args=[self.close],
                 expected_name="HWMA_0.2_0.1_0.1",
-                none_arg_idx=None,
             ),
         )
 
@@ -244,7 +240,6 @@ class TestOverlap(TestCase):
                 args=[self.close],
                 expected_name="LRa_14",
                 kwargs={"angle": True},
-                none_arg_idx=None,
             ),
         )
 
@@ -259,7 +254,6 @@ class TestOverlap(TestCase):
                 args=[self.close],
                 expected_name="LRb_14",
                 kwargs={"intercept": True},
-                none_arg_idx=None,
             ),
         )
 
@@ -271,7 +265,6 @@ class TestOverlap(TestCase):
                 args=[self.close],
                 expected_name="LRr_14",
                 kwargs={"r": True},
-                none_arg_idx=None,
             ),
         )
 
@@ -286,7 +279,6 @@ class TestOverlap(TestCase):
                 args=[self.close],
                 expected_name="LRm_14",
                 kwargs={"slope": True},
-                none_arg_idx=None,
             ),
         )
 
@@ -395,7 +387,6 @@ class TestOverlap(TestCase):
                 func=pandas_ta.ohlc4,
                 args=[self.open, self.high, self.low, self.close],
                 expected_name="OHLC4",
-                none_arg_idx=None,
             ),
         )
 
@@ -532,7 +523,6 @@ class TestOverlap(TestCase):
                 func=pandas_ta.tsf,
                 args=[self.close],
                 expected_name="TSF_14",
-                none_arg_idx=0,
             ),
         )
 
@@ -553,7 +543,6 @@ class TestOverlap(TestCase):
                 func=pandas_ta.vwap,
                 args=[self.high, self.low, self.close, self.volume],
                 expected_name="VWAP_D",
-                none_arg_idx=None,
             ),
         )
 
@@ -577,7 +566,6 @@ class TestOverlap(TestCase):
                 func=pandas_ta.wcp,
                 args=[self.high, self.low, self.close],
                 expected_name="WCP",
-                none_arg_idx=None,
             ),
         )
 
@@ -649,7 +637,6 @@ class TestOverlap(TestCase):
                     "MMAR_30",
                     "MMAR_35",
                 ],
-                none_arg_idx=None,
             ),
         )
 
@@ -673,7 +660,6 @@ class TestOverlap(TestCase):
                     "RAINBOW_9",
                     "RAINBOW_10",
                 ],
-                none_arg_idx=None,
             ),
         )
 
