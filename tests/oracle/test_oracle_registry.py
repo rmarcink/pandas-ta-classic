@@ -1,8 +1,9 @@
 """Every indicator with a TA-Lib counterpart agrees with it on every known data problem.
 
-``test_oracle_talib.py`` compares 60 hand-picked calls on ``SPY_D`` only, and
-its ``_compare`` intersects both sides *after* ``dropna()``. Two classes of
-defect were invisible to it by construction:
+It replaced ``test_oracle_talib.py``, which compared 60 hand-picked calls on
+``SPY_D`` only and intersected both sides *after* ``dropna()``, and the
+``assert_talib`` calls of the category tests. Two classes of defect were
+invisible to that comparison by construction:
 
 * **Data it never sees.** ``SPY_D`` has no flat bar, no bodiless bar on a flat
   run, no zero-volume session and no malformed OHLC. ``kama`` was 0.085 off
@@ -16,9 +17,13 @@ one data problem met in the field, and compares values *and* the NaN mask from
 the first bar on which both sides are valid. ``test_every_talib_indicator_has_an_oracle``
 keeps the table complete against ``docs/indicator_support_matrix.rst``: an
 indicator the matrix lists with a TA-Lib counterpart must have a case here or a
-reason in ``NO_ORACLE``.
+reason in ``NO_ORACLE``. ``VARIANTS`` adds the other paths of those
+indicators that TA-Lib expresses too (a moving-average choice, sarext's
+options), and ``test_warmup_matches_talib`` holds the indicators that seed like
+TA-Lib to its first bar.
 
-Every candle pattern is compared against its ``CDL*`` function the same way.
+Every candle pattern is compared against its ``CDL*`` function the same way,
+and ``cdl_doji`` also with TA-Lib's candle settings changed.
 """
 
 from __future__ import annotations
@@ -162,6 +167,15 @@ def _frame_huge_volume() -> Bars:
     return _bars(df.open, df.high, df.low, df.close, df.volume * 1e9, df.index)
 
 
+def _frame_nan_prefix() -> Bars:
+    """25 missing bars at the start, as the output of an indicator fed to another one."""
+    df = _spy()
+    o, h, l, c, v = (df[k].to_numpy(copy=True) for k in ("open", "high", "low", "close", "volume"))
+    for a in (o, h, l, c, v):
+        a[:25] = np.nan
+    return _bars(o, h, l, c, v, df.index)
+
+
 FRAMES: dict[str, Callable[[], Bars]] = {
     "spy": _frame_spy,
     "flat": _frame_flat,
@@ -174,6 +188,7 @@ FRAMES: dict[str, Callable[[], Bars]] = {
     "x1e6": _scaled(1e6),
     "spike": _frame_spike,
     "huge_volume": _frame_huge_volume,
+    "nan_prefix": _frame_nan_prefix,
 }
 
 
@@ -260,7 +275,7 @@ ORACLE: dict[str, Case] = {
     "cmo": Case(lambda b: [ta.cmo(b.close, 14, scalar=50, talib=True)], lambda b: [T.CMO(b.close, 14) / 2]),
     # The MACD family seeds its EMAs differently from TA-Lib; the difference has
     # decayed below the tolerance by bar 200 (still 2.5e-7 relative at bar 154),
-    # so both this suite and test_oracle_talib.py compare from there.
+    # so the comparison starts there.
     # macdfix is MACD(12, 26) natively, not TA-Lib's fixed-alpha MACDFIX.
     "macd": Case(lambda b: _cols(ta.macd(b.close, 12, 26, 9), "MACD_", "MACDs_", "MACDh_"), lambda b: list(T.MACD(b.close, 12, 26, 9)), settle=200),
     "macdext": Case(
@@ -375,6 +390,27 @@ NO_ORACLE = {
     "ma": "a dispatcher; every MA it reaches has its own case",
 }
 
+# A second path of an indicator in ORACLE that TA-Lib can express too, keyed
+# "<indicator>-<option>-<value>"; compared on every frame like ORACLE.
+VARIANTS: dict[str, Case] = {
+    "apo-mamode-ema": Case(lambda b: [ta.apo(b.close, 12, 26, mamode="ema")], lambda b: [T.APO(b.close, 12, 26, 1)]),
+    "ppo-mamode-ema": Case(lambda b: _cols(ta.ppo(b.close, 12, 26, mamode="ema"), "PPO_"), lambda b: [T.PPO(b.close, 12, 26, 1)]),
+}
+
+# sarext's options, each family on its own (offsetonreverse, startvalue and the
+# long acceleration factors diverged from TA-Lib); "init-above-max" starts the
+# acceleration above its maximum, which both sides clamp.
+SAREXT_OPTIONS = {
+    "offsetonreverse": {"offsetonreverse": 0.01},
+    "startvalue-long": {"startvalue": 100.0},
+    "startvalue-short": {"startvalue": -150.0},
+    "long-acceleration": {"accelerationinitlong": 0.01, "accelerationlong": 0.03, "accelerationmaxlong": 0.25},
+    "short-acceleration": {"accelerationinitshort": 0.04, "accelerationshort": 0.01, "accelerationmaxshort": 0.1},
+    "init-above-max": {"accelerationinitlong": 0.5, "accelerationmaxlong": 0.2, "accelerationshort": 0.5, "accelerationmaxshort": 0.3},
+}
+for _option, _kwargs in SAREXT_OPTIONS.items():
+    VARIANTS[f"sarext-{_option}"] = Case(lambda b, k=_kwargs: [ta.sarext(b.high, b.low, **k)], lambda b, k=_kwargs: [T.SAREXT(b.high, b.low, **k)])
+
 
 # ---------------------------------------------------------------------------
 # Comparison.
@@ -409,7 +445,7 @@ def _disagreement(native, oracle, settle: int = 0, rtol: float = TALIB_RTOL) -> 
         i = nan_mismatch[0]
         return f"bar {start + i}: native {n[i]!r}, TA-Lib {o[i]!r} ({nan_mismatch.size} NaN-mask mismatches)"
     with np.errstate(invalid="ignore"):
-        # assert_talib()'s tolerance, element by element, with the absolute term
+        # TALIB_ATOL + TALIB_RTOL * |expected|, element by element, with the absolute term
         # scaled down to columns smaller than 1: at prices of 1e-4 a fixed 1e-9
         # would pass a 1e-6 relative error, and a variance of 1e-11 any error. A
         # column TA-Lib reads as all zero has no scale and keeps the plain 1e-9.
@@ -479,14 +515,50 @@ else:
     )
 
 
-@pytest.mark.parametrize(("name", "frame"), params([(name, frame) for name in sorted(ORACLE) for frame in FRAMES], KNOWN_DIFFERENCES))
+_CASES = {**ORACLE, **VARIANTS}
+
+
+@pytest.mark.parametrize(("name", "frame"), params([(name, frame) for name in sorted(_CASES) for frame in FRAMES], KNOWN_DIFFERENCES))
 def test_native_matches_talib(name: str, frame: str, frames) -> None:
-    case = ORACLE[name]
+    case = _CASES[name]
     bars = frames[frame]
     native, oracle = case.native(bars), case.oracle(bars)
     assert len(native) == len(oracle), f"{len(native)} native columns vs {len(oracle)} TA-Lib outputs"
     problems = [f"column {i}: {d}" for i, (n, o) in enumerate(zip(native, oracle)) if (d := _disagreement(n, o, case.settle, case.rtol))]
     assert not problems, f"{name} on {frame}: " + "; ".join(problems)
+
+
+# These seed like TA-Lib, so their first value sits on TA-Lib's first bar, also
+# after missing bars: the Wilder-smoothed family and the Hilbert transform (whose
+# lookback is 32 or 63 bars). _disagreement() starts at the first bar both sides
+# fill and would accept a warm-up one bar off. Bars whose input is missing are
+# left out: native reads NaN there, TA-Lib zero-fills ht_trendmode's integers.
+SAME_WARMUP = ("adx", "adxr", "atr", "dx", "minus_dm", "plus_dm", "rsi", "true_range")
+SAME_WARMUP += ("ht_dcperiod", "ht_dcphase", "ht_phasor", "ht_sine", "ht_trendline", "ht_trendmode")
+
+
+@pytest.mark.parametrize("frame", ["spy", "nan_prefix"])
+@pytest.mark.parametrize("name", SAME_WARMUP)
+def test_warmup_matches_talib(name: str, frame: str, frames) -> None:
+    case, bars = ORACLE[name], frames[frame]
+    real = np.isfinite(bars.close.to_numpy())
+    for i, (native, oracle) in enumerate(zip(case.native(bars), case.oracle(bars))):
+        native_nan, oracle_nan = np.isnan(np.asarray(native, dtype=float))[real], np.isnan(np.asarray(oracle, dtype=float))[real]
+        assert np.array_equal(native_nan, oracle_nan), f"{name} column {i} on {frame}: first value at bar {np.argmin(native_nan)}, TA-Lib at {np.argmin(oracle_nan)}"
+
+
+def test_disagreement_rejects_a_wrong_result() -> None:
+    """The comparison must fail on wrong results: a helper that accepts everything turns every case into a no-op."""
+    index = pd.date_range("2020-01-01", periods=50, freq="D")
+    values = 100 + np.cumsum(np.random.default_rng(0).normal(0, 1, 50))
+    values[:5] = np.nan
+    expected = pd.Series(values, index=index)
+    assert _disagreement(expected * (1 + 1e-12), expected) is None
+    assert _disagreement(expected * (1 + 1e-6), expected) is not None
+    assert _disagreement(expected + 1e-6, expected) is not None
+    holed = expected.copy()
+    holed.iloc[30] = np.nan
+    assert _disagreement(holed, expected) is not None
 
 
 # ---------------------------------------------------------------------------
@@ -510,6 +582,63 @@ def test_candle_pattern_matches_talib(pattern: str, frame: str, frames) -> None:
     oracle = getattr(T, f"CDL{pattern.upper()}")(b.open, b.high, b.low, b.close)
     problem = _disagreement(native, oracle)
     assert problem is None, f"cdl_{pattern} on {frame}: {problem}"
+
+
+@pytest.mark.parametrize(("length", "factor"), [(10, 0), (3, 10), (25, 10), (10, 25), (7, 2.5)])
+@pytest.mark.parametrize("frame", FRAMES)
+def test_cdl_doji_matches_talib_with_its_settings(length: int, factor: float, frame: str, frames) -> None:
+    """``cdl_doji(length, factor)`` is CDLDOJI with BodyDoji set to (HighLow, length, factor / 100).
+
+    TA-Lib keeps that setting process-wide, so it is restored afterwards.
+    """
+    lib = getattr(T, "_ta_lib", None)
+    if lib is None or not all(hasattr(lib, name) for name in ("_ta_set_candle_settings", "_ta_restore_candle_default_settings", "CandleSettingType")):
+        pytest.skip("this TA-Lib build does not expose the candle-settings API")
+    b = frames[frame]
+    high_low = 1  # TA_RangeType_HighLow
+    try:
+        lib._ta_set_candle_settings(lib.CandleSettingType.BodyDoji, high_low, length, factor / 100)
+        oracle = T.CDLDOJI(b.open, b.high, b.low, b.close)
+    finally:
+        lib._ta_restore_candle_default_settings(lib.CandleSettingType.AllCandleSettings)
+    problem = _disagreement(ta.cdl_doji(b.open, b.high, b.low, b.close, length=length, factor=factor), oracle)
+    assert problem is None, f"cdl_doji({length}, {factor}) on {frame}: {problem}"
+
+
+# ---------------------------------------------------------------------------
+# Comparisons the table cannot express.
+# ---------------------------------------------------------------------------
+
+
+def _random_walk_hl(seed: int, n: int = 5000) -> tuple[pd.Series, pd.Series]:
+    rng = np.random.default_rng(seed)
+    # From 200, not 100: seed 0's walk fell to -11.85, and sarext reads NaN, with a
+    # warning, where high or low is at or below zero (#345). A shift changes no SAR step.
+    c = 200 + np.cumsum(rng.normal(0, 1, n))
+    o = np.r_[c[0], c[:-1]]
+    return pd.Series(np.maximum(o, c) + rng.random(n)), pd.Series(np.minimum(o, c) - rng.random(n))
+
+
+@pytest.mark.parametrize("kwargs", [{}, *SAREXT_OPTIONS.values()], ids=["defaults", *SAREXT_OPTIONS])
+@pytest.mark.parametrize("seed", [0, 3])
+def test_sarext_matches_talib_on_a_long_walk(kwargs: dict, seed: int) -> None:
+    """5000 bars of a random walk reverse far more often than the 400-bar frames."""
+    high, low = _random_walk_hl(seed)
+    expected = T.SAREXT(high.to_numpy(float), low.to_numpy(float), **kwargs)
+    np.testing.assert_allclose(ta.sarext(high, low, **kwargs).to_numpy(float), expected, rtol=0, atol=1e-10, equal_nan=True)
+
+
+@pytest.mark.parametrize("frame", FRAMES)
+def test_window_index_matches_talib_up_to_ties(frame: str, frames) -> None:
+    """TA-Lib returns the absolute index: MAXINDEX = maxindex + i - length + 1, except where a tie picks another bar."""
+    close = frames[frame].close
+    values, bars = close.to_numpy(float), np.arange(close.size)
+    start = bars[29:] - 29
+    for func, oracle in ((ta.maxindex, T.MAXINDEX), (ta.minindex, T.MININDEX)):
+        got = func(close, length=30).to_numpy(float)[29:]
+        expected = np.asarray(oracle(close, 30), float)[29:] - start
+        valid = np.isfinite(got) & np.isfinite(expected)
+        np.testing.assert_array_equal(values[start + np.nan_to_num(got).astype(int)][valid], values[start + np.nan_to_num(expected).astype(int)][valid])
 
 
 # ---------------------------------------------------------------------------
