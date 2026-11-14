@@ -163,7 +163,7 @@ def test_my_indicator_invariant(s, length):
     assert str(length) in result.name
 ```
 
-See ``tests/strategies.py`` (the shared strategies), ``tests/indicators/test_property_based.py`` and ``docs/testing.rst`` for the full strategy catalog.
+See ``tests/strategies.py`` for the full strategy catalog, ``tests/indicators/test_property_based.py`` for the indicator properties and ``docs/testing.rst`` for how they run.
 
 ### 3. Documentation
 

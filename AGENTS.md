@@ -351,8 +351,9 @@ pytest tests/indicators/test_momentum.py -v
 # Specific test
 pytest tests/indicators/test_momentum.py::TestMomentum::test_rsi -v
 
-# Hypothesis property-based tests
+# Hypothesis property-based tests (indicators, then the utilities)
 pytest tests/indicators/test_property_based.py -v
+pytest tests/utils -v -k Properties
 
 # Docs build
 cd docs && make html SPHINXOPTS="-W"   # as CI; plain `make html` ignores warnings
