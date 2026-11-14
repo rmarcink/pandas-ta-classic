@@ -411,3 +411,13 @@ class TestExtOverlapDeeper(AccessorValueCase):
         df = self.fresh()
         df.ta.frama(append=True)
         self._check_appended(df, "FRAMA_16")
+
+    def test_swak_butter_ext(self):
+        df = self.fresh()
+        df.ta.swak_butter(append=True)
+        self._check_appended(df, "SWAKBUTTER_20")
+
+    def test_swak_gauss_ext(self):
+        df = self.fresh()
+        df.ta.swak_gauss(append=True)
+        self._check_appended(df, "SWAKGAUSS_20")

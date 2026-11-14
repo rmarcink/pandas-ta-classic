@@ -325,3 +325,33 @@ class TestMswDoesNotDependOnTulipy(TestCase):
     def test_tulipy_flag_is_validated(self):
         with self.assertRaisesRegex(ValueError, r"msw\(\) tulipy must be True or False"):
             pandas_ta.msw(get_sample_data().close.iloc[:100], tulipy="yes")
+
+
+class TestSwakFilters(TestCase):
+    """Ehlers' Swiss Army Knife filters follow TA-Lib 0.8's SWAK_*; the oracle compares the values."""
+
+    def test_the_high_and_band_passes_remove_a_constant(self):
+        flat = pd.Series(100.0, index=range(60))
+        for result in (pandas_ta.swak_hp(flat), pandas_ta.swak_2php(flat), pandas_ta.swak_bp(flat)):
+            self.assertTrue(np.isnan(result.iloc[0]), f"{result.name}: bar 0 is the seed")
+            self.assertTrue((result.iloc[1:] == 0.0).all(), result.name)
+
+    def test_the_low_passes_follow_a_constant(self):
+        flat = pd.Series(100.0, index=range(60))
+        for result in (pandas_ta.swak_gauss(flat), pandas_ta.swak_butter(flat)):
+            np.testing.assert_allclose(result, 100.0, rtol=1e-12, err_msg=result.name)
+
+    def test_the_two_pole_high_pass_removes_a_straight_line(self):
+        line = pd.Series(np.arange(200.0))
+        result = pandas_ta.swak_2php(line)
+        self.assertLess(abs(result.iloc[-1]), 1e-9)
+
+    def test_band_pass_rejects_a_band_wider_than_a_quarter_turn(self):
+        close = pd.Series(np.arange(100.0))
+        with self.assertRaisesRegex(ValueError, r"^swak_bp\(\) delta must be < length / 8 = 0.625, got 0.7$"):
+            pandas_ta.swak_bp(close, length=5, delta=0.7)
+
+    def test_names(self):
+        close = pd.Series(np.arange(100.0))
+        self.assertEqual(pandas_ta.swak_bp(close, 20, 0.2).name, "SWAKBP_20_0.2")
+        self.assertEqual(pandas_ta.swak_gauss(close, 10).name, "SWAKGAUSS_10")

@@ -13,3 +13,6 @@ if TYPE_CHECKING:
     from .ht_sine import ht_sine as ht_sine
     from .ht_trendmode import ht_trendmode as ht_trendmode
     from .msw import msw as msw
+    from .swak_2php import swak_2php as swak_2php
+    from .swak_bp import swak_bp as swak_bp
+    from .swak_hp import swak_hp as swak_hp

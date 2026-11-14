@@ -394,6 +394,11 @@ ORACLE: dict[str, Case] = {
         lambda b: _cols(ta.stoch_mi(b.high, b.low, b.close, 13, 2, 25, 9), "STOCHMI_", "STOCHMIs_"), lambda b: list(T.SMI(b.high, b.low, b.close, 13, 2, 25, 9))
     ),
     "wavetrend": Case(lambda b: _cols(ta.wavetrend(b.high, b.low, b.close, 10, 21, 4), "WT_", "WTs_"), lambda b: list(T.WAVETREND(b.high, b.low, b.close, 10, 21, 4))),
+    "swak_2php": Case(lambda b: [ta.swak_2php(b.close, 20)], lambda b: [T.SWAK_2PHP(b.close, 20)]),
+    "swak_bp": Case(lambda b: [ta.swak_bp(b.close, 20, 0.1)], lambda b: [T.SWAK_BP(b.close, 20, 0.1)]),
+    "swak_butter": Case(lambda b: [ta.swak_butter(b.close, 20)], lambda b: [T.SWAK_BUTTER(b.close, 20)]),
+    "swak_gauss": Case(lambda b: [ta.swak_gauss(b.close, 20)], lambda b: [T.SWAK_GAUSS(b.close, 20)]),
+    "swak_hp": Case(lambda b: [ta.swak_hp(b.close, 20)], lambda b: [T.SWAK_HP(b.close, 20)]),
 }
 
 # Elementwise math transforms map one to one onto a TA-Lib function of the same
@@ -573,6 +578,7 @@ def test_native_matches_talib(name: str, frame: str, frames) -> None:
 # bar, except these, where TA-Lib's lookback is a convention of its own.
 _TALIB_ALIGNS_TO_SIGNAL = "TALIB: TA-Lib starts every MACD output where the signal line starts, 8 bars after native starts the MACD line"
 _TALIB_ALIGNS_K_TO_D = "TALIB: TA-Lib starts %K where %D starts, two bars later; native publishes %K as soon as it has a value"
+_TALIB_PUBLISHES_THE_SEED = "TALIB: TA-Lib publishes the filter's seed on bar 0, 0.0 whatever the data; native reads NaN there"
 WARMUP_DIFFERENCES = {
     "macd": _TALIB_ALIGNS_TO_SIGNAL,
     "macdext": _TALIB_ALIGNS_TO_SIGNAL,
@@ -583,6 +589,9 @@ WARMUP_DIFFERENCES = {
     "mavp": "TALIB: MAVP's lookback is its maximum period (30) whatever periods the bars ask for; native starts at the window a bar asks for",
     "pvt": "TALIB: PVT reads 0 on bar 0; native has no previous close there and reads NaN",
     "asi": "TALIB: ASI reads 0 on bar 0; native has no previous close there and reads NaN",
+    "swak_2php": _TALIB_PUBLISHES_THE_SEED,
+    "swak_bp": _TALIB_PUBLISHES_THE_SEED,
+    "swak_hp": _TALIB_PUBLISHES_THE_SEED,
     "stoch_mi": "TALIB: TA-Lib starts the SMI line where its signal starts, 8 bars after native starts it",
     "wavetrend": "TALIB: TA-Lib starts WT where its signal starts, 3 bars after native starts it",
 }
