@@ -406,3 +406,8 @@ class TestExtOverlapDeeper(AccessorValueCase):
         self.assertTrue(len(bb_cols) >= 3, "Expected at least 3 BBands columns")
         for col in bb_cols:
             self._check_appended(df, col)
+
+    def test_frama_ext(self):
+        df = self.fresh()
+        df.ta.frama(append=True)
+        self._check_appended(df, "FRAMA_16")

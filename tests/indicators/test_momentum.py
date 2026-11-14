@@ -1202,3 +1202,61 @@ class TestTalib08Momentum(TestCase):
         open_ = pd.Series(np.arange(30.0))
         result = pandas_ta.imi(open_, open_ + 1.0, 14)
         self.assertTrue((result.dropna() == 100.0).all())
+
+
+class TestTalib08MomentumGroup2(TestCase):
+    """asi, si, dosc, pso, stoch_mi and wavetrend follow TA-Lib 0.8; the oracle compares the values."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.data = get_sample_data()
+
+    def test_asi_is_the_running_sum_of_si(self):
+        d = self.data
+        si = pandas_ta.si(d.open, d.high, d.low, d.close)
+        asi = pandas_ta.asi(d.open, d.high, d.low, d.close)
+        np.testing.assert_allclose(asi.iloc[1:], si.iloc[1:].cumsum(), rtol=1e-12)
+        self.assertTrue(np.isnan(asi.iloc[0]))
+
+    def test_si_scales_inversely_with_the_limit_move(self):
+        d = self.data
+        base = pandas_ta.si(d.open, d.high, d.low, d.close)
+        doubled = pandas_ta.si(d.open, d.high, d.low, d.close, limit=6.0)
+        np.testing.assert_allclose(doubled, base / 2, rtol=1e-12, equal_nan=True)
+        self.assertEqual(doubled.name, "SI_limit6")
+
+    def test_si_reads_zero_on_bars_that_never_move(self):
+        flat = pd.Series(100.0, index=range(10))
+        self.assertTrue((pandas_ta.si(flat, flat, flat, flat).dropna() == 0.0).all())
+
+    def test_dosc_is_the_smoothed_rsi_less_its_sma(self):
+        c = self.data.close
+        smoothed = pandas_ta.ema(pandas_ta.ema(pandas_ta.rsi(c, 14), 5), 3)
+        np.testing.assert_allclose(pandas_ta.dosc(c), smoothed - smoothed.rolling(9).mean(), rtol=1e-12, equal_nan=True)
+
+    def test_pso_stays_in_minus_one_to_one(self):
+        d = self.data
+        valid = pandas_ta.pso(d.high, d.low, d.close).dropna()
+        self.assertFalse(valid.empty)
+        self.assertTrue(valid.between(-1, 1).all())
+
+    def test_pso_reads_zero_where_the_window_never_had_a_range(self):
+        flat = pd.Series(100.0, index=range(40))
+        self.assertTrue((pandas_ta.pso(flat, flat, flat).dropna() == 0.0).all())
+
+    def test_stoch_mi_reads_zero_where_the_window_never_had_a_range(self):
+        flat = pd.Series(100.0, index=range(80))
+        result = pandas_ta.stoch_mi(flat, flat, flat)
+        self.assertEqual(list(result.columns), ["STOCHMI_13_2_25_9", "STOCHMIs_13_2_25_9"])
+        self.assertTrue((result.dropna() == 0.0).all().all())
+
+    def test_stoch_mi_rejects_fast_above_slow(self):
+        d = self.data
+        with self.assertRaisesRegex(ValueError, r"^stoch_mi\(\) needs fast <= slow"):
+            pandas_ta.stoch_mi(d.high, d.low, d.close, fast=30, slow=25)
+
+    def test_wavetrend_signal_is_the_sma_of_wt(self):
+        d = self.data
+        result = pandas_ta.wavetrend(d.high, d.low, d.close)
+        self.assertEqual(list(result.columns), ["WT_10_21_4", "WTs_10_21_4"])
+        np.testing.assert_allclose(result["WTs_10_21_4"], result["WT_10_21_4"].rolling(4).mean(), rtol=1e-12, equal_nan=True)

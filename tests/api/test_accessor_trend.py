@@ -246,3 +246,8 @@ class TestExtTrendDeeper(AccessorValueCase):
         df.ta.vortex(append=True)
         self._check_appended(df, "VTXP_14")
         self._check_appended(df, "VTXM_14")
+
+    def test_choptr_ext(self):
+        df = self.fresh()
+        df.ta.choptr(append=True)
+        self._check_appended(df, "CHOPTR_14")

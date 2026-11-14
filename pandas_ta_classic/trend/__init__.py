@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from .amat import amat as amat
     from .aroon import aroon as aroon
     from .chop import chop as chop
+    from .choptr import choptr as choptr
     from .cksp import cksp as cksp
     from .cpr import cpr as cpr
     from .decay import decay as decay

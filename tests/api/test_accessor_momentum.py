@@ -494,3 +494,35 @@ class TestExtMomentumDeeper(AccessorValueCase):
         df = self.fresh()
         df.ta.imi(append=True)
         self._check_appended(df, "IMI_14")
+
+    def test_asi_ext(self):
+        df = self.fresh()
+        df.ta.asi(append=True)
+        self._check_appended(df, "ASI")
+
+    def test_si_ext(self):
+        df = self.fresh()
+        df.ta.si(append=True)
+        self._check_appended(df, "SI")
+
+    def test_dosc_ext(self):
+        df = self.fresh()
+        df.ta.dosc(append=True)
+        self._check_appended(df, "DOSC_14_5_3_9")
+
+    def test_pso_ext(self):
+        df = self.fresh()
+        df.ta.pso(append=True)
+        self._check_appended(df, "PSO_8_5")
+
+    def test_stoch_mi_ext(self):
+        df = self.fresh()
+        df.ta.stoch_mi(append=True)
+        self._check_appended(df, "STOCHMI_13_2_25_9")
+        self._check_appended(df, "STOCHMIs_13_2_25_9")
+
+    def test_wavetrend_ext(self):
+        df = self.fresh()
+        df.ta.wavetrend(append=True)
+        self._check_appended(df, "WT_10_21_4")
+        self._check_appended(df, "WTs_10_21_4")

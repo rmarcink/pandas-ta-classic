@@ -28,6 +28,11 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - yes
      - yes
      - yes
+   * - asi
+     - momentum
+     - yes
+     - yes
+     - no
    * - bias
      - momentum
      - yes
@@ -83,6 +88,11 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - yes
      - yes
      - yes
+   * - dosc
+     - momentum
+     - yes
+     - yes
+     - no
    * - er
      - momentum
      - yes
@@ -173,6 +183,11 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - yes
      - no
      - no
+   * - pso
+     - momentum
+     - yes
+     - yes
+     - no
    * - pvo
      - momentum
      - yes
@@ -218,6 +233,11 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - yes
      - no
      - no
+   * - si
+     - momentum
+     - yes
+     - yes
+     - no
    * - slope
      - momentum
      - yes
@@ -253,6 +273,11 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - yes
      - yes
      - yes
+   * - stoch_mi
+     - momentum
+     - yes
+     - yes
+     - no
    * - stochf
      - momentum
      - yes
@@ -292,6 +317,11 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - momentum
      - yes
      - no
+     - no
+   * - wavetrend
+     - momentum
+     - yes
+     - yes
      - no
    * - willr
      - momentum
@@ -493,6 +523,11 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - yes
      - yes
      - yes
+   * - frama
+     - overlap
+     - yes
+     - yes
+     - no
    * - fwma
      - overlap
      - yes
@@ -782,6 +817,11 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - trend
      - yes
      - no
+     - no
+   * - choptr
+     - trend
+     - yes
+     - yes
      - no
    * - cksp
      - trend

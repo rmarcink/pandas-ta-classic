@@ -925,3 +925,21 @@ class TestWilderSeeding(TestCase):
         self.assertTrue(np.isfinite(tr.iloc[21]))
 
 
+class TestFrama(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.data = get_sample_data()
+
+    def test_an_odd_length_raises(self):
+        d = self.data
+        with self.assertRaisesRegex(ValueError, r"^frama\(\) length must be an even integer, got 15$"):
+            pandas_ta.frama(d.high, d.low, 15)
+
+    def test_follows_a_flat_price_exactly(self):
+        flat = pd.Series(100.0, index=range(40))
+        self.assertTrue((pandas_ta.frama(flat, flat).dropna() == 100.0).all())
+
+    def test_first_value_comes_after_one_full_window(self):
+        d = self.data
+        result = pandas_ta.frama(d.high, d.low, 16)
+        self.assertEqual(int(result.isna().sum()), 16)

@@ -384,6 +384,16 @@ ORACLE: dict[str, Case] = {
         lambda b: [ta.rogerssatchell(b.open, b.high, b.low, b.close, 10, 252)], lambda b: [T.ROGERSSATCHELL(b.open, b.high, b.low, b.close, 10, 252.0)]
     ),
     "rvol": Case(lambda b: [ta.rvol(b.volume, 20)], lambda b: [T.RVOL(b.volume, 20)]),
+    "asi": Case(lambda b: [ta.asi(b.open, b.high, b.low, b.close)], lambda b: [T.ASI(b.open, b.high, b.low, b.close, 3.0)]),
+    "si": Case(lambda b: [ta.si(b.open, b.high, b.low, b.close)], lambda b: [T.SI(b.open, b.high, b.low, b.close, 3.0)]),
+    "choptr": Case(lambda b: [ta.choptr(b.high, b.low, b.close, 14)], lambda b: [T.CHOPTR(b.high, b.low, b.close, 14)]),
+    "dosc": Case(lambda b: [ta.dosc(b.close, 14, 5, 3, 9)], lambda b: [T.DOSC(b.close, 14, 5, 3, 9)]),
+    "frama": Case(lambda b: [ta.frama(b.high, b.low, 16)], lambda b: [T.FRAMA(b.high, b.low, 16)]),
+    "pso": Case(lambda b: [ta.pso(b.high, b.low, b.close, 8, 5)], lambda b: [T.PSO(b.high, b.low, b.close, 8, 5)]),
+    "stoch_mi": Case(
+        lambda b: _cols(ta.stoch_mi(b.high, b.low, b.close, 13, 2, 25, 9), "STOCHMI_", "STOCHMIs_"), lambda b: list(T.SMI(b.high, b.low, b.close, 13, 2, 25, 9))
+    ),
+    "wavetrend": Case(lambda b: _cols(ta.wavetrend(b.high, b.low, b.close, 10, 21, 4), "WT_", "WTs_"), lambda b: list(T.WAVETREND(b.high, b.low, b.close, 10, 21, 4))),
 }
 
 # Elementwise math transforms map one to one onto a TA-Lib function of the same
@@ -572,6 +582,9 @@ WARMUP_DIFFERENCES = {
     "stochrsi": _TALIB_ALIGNS_K_TO_D,
     "mavp": "TALIB: MAVP's lookback is its maximum period (30) whatever periods the bars ask for; native starts at the window a bar asks for",
     "pvt": "TALIB: PVT reads 0 on bar 0; native has no previous close there and reads NaN",
+    "asi": "TALIB: ASI reads 0 on bar 0; native has no previous close there and reads NaN",
+    "stoch_mi": "TALIB: TA-Lib starts the SMI line where its signal starts, 8 bars after native starts it",
+    "wavetrend": "TALIB: TA-Lib starts WT where its signal starts, 3 bars after native starts it",
 }
 # Integer output with no NaN at all: both sides read 0 through the lookback, so a
 # NaN mask cannot show its start. test_native_matches_talib compares those zeros by value.

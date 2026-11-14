@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from .avgprice import avgprice as avgprice
     from .dema import dema as dema
     from .ema import ema as ema
+    from .frama import frama as frama
     from .fwma import fwma as fwma
     from .hilo import hilo as hilo
     from .hl2 import hl2 as hl2

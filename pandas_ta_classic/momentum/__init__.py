@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from .ac import ac as ac
     from .ao import ao as ao
     from .apo import apo as apo
+    from .asi import asi as asi
     from .bias import bias as bias
     from .bop import bop as bop
     from .brar import brar as brar
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
     from .crsi import crsi as crsi
     from .cti import cti as cti
     from .dm import dm as dm
+    from .dosc import dosc as dosc
     from .er import er as er
     from .eri import eri as eri
     from .fisher import fisher as fisher
@@ -37,6 +39,7 @@ if TYPE_CHECKING:
     from .po import po as po
     from .ppo import ppo as ppo
     from .psl import psl as psl
+    from .pso import pso as pso
     from .pvo import pvo as pvo
     from .qqe import qqe as qqe
     from .roc import roc as roc
@@ -46,6 +49,7 @@ if TYPE_CHECKING:
     from .rsi import rsi as rsi
     from .rsx import rsx as rsx
     from .rvgi import rvgi as rvgi
+    from .si import si as si
     from .slope import slope as slope
     from .smc_sweep import smc_sweep as smc_sweep
     from .smi import smi as smi
@@ -53,6 +57,7 @@ if TYPE_CHECKING:
     from .squeeze_pro import squeeze_pro as squeeze_pro
     from .stc import stc as stc
     from .stoch import stoch as stoch
+    from .stoch_mi import stoch_mi as stoch_mi
     from .stochf import stochf as stochf
     from .stochrsi import stochrsi as stochrsi
     from .td_seq import td_seq as td_seq
@@ -61,4 +66,5 @@ if TYPE_CHECKING:
     from .tsi import tsi as tsi
     from .uo import uo as uo
     from .vwmacd import vwmacd as vwmacd
+    from .wavetrend import wavetrend as wavetrend
     from .willr import willr as willr
