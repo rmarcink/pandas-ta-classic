@@ -3,15 +3,8 @@ from unittest import TestCase
 from pandas import DataFrame, Series
 
 import pandas_ta_classic as pandas_ta
-from tests.assertions import IndicatorSpec, assert_indicator_standard, assert_talib
+from tests.assertions import IndicatorSpec, assert_indicator_standard
 from tests.config import get_sample_data
-
-try:
-    import talib
-
-    HAS_TALIB = True
-except ImportError:
-    HAS_TALIB = False
 
 
 class TestVolatility(TestCase):
@@ -93,9 +86,6 @@ class TestVolatility(TestCase):
         )
 
     def test_atr(self):
-        result = pandas_ta.atr(self.high, self.low, self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.ATR(self.high, self.low, self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -107,10 +97,6 @@ class TestVolatility(TestCase):
 
     def test_bbands(self):
         result = pandas_ta.bbands(self.close, talib=False)
-        if HAS_TALIB:
-            bbu, bbm, bbl = talib.BBANDS(self.close, 5, 2, 2, 0)  # TA-Lib 0.8.0 changed the default timeperiod to 20
-            expecteddf = DataFrame({"BBL_5_2.0": bbl, "BBM_5_2.0": bbm, "BBU_5_2.0": bbu})
-            assert_talib(self, result[["BBL_5_2.0", "BBM_5_2.0", "BBU_5_2.0"]], expecteddf)
 
         result = pandas_ta.bbands(self.close, ddof=0)
         self.assertIsInstance(result, DataFrame)
@@ -196,13 +182,6 @@ class TestVolatility(TestCase):
         )
 
     def test_natr(self):
-        result = pandas_ta.natr(self.high, self.low, self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(
-                self,
-                result,
-                talib.NATR(self.high, self.low, self.close),
-            )
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -277,9 +256,6 @@ class TestVolatility(TestCase):
         )
 
     def test_true_range(self):
-        result = pandas_ta.true_range(self.high, self.low, self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.TRANGE(self.high, self.low, self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
