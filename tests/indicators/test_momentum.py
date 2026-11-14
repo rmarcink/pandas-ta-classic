@@ -1,19 +1,12 @@
-from unittest import TestCase, mock
+from unittest import TestCase
 
 import numpy as np
 import pandas as pd
 from pandas import DataFrame, Series
 
 import pandas_ta_classic as pandas_ta
-from tests.assertions import IndicatorSpec, assert_all_nan, assert_indicator_standard, assert_talib
+from tests.assertions import IndicatorSpec, assert_all_nan, assert_indicator_standard
 from tests.config import get_sample_data
-
-try:
-    import talib
-
-    HAS_TALIB = True
-except ImportError:
-    HAS_TALIB = False
 
 
 class TestMomentum(TestCase):
@@ -80,11 +73,6 @@ class TestMomentum(TestCase):
         )
 
     def test_apo(self):
-        result = pandas_ta.apo(self.close, talib=False)
-        if HAS_TALIB:
-            # matype=0 (SMA) explicitly: apo's default mamode is 'sma', and TA-Lib 0.8.0
-            # changed APO's default matype from 0 (SMA) to 1 (EMA).
-            assert_talib(self, result, talib.APO(self.close, 12, 26, 0))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -105,9 +93,6 @@ class TestMomentum(TestCase):
         )
 
     def test_bop(self):
-        result = pandas_ta.bop(self.open, self.high, self.low, self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.BOP(self.open, self.high, self.low, self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -130,9 +115,6 @@ class TestMomentum(TestCase):
         )
 
     def test_cci(self):
-        result = pandas_ta.cci(self.high, self.low, self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.CCI(self.high, self.low, self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -163,13 +145,14 @@ class TestMomentum(TestCase):
         )
 
     def test_cmo(self):
-        # The default (talib=False) is Chande's rolling sum, which TA-Lib does not implement;
-        # test_oracle_talib.py checks it against that definition.
-        if HAS_TALIB:
-            # talib=True without TA-Lib runs the native Wilder path, which must match TA-Lib
-            with mock.patch.dict(pandas_ta.Imports, {"talib": False}):
-                wilder = pandas_ta.cmo(self.close, talib=True)
-            assert_talib(self, wilder, talib.CMO(self.close))
+        # The default (talib=False) is Chande's rolling sum, which TA-Lib does not implement,
+        # so it is checked against that definition; the Wilder path (talib=True) is in
+        # tests/oracle/test_oracle_registry.py.
+        mom = self.close.diff(1)
+        pos = mom.clip(lower=0).rolling(14).sum()
+        neg = mom.clip(upper=0).abs().rolling(14).sum()
+        chande = 100 * (pos - neg) / (pos + neg)
+        np.testing.assert_allclose(pandas_ta.cmo(self.close, talib=False).to_numpy(), chande.to_numpy(), rtol=1e-12, atol=1e-9)
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -210,15 +193,6 @@ class TestMomentum(TestCase):
         )
 
     def test_dm(self):
-        result = pandas_ta.dm(self.high, self.low, talib=False)
-        if HAS_TALIB:
-            expecteddf = DataFrame(
-                {
-                    "PLUS_DM_14": talib.PLUS_DM(self.high, self.low),
-                    "MINUS_DM_14": talib.MINUS_DM(self.high, self.low),
-                }
-            )
-            assert_talib(self, result, expecteddf)
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -319,20 +293,6 @@ class TestMomentum(TestCase):
         )
 
     def test_macd(self):
-        result = pandas_ta.macd(self.close, talib=False)
-        if HAS_TALIB:
-            macd_line, signal, hist = talib.MACD(self.close)
-            expecteddf = DataFrame(
-                {
-                    "MACD_12_26_9": macd_line,
-                    "MACDh_12_26_9": hist,
-                    "MACDs_12_26_9": signal,
-                }
-            )
-            # TA-Lib starts the fast EMA on the slow EMA's first bar, native at its own,
-            # so native's MACD line is valid from bar 25 and TA-Lib's from bar 33; the
-            # difference is inside the tolerance from bar 132 on.
-            assert_talib(self, result.iloc[200:], expecteddf.iloc[200:])
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -370,7 +330,7 @@ class TestMomentum(TestCase):
         # Non-default MA types change the values, so they are in the name (#343)
         self.assertEqual(result_sma.columns[0], "MACDEXT_12_26_9_fastmatype0_slowmatype0_signalmatype0")
         self.assertFalse(result["MACDEXT_12_26_9"].equals(result_sma.iloc[:, 0]))
-        if HAS_TALIB:
+        if pandas_ta.Imports["talib"]:
             result_tal = pandas_ta.macdext(self.close)
             self.assertIsInstance(result_tal, DataFrame)
             self.assertEqual(result_tal.name, "MACDEXT_12_26_9")
@@ -400,9 +360,6 @@ class TestMomentum(TestCase):
             pandas_ta.macdext(self.close, fastmatype=7, talib=False)
 
     def test_mom(self):
-        result = pandas_ta.mom(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.MOM(self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -423,13 +380,6 @@ class TestMomentum(TestCase):
         )
 
     def test_ppo(self):
-        result = pandas_ta.ppo(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(
-                self,
-                result["PPO_12_26_9"],
-                talib.PPO(self.close, 12, 26, 0),  # matype=0: TA-Lib 0.8.0 default is EMA; ppo defaults to SMA
-            )
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -484,9 +434,6 @@ class TestMomentum(TestCase):
         )
 
     def test_roc(self):
-        result = pandas_ta.roc(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.ROC(self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -497,9 +444,6 @@ class TestMomentum(TestCase):
         )
 
     def test_rocp(self):
-        result = pandas_ta.rocp(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.ROCP(self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -510,9 +454,6 @@ class TestMomentum(TestCase):
         )
 
     def test_rocr(self):
-        result = pandas_ta.rocr(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.ROCR(self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -523,9 +464,6 @@ class TestMomentum(TestCase):
         )
 
     def test_rocr100(self):
-        result = pandas_ta.rocr100(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.ROCR100(self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -536,9 +474,6 @@ class TestMomentum(TestCase):
         )
 
     def test_rsi(self):
-        result = pandas_ta.rsi(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.RSI(self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -806,12 +741,6 @@ class TestMomentum(TestCase):
 
     def test_stoch(self):
         # TV Correlation
-        result = pandas_ta.stoch(self.high, self.low, self.close)
-        if HAS_TALIB:
-            stochk, stochd = talib.STOCH(self.high, self.low, self.close, 14, 3, 0, 3, 0)
-            expecteddf = DataFrame({"STOCHk_14_3_0_3_0": stochk, "STOCHd_14_3_0_3": stochd})
-            # TA-Lib publishes %K only once %D exists, two bars after native %K starts
-            assert_talib(self, result.where(result.iloc[:, 1].notna(), axis=0), expecteddf)
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -824,12 +753,6 @@ class TestMomentum(TestCase):
         )
 
     def test_stochf(self):
-        result = pandas_ta.stochf(self.high, self.low, self.close, talib=False)
-        if HAS_TALIB:
-            stochfk, stochfd = talib.STOCHF(self.high, self.low, self.close, 5, 3, 0)
-            expecteddf = DataFrame({"STOCHFk_5_3": stochfk, "STOCHFd_5_3": stochfd})
-            # TA-Lib publishes %K only once %D exists, two bars after native %K starts
-            assert_talib(self, result.where(result.iloc[:, 1].notna(), axis=0), expecteddf)
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -843,10 +766,6 @@ class TestMomentum(TestCase):
 
     def test_stochrsi(self):
         # TV Correlation
-        result = pandas_ta.stochrsi(self.close)
-        if HAS_TALIB:
-            _stochrsi_k, stochrsi_d = talib.STOCHRSI(self.close, 14, 14, 3, 0)
-            assert_talib(self, result.iloc[:, 0], stochrsi_d)
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -896,9 +815,6 @@ class TestMomentum(TestCase):
         )
 
     def test_uo(self):
-        result = pandas_ta.uo(self.high, self.low, self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.ULTOSC(self.high, self.low, self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -909,9 +825,6 @@ class TestMomentum(TestCase):
         )
 
     def test_willr(self):
-        result = pandas_ta.willr(self.high, self.low, self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.WILLR(self.high, self.low, self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -951,11 +864,6 @@ class TestMomentum(TestCase):
                 out = pandas_ta.willr(h, low_, c, length=length)
                 self.assertEqual(int(out.loc[out.first_valid_index() :].isna().sum()), 0)
 
-        # Where the range is non-zero nothing changed: still TA-Lib's values.
-        if HAS_TALIB:
-            expected = talib.WILLR(self.high, self.low, self.close, length)
-            actual = pandas_ta.willr(self.high, self.low, self.close, length=length)
-            self.assertLess(float((actual - expected).abs().max()), 1e-10)
 
     def test_lrsi_has_no_value_on_its_seed_bar(self):
         # Bar 0 seeds every Laguerre filter with the close itself, so it read 0/0 = 0.0

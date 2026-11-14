@@ -1,22 +1,15 @@
 import inspect
 import math
 import warnings
-from unittest import TestCase, skipIf
+from unittest import TestCase
 
 import numpy as np
 import pandas as pd
 from pandas import DataFrame, Series
 
 import pandas_ta_classic as pandas_ta
-from tests.assertions import IndicatorSpec, assert_indicator_standard, assert_talib
+from tests.assertions import IndicatorSpec, assert_indicator_standard
 from tests.config import get_sample_data
-
-try:
-    import talib
-
-    HAS_TALIB = True
-except ImportError:
-    HAS_TALIB = False
 
 
 class TestOverlap(TestCase):
@@ -58,9 +51,6 @@ class TestOverlap(TestCase):
         )
 
     def test_dema(self):
-        result = pandas_ta.dema(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.DEMA(self.close, 10))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -71,10 +61,6 @@ class TestOverlap(TestCase):
         )
 
     def test_ema(self):
-        if HAS_TALIB:
-            expected = talib.EMA(self.close, 10)
-            result_talib_false = pandas_ta.ema(self.close, talib=False)
-            assert_talib(self, result_talib_false, expected)
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -117,9 +103,6 @@ class TestOverlap(TestCase):
         )
 
     def test_hlc3(self):
-        result = pandas_ta.hlc3(self.high, self.low, self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.TYPPRICE(self.high, self.low, self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -217,9 +200,6 @@ class TestOverlap(TestCase):
                 pandas_ta.ichimoku(self.high, self.low, self.close, as_dataframe=value)
 
     def test_linreg(self):
-        result = pandas_ta.linreg(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.LINEARREG(self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -230,9 +210,6 @@ class TestOverlap(TestCase):
         )
 
     def test_linreg_angle(self):
-        result = pandas_ta.linreg(self.close, angle=True, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.LINEARREG_ANGLE(self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -244,9 +221,6 @@ class TestOverlap(TestCase):
         )
 
     def test_linreg_intercept(self):
-        result = pandas_ta.linreg(self.close, intercept=True, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.LINEARREG_INTERCEPT(self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -269,9 +243,6 @@ class TestOverlap(TestCase):
         )
 
     def test_linreg_slope(self):
-        result = pandas_ta.linreg(self.close, slope=True, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.LINEARREG_SLOPE(self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -296,11 +267,6 @@ class TestOverlap(TestCase):
         self.assertEqual(result.name, "FWMA_15")
 
     def test_mama(self):
-        result = pandas_ta.mama(self.close)
-        if HAS_TALIB:
-            mama, fama = talib.MAMA(self.close)
-            expecteddf = DataFrame({"MAMA_0.5_0.05": mama, "FAMA_0.5_0.05": fama})
-            assert_talib(self, result, expecteddf)
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -355,9 +321,6 @@ class TestOverlap(TestCase):
         )
 
     def test_midpoint(self):
-        result = pandas_ta.midpoint(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.MIDPOINT(self.close, 2))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -368,9 +331,6 @@ class TestOverlap(TestCase):
         )
 
     def test_midprice(self):
-        result = pandas_ta.midprice(self.high, self.low, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.MIDPRICE(self.high, self.low, 2))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -421,9 +381,6 @@ class TestOverlap(TestCase):
         )
 
     def test_sma(self):
-        result = pandas_ta.sma(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.SMA(self.close, 10))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -478,9 +435,6 @@ class TestOverlap(TestCase):
         )
 
     def test_t3(self):
-        result = pandas_ta.t3(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.T3(self.close, 10))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -491,9 +445,6 @@ class TestOverlap(TestCase):
         )
 
     def test_tema(self):
-        result = pandas_ta.tema(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.TEMA(self.close, 10))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -504,9 +455,6 @@ class TestOverlap(TestCase):
         )
 
     def test_trima(self):
-        result = pandas_ta.trima(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.TRIMA(self.close, 10))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -557,9 +505,6 @@ class TestOverlap(TestCase):
         )
 
     def test_wcp(self):
-        result = pandas_ta.wcp(self.high, self.low, self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.WCLPRICE(self.high, self.low, self.close))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -599,9 +544,6 @@ class TestOverlap(TestCase):
                     fn(close, 10, asc=False)
 
     def test_wma(self):
-        result = pandas_ta.wma(self.close, talib=False)
-        if HAS_TALIB:
-            assert_talib(self, result, talib.WMA(self.close, 10))
         assert_indicator_standard(
             self,
             IndicatorSpec(
@@ -982,44 +924,4 @@ class TestWilderSeeding(TestCase):
         self.assertTrue(tr.iloc[:21].isna().all())
         self.assertTrue(np.isfinite(tr.iloc[21]))
 
-    @skipIf(not pandas_ta.Imports["talib"], "TA-Lib not installed")
-    def test_adx_family_matches_talib_with_nan_prefix(self):
-        import talib
 
-        frame = self.df[["high", "low", "close"]].reset_index(drop=True).copy()
-        frame.iloc[:25] = np.nan
-        h, low, c = (frame[k] for k in ("high", "low", "close"))
-        H, L, C = (x.to_numpy() for x in (h, low, c))
-        cases = {
-            "ADX": (pandas_ta.adx(h, low, c, length=14).iloc[:, 0], talib.ADX(H, L, C, 14)),
-            "ATR": (pandas_ta.atr(h, low, c, length=14), talib.ATR(H, L, C, 14)),
-            "TRANGE": (pandas_ta.true_range(h, low, c), talib.TRANGE(H, L, C)),
-            "RSI": (pandas_ta.rsi(c, length=14), talib.RSI(C, 14)),
-        }
-        for name, (native, oracle) in cases.items():
-            with self.subTest(indicator=name):
-                native = native.to_numpy(dtype=float)
-                np.testing.assert_array_equal(np.isnan(native), np.isnan(oracle))
-                np.testing.assert_allclose(native[~np.isnan(oracle)], oracle[~np.isnan(oracle)], rtol=1e-10)
-
-    @skipIf(not pandas_ta.Imports["talib"], "TA-Lib not installed")
-    def test_adx_family_matches_talib_from_the_first_bar(self):
-        import talib
-
-        h, low, c = (self.df[k] for k in ("high", "low", "close"))
-        H, L, C = (x.to_numpy() for x in (h, low, c))
-        adx = pandas_ta.adx(h, low, c, length=14)
-        cases = {
-            "ADX": (adx.iloc[:, 0], talib.ADX(H, L, C, 14)),
-            "PLUS_DI": (adx.iloc[:, 1], talib.PLUS_DI(H, L, C, 14)),
-            "MINUS_DI": (adx.iloc[:, 2], talib.MINUS_DI(H, L, C, 14)),
-            "ADXR": (pandas_ta.adxr(h, low, c, length=14).iloc[:, 0], talib.ADXR(H, L, C, 14)),
-            "DX": (pandas_ta.dx(h, low, c, length=14), talib.DX(H, L, C, 14)),
-            "PLUS_DM": (pandas_ta.plus_dm(h, low, length=14), talib.PLUS_DM(H, L, 14)),
-            "MINUS_DM": (pandas_ta.minus_dm(h, low, length=14), talib.MINUS_DM(H, L, 14)),
-        }
-        for name, (native, oracle) in cases.items():
-            with self.subTest(indicator=name):
-                native = native.to_numpy(dtype=float)
-                np.testing.assert_array_equal(np.isnan(native), np.isnan(oracle))
-                np.testing.assert_allclose(native[~np.isnan(oracle)], oracle[~np.isnan(oracle)], rtol=1e-10)
