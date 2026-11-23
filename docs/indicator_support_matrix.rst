@@ -19,6 +19,11 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - Native
      - TA-Lib
      - tulipy
+   * - ac
+     - momentum
+     - yes
+     - yes
+     - no
    * - ao
      - momentum
      - yes
@@ -69,6 +74,11 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - yes
      - yes
      - no
+   * - crsi
+     - momentum
+     - yes
+     - yes
+     - no
    * - cti
      - momentum
      - yes
@@ -99,6 +109,16 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - yes
      - yes
      - yes
+   * - ibs
+     - momentum
+     - yes
+     - yes
+     - no
+   * - imi
+     - momentum
+     - yes
+     - yes
+     - no
    * - inertia
      - momentum
      - yes
@@ -294,6 +314,11 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - yes
      - yes
      - no
+   * - adr
+     - volatility
+     - yes
+     - yes
+     - no
    * - atr
      - volatility
      - yes
@@ -354,6 +379,11 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - yes
      - no
      - no
+   * - rogerssatchell
+     - volatility
+     - yes
+     - yes
+     - no
    * - rvi
      - volatility
      - yes
@@ -405,6 +435,11 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - no
      - yes
    * - median
+     - statistics
+     - yes
+     - yes
+     - no
+   * - percentrank
      - statistics
      - yes
      - yes
@@ -960,6 +995,11 @@ Legend: ``yes`` = indicator has corresponding implementation in that library by 
      - no
      - no
    * - pvt
+     - volume
+     - yes
+     - yes
+     - no
+   * - rvol
      - volume
      - yes
      - yes

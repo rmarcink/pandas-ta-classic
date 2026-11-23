@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from .mad import mad as mad
     from .md import md as md
     from .median import median as median
+    from .percentrank import percentrank as percentrank
     from .quantile import quantile as quantile
     from .skew import skew as skew
     from .stderr import stderr as stderr

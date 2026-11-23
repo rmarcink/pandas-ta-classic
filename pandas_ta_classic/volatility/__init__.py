@@ -7,6 +7,7 @@ install_lazy_subpackage(__name__)
 if TYPE_CHECKING:
     from .aberration import aberration as aberration
     from .accbands import accbands as accbands
+    from .adr import adr as adr
     from .atr import atr as atr
     from .avolume import avolume as avolume
     from .bbands import bbands as bbands
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
     from .massi import massi as massi
     from .natr import natr as natr
     from .pdist import pdist as pdist
+    from .rogerssatchell import rogerssatchell as rogerssatchell
     from .rvi import rvi as rvi
     from .thermo import thermo as thermo
     from .true_range import true_range as true_range

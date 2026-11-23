@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from .pvol import pvol as pvol
     from .pvr import pvr as pvr
     from .pvt import pvt as pvt
+    from .rvol import rvol as rvol
     from .vfi import vfi as vfi
     from .vosc import vosc as vosc
     from .vp import vp as vp

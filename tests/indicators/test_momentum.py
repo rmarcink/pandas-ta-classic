@@ -411,3 +411,67 @@ class TestMacdSignalOptionsApplyToBothLines:
     def test_flags_are_validated(self):
         with pytest.raises(ValueError, match=r"macd\(\) cross_values must be True or False"):
             pandas_ta.macd(self.close, signal_indicators=True, cross_values="no")
+
+
+class TestTalib08Momentum:
+    """ac, crsi, ibs and imi follow TA-Lib 0.8's definitions; the oracle compares the values."""
+
+    @classmethod
+    def setup_class(cls):
+        cls.data = get_sample_data()
+
+    def test_ac_is_ao_less_its_signal_sma(self):
+        d = self.data
+        ao = pandas_ta.ao(d.high, d.low, 5, 34)
+        expected = ao - ao.rolling(5).mean()
+        np.testing.assert_array_equal(pandas_ta.ac(d.high, d.low).to_numpy(), expected.to_numpy())
+
+    def test_ac_rejects_fast_above_slow(self):
+        with pytest.raises(ValueError, match=r"^ac\(\) needs fast <= slow"):
+            pandas_ta.ac(self.data.high, self.data.low, fast=40, slow=34)
+
+    def test_crsi_streak_counts_runs_and_restarts_after_a_gap(self):
+        from pandas_ta_classic.momentum.crsi import _streak
+
+        close = np.array([1.0, 2.0, 3.0, 3.0, 2.0, 1.0, np.nan, 2.0, 3.0])
+        np.testing.assert_array_equal(_streak(close), [0.0, 1.0, 2.0, 0.0, -1.0, -2.0, np.nan, 0.0, 1.0])
+
+    def test_crsi_is_the_mean_of_its_three_parts(self):
+        """Connors: (RSI(close, 3) + RSI(streak, 2) + PercentRank(ROC(1), 100)) / 3, streak and rank by plain loops."""
+        close = self.data.close.iloc[:400].reset_index(drop=True)
+        c = close.to_numpy()
+        streak = np.zeros(c.size)
+        for i in range(1, c.size):
+            if c[i] > c[i - 1]:
+                streak[i] = max(streak[i - 1], 0.0) + 1.0
+            elif c[i] < c[i - 1]:
+                streak[i] = min(streak[i - 1], 0.0) - 1.0
+        change = close.pct_change().to_numpy() * 100.0
+        rank = np.full(c.size, np.nan)
+        for i in range(101, c.size):  # change[0] is NaN, so bar 101 is the first with 100 earlier changes
+            rank[i] = 100.0 * sum(change[j] < change[i] for j in range(i - 100, i)) / 100.0
+        expected = (pandas_ta.rsi(close, 3) + pandas_ta.rsi(pd.Series(streak), 2) + rank) / 3.0
+        np.testing.assert_allclose(pandas_ta.crsi(close), expected, rtol=1e-12, equal_nan=True)
+        assert pandas_ta.crsi(close).first_valid_index() == 101
+
+    def test_crsi_stays_in_0_100(self):
+        valid = pandas_ta.crsi(self.data.close).dropna()
+        assert not valid.empty
+        assert valid.between(0, 100).all()
+
+    def test_ibs_is_the_position_in_the_bar_and_half_without_a_range(self):
+        high = pd.Series([12.0, 10.0, 10.0])
+        low = pd.Series([10.0, 10.0, 10.0])
+        close = pd.Series([11.5, 10.0, 11.0])  # the last is malformed: a close outside a zero range
+        np.testing.assert_array_equal(pandas_ta.ibs(high, low, close).to_numpy(), [0.75, 0.5, 0.5])
+
+    def test_imi_reads_50_on_bodiless_bars(self):
+        price = pd.Series(np.linspace(100.0, 120.0, 30))
+        result = pandas_ta.imi(price, price, 14)
+        assert (result.dropna() == 50.0).all()
+        assert int(result.isna().sum()) == 13
+
+    def test_imi_is_100_when_every_body_is_white(self):
+        open_ = pd.Series(np.arange(30.0))
+        result = pandas_ta.imi(open_, open_ + 1.0, 14)
+        assert (result.dropna() == 100.0).all()

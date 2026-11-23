@@ -230,3 +230,33 @@ def test_stochrsi_talib_path_matches_native(kwargs):
         both = np.isfinite(a) & np.isfinite(b)
         assert both.sum() > 5000
         np.testing.assert_allclose(a[both], b[both], rtol=0, atol=1e-9)
+
+
+# talib=True at these defaults computes natively, by rule 6: TA-Lib cannot express a default.
+_NATIVE_AT_DEFAULTS = {"stochrsi": "TA-Lib's STOCHRSI has no %K smoothing; it runs only at k=1, and the default is k=3"}
+
+
+@pytest.mark.parametrize("name", [n for n in _talib_indicators() if n not in _NATIVE_AT_DEFAULTS])
+def test_talib_true_calls_talib(name, monkeypatch):
+    """With TA-Lib installed, talib=True at the defaults runs a TA-Lib function, not the native formula."""
+    import talib
+
+    called = []
+
+    def _recording(fname, real):
+        def wrapper(*args, **kwargs):
+            called.append(fname)
+            return real(*args, **kwargs)
+
+        return wrapper
+
+    for fname in talib.get_functions():
+        monkeypatch.setattr(talib, fname, _recording(fname, getattr(talib, fname)))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        func = _find_indicator_func(name)
+        params = inspect.signature(func).parameters
+        # An optional open_ selects ad's and adosc's Open form, which TA-Lib lacks.
+        series = {k: v for k, v in inputs(name, _spy(300)).items() if params[k].default is inspect.Parameter.empty}
+        func(**series, talib=True)
+    assert called, f"{name}(talib=True) never called TA-Lib"

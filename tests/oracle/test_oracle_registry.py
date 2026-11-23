@@ -457,6 +457,17 @@ ORACLE: dict[str, Case] = {
         lambda b: _cols(ta.ha(b.open, b.high, b.low, b.close), "HA_open", "HA_high", "HA_low", "HA_close"),
         lambda b: list(T.HA(b.open, b.high, b.low, b.close)),
     ),
+    # Indicators added after TA-Lib 0.8, built to its definitions.
+    "ac": Case(lambda b: [ta.ac(b.high, b.low, 5, 34, 5)], lambda b: [T.AC(b.high, b.low, 5, 34, 5)]),
+    "adr": Case(lambda b: [ta.adr(b.high, b.low, 14)], lambda b: [T.ADR(b.high, b.low, 14)]),
+    "crsi": Case(lambda b: [ta.crsi(b.close, 3, 2, 100)], lambda b: [T.CRSI(b.close, 3, 2, 100)]),
+    "ibs": Case(lambda b: [ta.ibs(b.high, b.low, b.close)], lambda b: [T.IBS(b.high, b.low, b.close)]),
+    "imi": Case(lambda b: [ta.imi(b.open, b.close, 14)], lambda b: [T.IMI(b.open, b.close, 14)]),
+    "percentrank": Case(lambda b: [ta.percentrank(b.close, 100)], lambda b: [T.PERCENTRANK(b.close, 100)]),
+    "rogerssatchell": Case(
+        lambda b: [ta.rogerssatchell(b.open, b.high, b.low, b.close, 10, 252)], lambda b: [T.ROGERSSATCHELL(b.open, b.high, b.low, b.close, 10, 252.0)]
+    ),
+    "rvol": Case(lambda b: [ta.rvol(b.volume, 20)], lambda b: [T.RVOL(b.volume, 20)]),
 }
 
 # Elementwise math transforms map one to one onto a TA-Lib function of the same
@@ -917,6 +928,31 @@ def test_every_talib_indicator_has_an_oracle() -> None:
     assert not unlisted, f"compared with TA-Lib here but listed without it in docs/indicator_support_matrix.rst: {unlisted}"
     stale = sorted(set(NO_ORACLE) - listed - {"ma"})
     assert not stale, f"NO_ORACLE gives a reason for an indicator listed without TA-Lib in docs/indicator_support_matrix.rst: {stale}"
+
+
+# (indicator, parameter, native call, TA-Lib call), each at the given period with the others at their defaults
+_PERIODS_FROM_TWO = {
+    ("ac", "fast"): (lambda b, n: ta.ac(b.high, b.low, fast=n), lambda b, n: talib.AC(b.high, b.low, n, 34, 5)),
+    ("ac", "signal"): (lambda b, n: ta.ac(b.high, b.low, signal=n), lambda b, n: talib.AC(b.high, b.low, 5, 34, n)),
+    ("crsi", "length"): (lambda b, n: ta.crsi(b.close, length=n), lambda b, n: talib.CRSI(b.close, n, 2, 100)),
+    ("crsi", "streak"): (lambda b, n: ta.crsi(b.close, streak=n), lambda b, n: talib.CRSI(b.close, 3, n, 100)),
+    ("crsi", "rank"): (lambda b, n: ta.crsi(b.close, rank=n), lambda b, n: talib.CRSI(b.close, 3, 2, n)),
+    ("imi", "length"): (lambda b, n: ta.imi(b.open, b.close, length=n), lambda b, n: talib.IMI(b.open, b.close, n)),
+    ("percentrank", "length"): (lambda b, n: ta.percentrank(b.close, length=n), lambda b, n: talib.PERCENTRANK(b.close, n)),
+}
+
+
+@pytest.mark.parametrize("key", sorted(_PERIODS_FROM_TWO), ids="-".join)
+def test_a_period_of_one_is_rejected_as_on_talib(key: tuple[str, str]) -> None:
+    """TA-Lib rejects these periods below 2; the native path raises for the same values, naming the parameter."""
+    native, oracle = _PERIODS_FROM_TWO[key]
+    b = spy(300)
+    with pytest.raises(Exception, match="Bad Param"):
+        oracle(b, 1)
+    with pytest.raises(ValueError, match=rf"{key[0]}\(\) {key[1]} "):
+        native(b, 1)
+    native(b, 2)
+    oracle(b, 2)
 
 
 def test_vidya_converges_to_talib(frames) -> None:
