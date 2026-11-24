@@ -208,13 +208,7 @@ class AnalysisIndicators:
     def rocr(self, length: int | None = None, talib: bool | None = None, offset: int | None = None, **kwargs: Any) -> Series | None: ...
     def rocr100(self, length: int | None = None, talib: bool | None = None, offset: int | None = None, **kwargs: Any) -> Series | None: ...
     def rsi(
-        self,
-        length: int | None = None,
-        scalar: float | None = None,
-        talib: bool | None = None,
-        drift: int | None = None,
-        offset: int | None = None,
-        **kwargs: Any,
+        self, length: int = 14, scalar: float = 100, talib: bool = False, drift: int | None = None, offset: int | None = None, **kwargs: Any
     ) -> Series | DataFrame | None: ...
     def rsx(self, length: int | None = None, offset: int | None = None, **kwargs: Any) -> Series | DataFrame | None: ...
     def rvgi(self, length: int | None = None, swma_length: int | None = None, offset: int | None = None, **kwargs: Any) -> DataFrame | None: ...
@@ -233,14 +227,14 @@ class AnalysisIndicators:
     ) -> DataFrame | None: ...
     def squeeze(
         self,
-        bb_length: int | None = None,
-        bb_std: float | None = None,
-        kc_length: int | None = None,
-        kc_scalar: float | None = None,
-        mom_length: int | None = None,
-        mom_smooth: int | None = None,
+        bb_length: int = 20,
+        bb_std: float = 2.0,
+        kc_length: int = 20,
+        kc_scalar: float = 1.5,
+        mom_length: int = 12,
+        mom_smooth: int = 6,
         use_tr: bool | None = None,
-        mamode: str | None = None,
+        mamode: str = 'sma',
         offset: int | None = None,
         **kwargs: Any,
     ) -> DataFrame | None: ...
@@ -269,14 +263,7 @@ class AnalysisIndicators:
         **kwargs: Any,
     ) -> DataFrame | None: ...
     def stoch(
-        self,
-        k: int | None = None,
-        d: int | None = None,
-        smooth_k: int | None = None,
-        mamode: str | None = None,
-        talib: bool | None = None,
-        offset: int | None = None,
-        **kwargs: Any,
+        self, k: int = 14, d: int = 3, smooth_k: int = 3, mamode: str = 'sma', talib: bool = False, offset: int | None = None, **kwargs: Any
     ) -> DataFrame | None: ...
     def stochf(
         self,
@@ -365,7 +352,7 @@ class AnalysisIndicators:
     ) -> DataFrame | None: ...
     def hl2(self, talib: bool | None = None, offset: int | None = None, **kwargs: Any) -> Series | None: ...
     def hlc3(self, talib: bool | None = None, offset: int | None = None, **kwargs: Any) -> Series | None: ...
-    def hma(self, length: int | None = None, offset: int | None = None, **kwargs: Any) -> Series | None: ...
+    def hma(self, length: int = 10, offset: int | None = None, **kwargs: Any) -> Series | None: ...
     def ht_trendline(self, talib: bool | None = None, offset: int | None = None, **kwargs: Any) -> Series | None: ...
     def hwma(
         self, na: float | None = None, nb: float | None = None, nc: float | None = None, offset: int | None = None, **kwargs: Any
@@ -391,7 +378,7 @@ class AnalysisIndicators:
         offset: int | None = None,
         **kwargs: Any,
     ) -> Series | None: ...
-    def linreg(self, length: int | None = None, talib: bool | None = None, offset: int | None = None, **kwargs: Any) -> Series | None: ...
+    def linreg(self, length: int = 14, talib: bool = False, offset: int | None = None, **kwargs: Any) -> Series | None: ...
     def linregangle(self, length: int | None = None, talib: bool | None = None, offset: int | None = None, **kwargs: Any) -> Series | None: ...
     def linregintercept(self, length: int | None = None, talib: bool | None = None, offset: int | None = None, **kwargs: Any) -> Series | None: ...
     def linregslope(self, length: int | None = None, talib: bool | None = None, offset: int | None = None, **kwargs: Any) -> Series | None: ...
@@ -419,7 +406,7 @@ class AnalysisIndicators:
     def rainbow(self, length: int | None = None, offset: int | None = None, **kwargs: Any) -> DataFrame | None: ...
     def rma(self, length: int | None = None, offset: int | None = None, **kwargs: Any) -> Series | None: ...
     def sinwma(self, length: int | None = None, offset: int | None = None, **kwargs: Any) -> Series | None: ...
-    def sma(self, length: int | None = None, talib: bool | None = None, offset: int | None = None, **kwargs: Any) -> Series | None: ...
+    def sma(self, length: int = 10, talib: bool = False, offset: int | None = None, **kwargs: Any) -> Series | None: ...
     def ssf(self, length: int | None = None, poles: int | None = None, offset: int | None = None, **kwargs: Any) -> Series | None: ...
     def supertrend(
         self, length: int | None = None, multiplier: float | None = None, offset: int | None = None, **kwargs: Any
@@ -475,11 +462,11 @@ class AnalysisIndicators:
     # trend
     def adx(
         self,
-        length: int | None = None,
+        length: int = 14,
         lensig: int | None = None,
-        scalar: float | None = None,
-        mamode: str | None = None,
-        talib: bool | None = None,
+        scalar: float = 100,
+        mamode: str = 'rma',
+        talib: bool = False,
         drift: int | None = None,
         offset: int | None = None,
         **kwargs: Any,

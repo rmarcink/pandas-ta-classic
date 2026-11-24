@@ -69,6 +69,10 @@ def _format_annotation(ann) -> str:
     origin = typing.get_origin(ann)
     args = typing.get_args(ann)
 
+    # Annotated[int, Bound(gt=1)] -> int: the marker is for the runtime check, not for the IDE
+    if origin is typing.Annotated:
+        return _format_annotation(args[0])
+
     # Union / PEP 604 X | Y
     if origin is typing.Union or origin is types.UnionType:
         non_none = [a for a in args if a is not type(None)]

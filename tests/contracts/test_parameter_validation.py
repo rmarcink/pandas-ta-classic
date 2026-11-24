@@ -19,10 +19,11 @@ from pandas import Series, Timedelta
 import pandas_ta_classic as ta
 from pandas_ta_classic._indicator_loader import _find_indicator_func
 from pandas_ta_classic.utils import _metrics
+from pandas_ta_classic.utils._core import Bound, declared_params
 from pandas_ta_classic.utils._keywords import _KWARGS_OPTIONS, _MA_OPTIONS, accepted_keywords
 from pandas_ta_classic.utils._signals import attach_signals
 from tests.config import get_sample_data
-from tests.contracts import INDICATORS, code_defaults, inputs, spy
+from tests.contracts import INDICATORS, code_defaults, inputs, plain_annotation, spy
 from tests.contracts.test_degenerate_input import _call
 from tests.meta.test_docstring_defaults import _MODULES
 
@@ -49,6 +50,7 @@ def _guarded_params():
             continue
         params = inspect.signature(func).parameters
         guarded = set(_GUARD.findall(inspect.getsource(inspect.getmodule(inspect.unwrap(func)))))
+        guarded |= {p for p, (marker, _, _) in declared_params(func).items() if isinstance(marker, Bound) and marker.gt is not None}
         cases += [(name, p) for p in sorted(guarded & set(params))]
     return cases
 
@@ -530,12 +532,17 @@ def test_signature_defaults_are_none():
     # None selects the default, resolved by the validation call, so a caller can pass
     # None to mean "the default" everywhere. bbands, cdl_doji, cdl_inside, cdl_pattern,
     # cpr, dpo, ichimoku and xsignals wrote their defaults into the signature instead.
+    # A declared parameter (Annotated[int, Bound(gt=1)] = 10) keeps its default in the
+    # signature: the wrapper validates it and resolves an explicit None to it.
     offenders = []
     for name in sorted(i for v in ta.Category.values() for i in v):
         func = _find_indicator_func(name)
         if func is None:
             continue
+        declared = declared_params(func)
         for param in inspect.signature(func).parameters.values():
+            if param.name in declared:
+                continue
             if param.default is not inspect.Parameter.empty and param.default is not None:
                 offenders.append(f"{name}({param.name}={param.default!r})")
     assert not offenders, offenders
@@ -699,7 +706,7 @@ def _int_parameter_cases():
         (name, param)
         for name in INDICATORS
         for param, spec in inspect.signature(getattr(ta, name)).parameters.items()
-        if param != "offset" and (spec.annotation is int or int in typing.get_args(spec.annotation))
+        if param != "offset" and (plain_annotation(spec.annotation) is int or int in typing.get_args(plain_annotation(spec.annotation)))
     ]
 
 

@@ -37,6 +37,7 @@ import pandas as pd
 import pytest
 
 import pandas_ta_classic as ta
+from pandas_ta_classic.utils._core import OneOf, declared_params
 from tests.config import get_sample_data
 
 COLUMNS = {"open_": "open", "high": "high", "low": "low", "close": "close", "volume": "volume"}
@@ -124,7 +125,7 @@ def boolean_kwargs(name: str) -> list[str]:
     for parameter_name, parameter in signature.parameters.items():
         if parameter_name in SKIP_BOOL_KWARGS:
             continue
-        annotation = parameter.annotation
+        annotation = plain_annotation(parameter.annotation)
         if annotation is inspect.Parameter.empty:
             continue
         optional_of = typing.get_args(annotation)
@@ -136,6 +137,11 @@ def boolean_kwargs(name: str) -> list[str]:
 def candidate_calls(name: str) -> list[dict]:
     """The default call plus each boolean keyword of *name* flipped on its own."""
     return [{}] + [{keyword: value} for keyword in boolean_kwargs(name) for value in (True, False)]
+
+
+def plain_annotation(annotation: Any) -> Any:
+    """*annotation* without an ``Annotated`` marker: ``Annotated[int, Bound(gt=1)]`` gives ``int``."""
+    return typing.get_args(annotation)[0] if typing.get_origin(annotation) is typing.Annotated else annotation
 
 
 _DEFAULT_HELPERS = {"_pos_int", "_pos_float", "_number", "_bool_param", "_str_param"}
@@ -161,6 +167,17 @@ def code_defaults(source: str) -> dict:
     (``length = _pos_int(length, 10, "length")`` gives ``{"length": 10}``)."""
     found = {}
     for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.FunctionDef):
+            # a declared parameter: length: Annotated[int, Bound(gt=1)] = 10
+            arguments = node.args.args + node.args.kwonlyargs
+            defaults = [None] * (len(node.args.args) - len(node.args.defaults)) + node.args.defaults + node.args.kw_defaults
+            for arg, default in zip(arguments, defaults):
+                annotation = arg.annotation
+                if default is not None and isinstance(annotation, ast.Subscript) and getattr(annotation.value, "id", None) == "Annotated":
+                    value = ast.literal_eval(default)
+                    if value is not None:  # None: computed in the body (adx lensig = length)
+                        found.setdefault(arg.arg, value)
+            continue
         if not (isinstance(node, ast.Assign) and isinstance(node.value, ast.Call)):
             continue
         call = node.value
@@ -185,7 +202,7 @@ def string_choices(name: str) -> dict[str, list[str] | None]:
     """{option: sorted choices} of every ``_str_param(..., choices=...)`` in indicator *name*'s module;
     ``None`` where the choices are computed (``choices=ma()``) rather than written out."""
     source = inspect.getsource(inspect.getmodule(inspect.unwrap(getattr(ta, name))))
-    found: dict[str, list[str] | None] = {}
+    found: dict[str, list[str] | None] = {p: sorted(m.choices) for p, (m, _, _) in declared_params(getattr(ta, name)).items() if isinstance(m, OneOf)}
     for node in ast.walk(ast.parse(source)):
         if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "_str_param" and node.args):
             continue
