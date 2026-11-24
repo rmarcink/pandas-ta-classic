@@ -49,6 +49,7 @@ def _guarded_params():
             continue
         params = inspect.signature(func).parameters
         guarded = set(_GUARD.findall(inspect.getsource(inspect.getmodule(inspect.unwrap(func)))))
+        guarded |= {p for p, s in getattr(func, "__params__", {}).items() if s.kind in ("int", "float") and s.gt is not None}
         cases += [(name, p) for p in sorted(guarded & set(params))]
     return cases
 
@@ -535,7 +536,10 @@ def test_signature_defaults_are_none():
         func = _find_indicator_func(name)
         if func is None:
             continue
+        declared = getattr(func, "__params__", {})  # @params(...) shows its defaults through __signature__
         for param in inspect.signature(func).parameters.values():
+            if param.name in declared:
+                continue
             if param.default is not inspect.Parameter.empty and param.default is not None:
                 offenders.append(f"{name}({param.name}={param.default!r})")
     assert not offenders, offenders

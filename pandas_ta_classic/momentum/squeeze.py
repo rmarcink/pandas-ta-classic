@@ -7,11 +7,11 @@ from pandas import DataFrame, Series
 
 from pandas_ta_classic.momentum.mom import mom
 from pandas_ta_classic.overlap.linreg import linreg
-from pandas_ta_classic.overlap.ma import ma
+from pandas_ta_classic.overlap.ma import ma, ma_window
 from pandas_ta_classic.trend.decreasing import decreasing
 from pandas_ta_classic.trend.increasing import increasing
 from pandas_ta_classic.utils import apply_fill, apply_offset, get_offset, unsigned_differences, verify_series
-from pandas_ta_classic.utils._core import _bool_param, _name_tokens, _pos_float, _pos_int, _str_param, nan_on_short_input
+from pandas_ta_classic.utils._core import Choice, Float, Int, _bool_param, _name_tokens, _pos_int, nan_on_short_input, params
 from pandas_ta_classic.volatility.bbands import bbands
 from pandas_ta_classic.volatility.kc import kc
 
@@ -103,6 +103,15 @@ def _squeeze_detailed(df, squeeze_s, kwargs, prefix="SQZ_"):
 
 
 @nan_on_short_input
+@params(
+    bb_length=Int(20, gt=1),  # bbands() needs length > 1
+    bb_std=Float(2.0),
+    kc_length=Int(20),
+    kc_scalar=Float(1.5),
+    mom_length=Int(12),
+    mom_smooth=Int(6),
+    mamode=Choice("sma", ma()),
+)
 def squeeze(
     high: Series,
     low: Series,
@@ -119,15 +128,16 @@ def squeeze(
     **kwargs: Any,
 ) -> DataFrame | None:
     """Indicator: Squeeze Momentum (SQZ)"""
+    assert (
+        bb_length is not None and kc_length is not None and mom_length is not None and mom_smooth is not None and mamode is not None
+    )  # resolved by @params; narrows the type for mypy
     # Validate arguments
-    bb_length = _pos_int(bb_length, 20, "bb_length", gt=1)  # bbands() needs length > 1
-    bb_std = _pos_float(bb_std, 2.0, "bb_std")
     lazybear = _bool_param(kwargs.pop("lazybear", None), False, "lazybear")
     # lazybear's momentum is a linreg over kc_length, which needs two points
-    kc_length = _pos_int(kc_length, 20, "kc_length", gt=1 if lazybear else 0)
-    kc_scalar = _pos_float(kc_scalar, 1.5, "kc_scalar")
-    mom_length = _pos_int(mom_length, 12, "mom_length")
-    mom_smooth = _pos_int(mom_smooth, 6, "mom_smooth")
+    kc_length = _pos_int(kc_length, kc_length, "kc_length", gt=1 if lazybear else 0)
+    bb_length = ma_window(mamode, bb_length, "bb_length")
+    kc_length = ma_window(mamode, kc_length, "kc_length")
+    mom_smooth = ma_window(mamode, mom_smooth, "mom_smooth")
     _length = max(bb_length, kc_length, mom_length, mom_smooth)
     high = verify_series(high, _length)
     low = verify_series(low, _length)
@@ -140,7 +150,6 @@ def squeeze(
     use_tr = _squeeze_use_tr(use_tr, kwargs, "squeeze")
     asint = _bool_param(kwargs.pop("asint", None), True, "asint")
     detailed = _bool_param(kwargs.pop("detailed", None), False, "detailed")
-    mamode = _str_param(mamode, "sma", "mamode", choices=ma())
 
     # Calculate Result
     # Only the bands are read here; bbands' warning about a non-positive middle

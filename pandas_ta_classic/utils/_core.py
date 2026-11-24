@@ -7,6 +7,7 @@ import math
 import sys
 import warnings
 from collections.abc import Callable
+from dataclasses import dataclass
 from numbers import Real
 from typing import Any, TypeGuard
 
@@ -20,13 +21,85 @@ from pandas_ta_classic.utils._keywords import _is_package_indicator, check_keywo
 logger = logging.getLogger(__name__)
 
 
-def _validate_number(val: Any, default: Any, name: str, *, integer: bool, gt: float | None, ge: float | None, lt: float | None) -> Any:
+@dataclass(frozen=True)
+class Spec:
+    """Default and check of one parameter, declared with :func:`params`. Build it with
+    :func:`Int`, :func:`Float`, :func:`Choice` or :func:`Flag`."""
+
+    default: Any
+    kind: str  # "int", "float", "str" or "bool"
+    gt: float | None = None
+    ge: float | None = None
+    lt: float | None = None
+    choices: tuple[str, ...] = ()
+
+    def resolve(self, name: str, val: Any) -> Any:
+        if self.kind in ("int", "float"):
+            return _validate_number(val, self.default, name, integer=self.kind == "int", gt=self.gt, ge=self.ge, lt=self.lt)
+        if self.kind == "str":
+            return _str_param(val, self.default, name, choices=self.choices)
+        return _bool_param(val, self.default, name)
+
+
+def Int(default: int | None, *, gt: float | None = 0, ge: float | None = None, lt: float | None = None) -> Spec:
+    """A whole number, ``> 0`` unless another bound is given; ``Int(None)`` leaves a computed default to the body."""
+    return Spec(default, "int", gt=gt, ge=ge, lt=lt)
+
+
+def Float(default: float, *, gt: float | None = 0, ge: float | None = None, lt: float | None = None) -> Spec:
+    """A finite number, ``> 0`` unless another bound is given; ``gt=None`` allows any."""
+    return Spec(default, "float", gt=gt, ge=ge, lt=lt)
+
+
+def Choice(default: str, choices: Any) -> Spec:
+    return Spec(default, "str", choices=tuple(choices))
+
+
+def Flag(default: bool) -> Spec:
+    return Spec(default, "bool")
+
+
+def params(**specs: Spec) -> Callable[[Callable], Callable]:
+    """Declare the defaults and bounds of an indicator's parameters in one place.
+
+    The signature keeps ``None`` (``length: int | None = None``); the wrapper
+    resolves ``None`` to the declared default and validates every other value on
+    each call, and ``__signature__`` shows the declared defaults, so
+    ``inspect.signature(ta.hma)`` reads ``length=10``. The specs stay readable as
+    ``fn.__params__``.
+    """
+
+    def decorator(fn: Callable) -> Callable:
+        sig = inspect.signature(fn)
+        unknown = set(specs) - set(sig.parameters)
+        if unknown:
+            raise TypeError(f"params() on {fn.__name__}: no parameter {sorted(unknown)}")
+
+        @functools.wraps(fn)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            bound = sig.bind(*args, **kwargs)
+            for name, spec in specs.items():
+                bound.arguments[name] = spec.resolve(name, bound.arguments.get(name))
+            return fn(*bound.args, **bound.kwargs)
+
+        shown = [p.replace(default=specs[n].default) if n in specs else p for n, p in sig.parameters.items()]
+        wrapper.__signature__ = sig.replace(parameters=shown)  # type: ignore[attr-defined]
+        wrapper.__params__ = dict(specs)  # type: ignore[attr-defined]
+        return wrapper
+
+    return decorator
+
+
+def _validate_number(
+    val: Any, default: Any, name: str, *, integer: bool, gt: float | None, ge: float | None, lt: float | None, note: str = ""
+) -> Any:
     """Shared body of :func:`_pos_int` and :func:`_pos_float`.
 
     ``None`` means "not given" and returns *default*. Anything else must be a
     finite real number (not a bool) inside the bounds, and a whole number when
     *integer* is set; otherwise ``ValueError`` names the indicator, the
     parameter and the value instead of silently substituting the default.
+    *note* says why the bound applies (``" with mamode='hma'"``).
     """
     if val is None:
         return default
@@ -40,7 +113,7 @@ def _validate_number(val: Any, default: Any, name: str, *, integer: bool, gt: fl
         bounds = " and ".join(f"{op} {bound}" for op, bound in ((">", gt), (">=", ge), ("<", lt)) if bound is not None)
         kind = "an integer" if integer else "a number"
         requirement = f"{kind} {bounds}" if bounds else kind
-        raise ValueError(f"{indicator}() {name} must be {requirement}, got {val!r}")
+        raise ValueError(f"{indicator}() {name} must be {requirement}{note}, got {val!r}")
     # A whole number keeps the type of an int default, so kc(scalar=2) and
     # kc(scalar=2.0) name their columns KCLe_20_2 like kc() instead of KCLe_20_2.0.
     if integer or (isinstance(default, int) and not isinstance(default, bool) and float(val).is_integer()):

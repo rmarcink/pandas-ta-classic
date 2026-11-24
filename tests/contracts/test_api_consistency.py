@@ -523,7 +523,10 @@ def test_signature_shape() -> None:
     no_offset = set()
     for name in INDICATORS:
         params = inspect.signature(getattr(ta, name)).parameters
-        explicit = [f"{p}={v.default!r}" for p, v in params.items() if v.default is not inspect.Parameter.empty and v.default is not None]
+        declared = getattr(getattr(ta, name), "__params__", {})  # @params(...) shows its defaults through __signature__
+        explicit = [
+            f"{p}={v.default!r}" for p, v in params.items() if v.default is not inspect.Parameter.empty and v.default is not None and p not in declared
+        ]
         if explicit:
             defaults[name] = ", ".join(explicit)
         if "offset" not in params:

@@ -4,7 +4,7 @@ from typing import Any
 from pandas import DataFrame, Series
 
 from pandas_ta_classic import Imports
-from pandas_ta_classic.overlap.ma import ma
+from pandas_ta_classic.overlap.ma import ma, ma_window
 from pandas_ta_classic.utils import (
     apply_fill,
     apply_offset,
@@ -12,7 +12,7 @@ from pandas_ta_classic.utils import (
     get_offset,
     verify_series,
 )
-from pandas_ta_classic.utils._core import _bool_param, _number, _pos_int, _str_param, nan_on_short_input
+from pandas_ta_classic.utils._core import Choice, Flag, Float, Int, nan_on_short_input, params
 from pandas_ta_classic.utils._math import _zero_small
 from pandas_ta_classic.utils._wilder import wilder_di
 from pandas_ta_classic.volatility.atr import atr
@@ -20,6 +20,7 @@ from pandas_ta_classic.volatility.true_range import true_range
 
 
 @nan_on_short_input
+@params(length=Int(14), lensig=Int(None), scalar=Float(100, gt=None), mamode=Choice("rma", ma()), talib=Flag(False))
 def adx(
     high: Series,
     low: Series,
@@ -34,17 +35,17 @@ def adx(
     **kwargs: Any,
 ) -> DataFrame | None:
     """Indicator: ADX"""
+    assert length is not None and scalar is not None and mamode is not None  # resolved by @params; narrows the type for mypy
     # Validate Arguments
-    length = _pos_int(length, 14, "length")
-    lensig = _pos_int(lensig, length, "lensig")
-    mamode = _str_param(mamode, "rma", "mamode", choices=ma())
-    scalar = _number(scalar, 100, "scalar")
+    lensig = length if lensig is None else lensig  # Int(None): lensig defaults to length
+    length = ma_window(mamode, length, "length")
+    lensig = ma_window(mamode, lensig, "lensig")
     high = verify_series(high, length)
     low = verify_series(low, length)
     close = verify_series(close, length)
     drift = get_drift(drift)
     offset = get_offset(offset)
-    mode_talib = _bool_param(talib, False, "talib")
+    mode_talib = talib
 
     if high is None or low is None or close is None:
         return None

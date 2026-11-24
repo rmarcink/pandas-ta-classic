@@ -161,6 +161,17 @@ def code_defaults(source: str) -> dict:
     (``length = _pos_int(length, 10, "length")`` gives ``{"length": 10}``)."""
     found = {}
     for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.FunctionDef):
+            # declared by the decorator: @params(length=Int(10, gt=1), talib=Flag(False))
+            for deco in node.decorator_list:
+                if isinstance(deco, ast.Call) and getattr(deco.func, "id", None) == "params":
+                    for keyword in deco.keywords:
+                        spec = keyword.value
+                        if isinstance(spec, ast.Call) and spec.args:
+                            value = ast.literal_eval(spec.args[0])
+                            if value is not None:  # Int(None): computed in the body (adx lensig = length)
+                                found.setdefault(keyword.arg, value)
+            continue
         if not (isinstance(node, ast.Assign) and isinstance(node.value, ast.Call)):
             continue
         call = node.value
@@ -185,7 +196,8 @@ def string_choices(name: str) -> dict[str, list[str] | None]:
     """{option: sorted choices} of every ``_str_param(..., choices=...)`` in indicator *name*'s module;
     ``None`` where the choices are computed (``choices=ma()``) rather than written out."""
     source = inspect.getsource(inspect.getmodule(inspect.unwrap(getattr(ta, name))))
-    found: dict[str, list[str] | None] = {}
+    declared = getattr(getattr(ta, name), "__params__", {})
+    found: dict[str, list[str] | None] = {p: sorted(s.choices) for p, s in declared.items() if s.kind == "str"}
     for node in ast.walk(ast.parse(source)):
         if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "_str_param" and node.args):
             continue

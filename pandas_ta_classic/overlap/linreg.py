@@ -6,7 +6,7 @@ from pandas import Series
 
 from pandas_ta_classic import Imports
 from pandas_ta_classic.utils import apply_fill, apply_offset, degenerate_zero, get_offset, verify_series
-from pandas_ta_classic.utils._core import _bool_param, _pos_int, nan_on_short_input
+from pandas_ta_classic.utils._core import Flag, Int, _bool_param, nan_on_short_input, params
 
 # TA-Lib dispatch map: (angle, intercept, slope, tsf) → (module, function)
 _TALIB_DISPATCH = {
@@ -89,6 +89,7 @@ def _linreg_output(
 
 
 @nan_on_short_input
+@params(length=Int(14, gt=1), talib=Flag(False))
 def linreg(
     close: Series,
     length: int | None = None,
@@ -97,8 +98,8 @@ def linreg(
     **kwargs: Any,
 ) -> Series | None:
     """Indicator: Linear Regression"""
+    assert length is not None  # resolved by @params; narrows the type for mypy
     # Validate arguments
-    length = _pos_int(length, 14, "length", gt=1)
     close = verify_series(close, length)
     offset = get_offset(offset)
     angle = _bool_param(kwargs.pop("angle", None), False, "angle")
@@ -107,7 +108,7 @@ def linreg(
     r = _bool_param(kwargs.pop("r", None), False, "r")
     slope = _bool_param(kwargs.pop("slope", None), False, "slope")
     tsf = _bool_param(kwargs.pop("tsf", None), False, "tsf")
-    mode_talib = _bool_param(talib, False, "talib")
+    mode_talib = talib
 
     if close is None:
         return None
