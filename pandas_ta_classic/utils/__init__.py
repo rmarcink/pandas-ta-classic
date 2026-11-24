@@ -17,6 +17,7 @@ from ._core import (
     unsigned_differences,
     verify_series,
 )
+from ._defaults import defaults
 from ._math import (
     combination,
     df_error_analysis,
@@ -71,6 +72,7 @@ __all__ = [
     "cross",
     "cross_value",
     "crossover",
+    "defaults",
     "degenerate_div",
     "degenerate_zero",
     "df_error_analysis",

@@ -20,7 +20,9 @@ from pandas_ta_classic.utils._keywords import _is_package_indicator, check_keywo
 logger = logging.getLogger(__name__)
 
 
-def _validate_number(val: Any, default: Any, name: str, *, integer: bool, gt: float | None, ge: float | None, lt: float | None) -> Any:
+def _validate_number(
+    val: Any, default: Any, name: str, *, integer: bool, gt: float | None, ge: float | None, lt: float | None, note: str = ""
+) -> Any:
     """Shared body of :func:`_pos_int` and :func:`_pos_float`.
 
     ``None`` means "not given" and returns *default*. Anything else must be a
@@ -40,7 +42,7 @@ def _validate_number(val: Any, default: Any, name: str, *, integer: bool, gt: fl
         bounds = " and ".join(f"{op} {bound}" for op, bound in ((">", gt), (">=", ge), ("<", lt)) if bound is not None)
         kind = "an integer" if integer else "a number"
         requirement = f"{kind} {bounds}" if bounds else kind
-        raise ValueError(f"{indicator}() {name} must be {requirement}, got {val!r}")
+        raise ValueError(f"{indicator}() {name} must be {requirement}{note}, got {val!r}")
     # A whole number keeps the type of an int default, so kc(scalar=2) and
     # kc(scalar=2.0) name their columns KCLe_20_2 like kc() instead of KCLe_20_2.0.
     if integer or (isinstance(default, int) and not isinstance(default, bool) and float(val).is_integer()):

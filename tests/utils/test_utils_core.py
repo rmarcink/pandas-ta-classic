@@ -490,6 +490,7 @@ class TestRequiredUtilityInputs:
         # A valid call for each utility with required inputs; each input in turn is replaced by None.
         valid_calls = {
             "cagr": {"close": wave},
+            "defaults": {"indicator": "rsi"},
             "calmar_ratio": {"close": wave},
             "downside_deviation": {"returns": wave.pct_change()},
             "jensens_alpha": {"returns": wave.pct_change(), "benchmark_returns": s.pct_change()},

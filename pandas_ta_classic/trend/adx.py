@@ -4,7 +4,7 @@ from typing import Any
 from pandas import DataFrame, Series
 
 from pandas_ta_classic import Imports
-from pandas_ta_classic.overlap.ma import ma
+from pandas_ta_classic.overlap.ma import ma, ma_window
 from pandas_ta_classic.utils import (
     apply_fill,
     apply_offset,
@@ -38,6 +38,8 @@ def adx(
     length = _pos_int(length, 14, "length")
     lensig = _pos_int(lensig, length, "lensig")
     mamode = _str_param(mamode, "rma", "mamode", choices=ma())
+    length = ma_window(mamode, length, "length")
+    lensig = ma_window(mamode, lensig, "lensig")
     scalar = _number(scalar, 100, "scalar")
     high = verify_series(high, length)
     low = verify_series(low, length)
