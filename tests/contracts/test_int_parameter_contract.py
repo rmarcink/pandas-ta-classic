@@ -15,7 +15,7 @@ import pandas as pd
 import pytest
 
 import pandas_ta_classic as ta
-from tests.contracts import INDICATORS, NOT_OHLCV, inputs, params, spy
+from tests.contracts import INDICATORS, NOT_OHLCV, inputs, params, plain_annotation, spy
 
 VALUES = (2, 3, 5)
 CASES = [
@@ -23,7 +23,7 @@ CASES = [
     for name in INDICATORS
     if name not in NOT_OHLCV
     for param, spec in inspect.signature(getattr(ta, name)).parameters.items()
-    if param != "offset" and (spec.annotation is int or int in typing.get_args(spec.annotation))
+    if param != "offset" and (plain_annotation(spec.annotation) is int or int in typing.get_args(plain_annotation(spec.annotation)))
 ]
 KNOWN: dict[tuple[str, str], str] = {}
 

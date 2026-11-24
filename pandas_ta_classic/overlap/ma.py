@@ -3,7 +3,7 @@ from typing import Any
 
 from pandas import Series
 
-from pandas_ta_classic.utils._core import nan_on_short_input
+from pandas_ta_classic.utils._core import Bound, _validate_number, declared_params, nan_on_short_input
 
 from .dema import dema
 from .ema import ema
@@ -45,6 +45,17 @@ _MA_DISPATCH = {
     "wma": wma,
     "zlma": zlma,
 }
+
+
+def ma_window(mamode: str, value: int, name: str) -> int:
+    """Check *value*, a window an indicator hands to ``ma(mamode, length=...)``, against
+    the bound the chosen MA declares for its ``length``, so the error names the caller's
+    parameter (``stoch() d must be an integer > 1 with mamode='hma', got 1``)."""
+    declared = declared_params(_MA_DISPATCH[mamode]).get("length")
+    if declared is None or not isinstance(declared.marker, Bound):
+        return value
+    bound = declared.marker
+    return _validate_number(value, value, name, integer=True, gt=bound.gt, ge=bound.ge, lt=bound.lt, note=f" with mamode={mamode!r}")
 
 
 @nan_on_short_input
