@@ -16,6 +16,7 @@ References
 import numpy as np
 from pandas import Series
 
+from pandas_ta_classic.utils._math import _zero_small
 from pandas_ta_classic.utils._njit import njit
 
 
@@ -72,6 +73,21 @@ def wilder_smooth(raw: Series, length: int) -> Series:
     # A missing input bar has no value; the smoothing carries its state across it.
     result[~np.isfinite(arr) & (np.arange(n) >= start)] = np.nan
     return Series(result, index=raw.index)
+
+
+def directional_movement(high: Series, low: Series, drift: int) -> tuple[Series, Series]:
+    """Wilder's raw +DM and -DM, before any smoothing.
+
+    +DM is the rise of the high over ``drift`` bars where it beats the fall of
+    the low, -DM the fall of the low where it beats the rise of the high; the
+    other bars read 0. Values closer to 0 than epsilon read 0.0
+    (:func:`~pandas_ta_classic.utils._math._zero_small`).
+    """
+    up = high - high.shift(drift)
+    dn = low.shift(drift) - low
+    pos = ((up > dn) & (up > 0)) * up
+    neg = ((dn > up) & (dn > 0)) * dn
+    return _zero_small(pos), _zero_small(neg)
 
 
 def wilder_di(pos: Series, neg: Series, tr: Series, length: int, scalar: float) -> tuple[Series, Series]:

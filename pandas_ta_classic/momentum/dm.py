@@ -13,7 +13,7 @@ from pandas_ta_classic.utils import (
     verify_series,
 )
 from pandas_ta_classic.utils._core import Bound, Flag, OneOf, nan_on_short_input
-from pandas_ta_classic.utils._math import _zero_small
+from pandas_ta_classic.utils._wilder import directional_movement, wilder_smooth
 
 
 @nan_on_short_input
@@ -44,20 +44,11 @@ def dm(
         pos = PLUS_DM(high, low, length)
         neg = MINUS_DM(high, low, length)
     else:
-        up = high - high.shift(drift)
-        dn = low.shift(drift) - low
-
-        pos_ = ((up > dn) & (up > 0)) * up
-        neg_ = ((dn > up) & (dn > 0)) * dn
-
-        pos_ = _zero_small(pos_)
-        neg_ = _zero_small(neg_)
+        pos_, neg_ = directional_movement(high, low, drift)
 
         if mamode == "rma":
             # TA-Lib PLUS_DM/MINUS_DM: Wilder cumsum seeding —
             # delegated to the shared wilder_smooth utility.
-            from pandas_ta_classic.utils._wilder import wilder_smooth
-
             pos = wilder_smooth(pos_, length)
             neg = wilder_smooth(neg_, length)
         else:

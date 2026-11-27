@@ -13,7 +13,7 @@ from pandas_ta_classic.utils import (
     verify_series,
 )
 from pandas_ta_classic.utils._core import Bound, Flag, OneOf, nan_on_short_input
-from pandas_ta_classic.utils._math import _zero_small
+from pandas_ta_classic.utils._wilder import directional_movement, wilder_smooth
 
 
 @nan_on_short_input
@@ -47,21 +47,12 @@ def dx(
 
         dx_ = TADX(high, low, close, length)
     else:
-        up = high - high.shift(drift)
-        dn = low.shift(drift) - low
-
-        pos = ((up > dn) & (up > 0)) * up
-        neg = ((dn > up) & (dn > 0)) * dn
-
-        pos = _zero_small(pos)
-        neg = _zero_small(neg)
+        pos, neg = directional_movement(high, low, drift)
 
         if mamode == "rma":
             # TA-Lib seeding (see utils/_wilder.py); DX is a ratio of the two
             # smoothed DMs, so true range cancels and is not needed. The seed
             # bar is not reported: TA-Lib's DX lookback is `length`.
-            from pandas_ta_classic.utils._wilder import wilder_smooth
-
             dmp = wilder_smooth(pos, length)
             dmn = wilder_smooth(neg, length)
             seed = dmp.first_valid_index()

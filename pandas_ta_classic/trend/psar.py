@@ -9,18 +9,10 @@ from pandas_ta_classic.utils import (
     apply_offset,
     get_offset,
     verify_series,
-    zero,
 )
 from pandas_ta_classic.utils._core import Bound, _name_tokens, nan_on_short_input, skip_leading_nan
 from pandas_ta_classic.utils._njit import njit
-
-
-def _psar_falling(high: Series, low: Series, drift: int = 1) -> bool:
-    """Returns True when the last -DM is positive (falling market)."""
-    up = high - high.shift(drift)
-    dn = low.shift(drift) - low
-    _dmn = (((dn > up) & (dn > 0)) * dn).apply(zero).iloc[-1]
-    return _dmn > 0
+from pandas_ta_classic.utils._wilder import directional_movement
 
 
 @njit(cache=True)
@@ -90,7 +82,7 @@ def psar(
         return None
 
     # Falling if the first NaN -DM is positive
-    falling = _psar_falling(high.iloc[:2], low.iloc[:2]) if len(high) > 1 else False
+    falling = (directional_movement(high.iloc[:2], low.iloc[:2], 1)[1].iloc[-1] > 0) if len(high) > 1 else False
     if falling:
         sar = high.iloc[0]
         ep = low.iloc[1] if len(low) > 1 else low.iloc[0]

@@ -13,8 +13,7 @@ from pandas_ta_classic.utils import (
     verify_series,
 )
 from pandas_ta_classic.utils._core import Bound, Flag, OneOf, nan_on_short_input
-from pandas_ta_classic.utils._math import _zero_small
-from pandas_ta_classic.utils._wilder import wilder_di
+from pandas_ta_classic.utils._wilder import directional_movement, wilder_di
 from pandas_ta_classic.volatility.atr import atr
 from pandas_ta_classic.volatility.true_range import true_range
 
@@ -55,14 +54,7 @@ def adx(
         dmp = Series(PLUS_DI(high, low, close, length), index=close.index)
         dmn = Series(MINUS_DI(high, low, close, length), index=close.index)
     else:
-        up = high - high.shift(drift)  # high.diff(drift)
-        dn = low.shift(drift) - low  # low.diff(-drift).shift(drift)
-
-        pos = ((up > dn) & (up > 0)) * up
-        neg = ((dn > up) & (dn > 0)) * dn
-
-        pos = _zero_small(pos)
-        neg = _zero_small(neg)
+        pos, neg = directional_movement(high, low, drift)
 
         if mamode == "rma":
             # Wilder's smoothing with TA-Lib's seeding (sum of the first

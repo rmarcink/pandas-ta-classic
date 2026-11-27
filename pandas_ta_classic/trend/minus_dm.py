@@ -12,7 +12,7 @@ from pandas_ta_classic.utils import (
     verify_series,
 )
 from pandas_ta_classic.utils._core import Bound, Flag, nan_on_short_input
-from pandas_ta_classic.utils._math import _zero_small
+from pandas_ta_classic.utils._wilder import directional_movement, wilder_smooth
 
 
 @nan_on_short_input
@@ -44,12 +44,7 @@ def minus_dm(
 
         result = _MINUS_DM(high, low, timeperiod=length)
     else:
-        from pandas_ta_classic.utils._wilder import wilder_smooth
-
-        up = high - high.shift(drift)
-        dn = low.shift(drift) - low
-        neg_ = ((dn > up) & (dn > 0)) * dn
-        neg_ = _zero_small(neg_)
+        _, neg_ = directional_movement(high, low, drift)
         result = wilder_smooth(neg_, length)  # Wilder's raw DM, TA-Lib seeding
 
     # Offset

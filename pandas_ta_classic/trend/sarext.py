@@ -10,7 +10,6 @@ from pandas_ta_classic.utils import (
     apply_offset,
     get_offset,
     verify_series,
-    zero,
 )
 from pandas_ta_classic.utils._core import (
     Bound,
@@ -21,13 +20,7 @@ from pandas_ta_classic.utils._core import (
     skip_leading_nan,
 )
 from pandas_ta_classic.utils._njit import njit
-
-
-def _sarext_falling(high: Series, low: Series, drift: int = 1) -> bool:
-    up = high - high.shift(drift)
-    dn = low.shift(drift) - low
-    _dmn = (((dn > up) & (dn > 0)) * dn).apply(zero).iloc[-1]
-    return _dmn > 0
+from pandas_ta_classic.utils._wilder import directional_movement
 
 
 @njit(cache=True)
@@ -129,7 +122,7 @@ def _sarext_native_result(
     elif startvalue < 0:
         falling, sar, ep = True, abs(startvalue), low.iloc[1]
     else:
-        falling = bool(_sarext_falling(high.iloc[:2], low.iloc[:2]))
+        falling = bool(directional_movement(high.iloc[:2], low.iloc[:2], 1)[1].iloc[-1] > 0)
         sar = high.iloc[0] if falling else low.iloc[0]
         ep = low.iloc[1] if falling else high.iloc[1]
     m = high.shape[0]
